@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="dev/dev.shproj" />
+  <Project Path="src/RommStar.Core/RommStar.Core.csproj" />
+</Solution>

@@ -1,0 +1,60 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Reference Include="System.Drawing.Common">
+			<HintPath>..\..\lib\launchbox\System.Drawing.Common.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Unbroken.LaunchBox.Plugins">
+			<HintPath>..\..\lib\launchbox\Unbroken.LaunchBox.Plugins.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Unbroken.LaunchBox.Plugins">
+			<HintPath>..\..\lib\launchbox\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
+			<HintPath>..\..\lib\launchbox\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="System.Resources.Extensions">
+			<HintPath>..\..\lib\launchbox\System.Resources.Extensions.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="System.Private.Windows.Core">
+			<HintPath>..\..\lib\launchbox\System.Private.Windows.Core.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Properties\Resources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Resources.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Update="Properties\Resources.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="UI\Rommstar\ViewModels\" />
+	  <Folder Include="UI\Rommstar\Views\" />
+	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	  <Exec Command="call &quot;$(SolutionDir)\build\scripts\moveDebugBuild.bat&quot; &quot;$(ConfigurationName)&quot; &quot;$(SolutionDir)&quot; &quot;C:\Users\stigz\LaunchboxDEV\LaunchBox\Plugins\RommStar&quot; &quot;src\RommStar.Core\bin\Debug\net9.0&quot;" />
+	</Target>
+
+</Project>
