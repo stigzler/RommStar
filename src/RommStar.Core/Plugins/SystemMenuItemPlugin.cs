@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RommStar.Core.Launchbox;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -6,23 +7,23 @@ using System.Text;
 using System.Threading.Tasks;
 using Unbroken.LaunchBox.Plugins;
 
-namespace RommStar.Core.UI.Launchbox
+namespace RommStar.Core.Plugins
 {
-    internal class ToolsMenuSyncPlatform : ISystemMenuItemPlugin
+    internal class SystemMenuItemPlugin : ISystemMenuItemPlugin
     {
-        public string Caption => "Rommstar Sync Platform";
+        public string Caption => "Rommstar Settings";
 
         public Image IconImage => Properties.Resources.rommIcon64px;
 
         public bool ShowInLaunchBox => true;
 
-        public bool ShowInBigBox => true;
+        public bool ShowInBigBox => false;
 
         public bool AllowInBigBoxWhenLocked => false;
 
         public void OnSelected()
         {
-            PluginHost.Instance.ToolsMenuItemSelected(ToolMenuItem.SyncPlatform);
+            PluginHost.Instance.LaunchboxMenuItemSelected(LaunchboxMenuItem.Settings);
         }
     }
 }

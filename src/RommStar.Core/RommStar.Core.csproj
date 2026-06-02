@@ -7,6 +7,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="UI\Rommstar\**" />
+	  <EmbeddedResource Remove="UI\Rommstar\**" />
+	  <None Remove="UI\Rommstar\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Reference Include="System.Drawing.Common">
 			<HintPath>..\..\lib\launchbox\System.Drawing.Common.dll</HintPath>
 			<Private>false</Private>
@@ -49,8 +55,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="UI\Rommstar\ViewModels\" />
-	  <Folder Include="UI\Rommstar\Views\" />
+	  <Folder Include="UI\" />
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

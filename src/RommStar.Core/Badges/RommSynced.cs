@@ -20,7 +20,11 @@ namespace RommStar.Core.Badges
 
         public bool GetAppliesToGame(IGame game)
         {
-            return true;
+            // IGame default state for Installed is null, Romm Import process will set to either true or false
+            // so we can use this to determine if the game has been processed by Romm and if has -
+            // show romm icon in badge array.
+
+            return game.Installed != null;
         }
     }
 }

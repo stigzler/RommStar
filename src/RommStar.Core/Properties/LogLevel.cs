@@ -4,11 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RommStar.Core.UI.Launchbox
+namespace RommStar.Core.Properties
 {
-    internal enum ToolMenuItem
+    public enum LogLevel
     {
-        SyncPlatform,
-        Settings
+        Normal,
+        Verbose,
+        Debug
     }
 }

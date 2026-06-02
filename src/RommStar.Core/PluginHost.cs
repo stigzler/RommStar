@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using RommStar.Core.Launchbox;
 using RommStar.Core.Services;
-using RommStar.Core.UI.Launchbox;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -60,17 +60,32 @@ namespace RommStar.Core
             // Add other services here
         }
 
-        internal void ToolsMenuItemSelected(ToolMenuItem menuItem)
+        internal void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
         {
             switch (menuItem)
             {
-                case ToolMenuItem.SyncPlatform:
+                case LaunchboxMenuItem.SyncPlatform:
                     _loggingService.Log("Sync Platform menu item selected.");
                     // Implement your logic for Sync Platform here
                     break;
 
-                case ToolMenuItem.Settings:
+                case LaunchboxMenuItem.Settings:
                     _loggingService.Log("Settings menu item selected.");
+                    break;
+            }
+        }
+
+        internal void LaunchboxEventReceived(string eventType)
+        {
+            _loggingService.Log($"Launchbox event received: {eventType}", Properties.LogLevel.Verbose);
+            // Implement your logic for handling different Launchbox events here
+            switch (eventType)
+            {
+                case Unbroken.LaunchBox.Plugins.Data.SystemEventTypes.PluginInitialized:
+                    //PluginHost.Instance.PluginInitialized();
+                    break;
+
+                default:
                     break;
             }
         }

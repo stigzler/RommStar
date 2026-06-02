@@ -1,5 +1,4 @@
-﻿using RommStar.Core.Models;
-using RommStar.Core.Properties;
+﻿using RommStar.Core.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,7 +13,7 @@ namespace RommStar.Core.Services
     {
         private static readonly string LogPath = Path.Combine(
                                     Path.GetDirectoryName(typeof(LoggingService).Assembly.Location)!,
-                                    "RommBox.log");
+                                    "RommStar.log");
 
         private static readonly object LockObject = new object();
 
@@ -53,7 +52,7 @@ namespace RommStar.Core.Services
                     string logLine = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {message}{Environment.NewLine}";
                     File.AppendAllText(LogPath, logLine, Encoding.UTF8);
 #if DEBUG
-                    Debug.WriteLine(logLine.TrimEnd());
+                    Debug.WriteLine($"Logged: {logLine.TrimEnd()}");
 #endif
                 }
             }
