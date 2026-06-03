@@ -5,6 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UseWPF>true</UseWPF>
 		<Nullable>enable</Nullable>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -14,7 +15,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Reference Include="System.Drawing.Common"  Version="9.0.0">
+		<Reference Include="System.Drawing.Common" Version="9.0.0">
 			<HintPath>..\..\lib\launchbox\System.Drawing.Common.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
@@ -42,6 +43,11 @@
 	    <AutoGen>True</AutoGen>
 	    <DependentUpon>Resources.resx</DependentUpon>
 	  </Compile>
+	  <Compile Update="Properties\Settings.Designer.cs">
+	    <DesignTimeSharedInput>True</DesignTimeSharedInput>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Settings.settings</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -57,14 +63,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="AdonisUI" Version="1.17.1" />
-	  <PackageReference Include="AdonisUI.ClassicTheme" Version="1.17.1" />
-	  <!-- Ensure the project explicitly depends on System.Drawing.Common v9 so NuGet resolves v9 instead of the transitive 4.6.0 -->
-	  <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+	  <None Update="Properties\Settings.settings">
+	    <Generator>SettingsSingleFileGenerator</Generator>
+	    <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+	  </None>
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-	  <Exec Command="call &quot;$(SolutionDir)\build\scripts\moveDebugBuild.bat&quot; &quot;$(ConfigurationName)&quot; &quot;$(SolutionDir)&quot; &quot;C:\Users\stigz\LaunchboxDEV\LaunchBox\Plugins\RommStar&quot; &quot;src\RommStar.Core\bin\Debug\net9.0&quot;" />
+	  <Exec Command="call &quot;$(SolutionDir)\build\scripts\moveDebugBuild.bat&quot; &quot;$(ConfigurationName)&quot; &quot;$(SolutionDir)&quot; &quot;C:\Users\stigz\LaunchboxDEV\LaunchBox\Plugins\RommStar&quot; &quot;src\RommStar.Core\bin\Debug\net9.0-windows&quot;" />
 	</Target>
 
 </Project>

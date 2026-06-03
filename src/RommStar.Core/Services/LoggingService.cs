@@ -17,7 +17,7 @@ namespace RommStar.Core.Services
 
         private static readonly object LockObject = new object();
 
-        private static LogLevel _logLevel;
+        private static LoggingLevel _logLevel;
 
         public LoggingService()
         {
@@ -38,9 +38,9 @@ namespace RommStar.Core.Services
             }
         }
 
-        public void Log(string message, LogLevel logLevel = LogLevel.Normal)
+        public void Log(string message, LoggingLevel logLevel = LoggingLevel.Normal)
         {
-            if (logLevel > Settings.Default.LogLevel)
+            if (logLevel > Settings.Default.LoggingLevel)
             {
                 return; // Skip logging if the message's log level is higher than the configured log level
             }

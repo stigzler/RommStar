@@ -23,7 +23,7 @@ namespace RommStar.Core.Plugins
 
         public void OnSelected()
         {
-            PluginHost.Instance.LaunchboxMenuItemSelected(LaunchboxMenuItem.Settings);
+            PluginHost.Instance.LaunchboxMenuItemSelected(LaunchboxMenuItem.ToolsMenuRommStar);
         }
     }
 }

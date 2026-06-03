@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RommStar.Core.Properties
+namespace RommStar.Core.Services
 {
-    public enum LogLevel
+    public enum LoggingLevel
     {
-        Normal,
-        Verbose,
-        Debug
+        Normal = 0,
+        Verbose = 1,
+        Debug = 2
     }
 }

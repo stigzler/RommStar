@@ -9,6 +9,6 @@ namespace RommStar.Core.Launchbox
     internal enum LaunchboxMenuItem
     {
         SyncPlatform,
-        Settings
+        ToolsMenuRommStar
     }
 }

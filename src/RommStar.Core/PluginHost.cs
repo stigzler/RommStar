@@ -15,7 +15,7 @@ namespace RommStar.Core
     internal class PluginHost
     {
         private static readonly object _padlock = new object();
-        private static PluginHost _instance = null;
+        private static PluginHost? _instance;
 
         // Store your services as private fields
         private readonly LoggingService _loggingService;
@@ -51,7 +51,7 @@ namespace RommStar.Core
             _loggingService.Log($"Logging started at {DateTime.Now:dd.MM.yy - HH:mm:ss}");
             _loggingService.Log("PluginHost initialized and services configured.");
             _loggingService.Log("Settings:");
-            _loggingService.Log($"  LogLevel: {Properties.Settings.Default.LogLevel.ToString()}");
+            _loggingService.Log($"  LogLevel: {Properties.Settings.Default.LoggingLevel.ToString()}");
         }
 
         private static void ConfigureServices(IServiceCollection services)
@@ -69,15 +69,15 @@ namespace RommStar.Core
                     // Implement your logic for Sync Platform here
                     break;
 
-                case LaunchboxMenuItem.Settings:
-                    _loggingService.Log("Settings menu item selected.");
+                case LaunchboxMenuItem.ToolsMenuRommStar:
+                    _loggingService.Log("Tools>RommStar selected.");
                     break;
             }
         }
 
         internal void LaunchboxEventReceived(string eventType)
         {
-            _loggingService.Log($"Launchbox event received: {eventType}", Properties.LogLevel.Verbose);
+            _loggingService.Log($"Launchbox event received: {eventType}", LoggingLevel.Verbose);
             // Implement your logic for handling different Launchbox events here
             switch (eventType)
             {
