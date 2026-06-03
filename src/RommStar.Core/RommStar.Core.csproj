@@ -1,8 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net9.0-windows</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
@@ -13,7 +14,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Reference Include="System.Drawing.Common">
+		<Reference Include="System.Drawing.Common"  Version="9.0.0">
 			<HintPath>..\..\lib\launchbox\System.Drawing.Common.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
@@ -27,10 +28,6 @@
 		</Reference>
 		<Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
 			<HintPath>..\..\lib\launchbox\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="System.Resources.Extensions">
-			<HintPath>..\..\lib\launchbox\System.Resources.Extensions.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="System.Private.Windows.Core">
@@ -55,7 +52,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="UI\" />
+	  <Folder Include="UI\ViewModels\" />
+	  <Folder Include="UI\Views\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="AdonisUI" Version="1.17.1" />
+	  <PackageReference Include="AdonisUI.ClassicTheme" Version="1.17.1" />
+	  <!-- Ensure the project explicitly depends on System.Drawing.Common v9 so NuGet resolves v9 instead of the transitive 4.6.0 -->
+	  <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

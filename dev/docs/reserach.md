@@ -7,12 +7,12 @@
 ### Import System
 
 Leverage existing LB systems:
- - IGame has a "Installed" property. When syncing Romm data - set this to false. This then change "Play" to "Import". Caveat: you have to have a file ref'd in botht he db entry and in the folder in order for Install to be active.
 
+ - IGame has a "Installed" property. When syncing Romm data - set this to false. This then change "Play" to "Import". Caveat: you have to have a file ref'd in botht he db entry and in the folder in order for Install to be active.
 
  System: have a placeholder file named after the game's rom (eg "Astro Chase (USA).romm"). Db entry also references this. All other game metadata as per romm
 
- Somw working code that shows the process:
+ Some working code that shows the process:
 
  ```cs
 public void OnBeforeGameLaunching(IGame game, IAdditionalApplication app, IEmulator emulator)
