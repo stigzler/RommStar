@@ -58,9 +58,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="UI\Resources\Dictionaries\" />
-	  <Folder Include="UI\ViewModels\" />
-	  <Folder Include="UI\Views\" />
+	  <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+	  <PackageReference Include="ModernWpfUI" Version="0.9.7-preview.2" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -68,6 +67,11 @@
 	    <Generator>SettingsSingleFileGenerator</Generator>
 	    <LastGenOutput>Settings.Designer.cs</LastGenOutput>
 	  </None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="UI\Resources\Dictionaries\" />
+	  <Folder Include="UI\Views\" />
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
