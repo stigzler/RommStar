@@ -41,5 +41,16 @@ namespace RommStar.Core.UI.Views
             // Trigger initial navigation so the BreadcrumbBar gets populated
             Loaded += (_, _) => RootNavigationView.Navigate(typeof(DashboardPageView));
         }
+
+        private void FluentWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            Properties.Settings.Default.Save();
+        }
+
+        private void FluentWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            Properties.Settings.Default.WindowMainSize =
+                new System.Drawing.Size((int)e.NewSize.Width, (int)e.NewSize.Height);
+        }
     }
 }

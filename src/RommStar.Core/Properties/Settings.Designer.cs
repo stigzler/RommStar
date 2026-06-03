@@ -8,8 +8,6 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-using RommStar.Core.Services;
-
 namespace RommStar.Core.Properties {
     
     
@@ -28,12 +26,24 @@ namespace RommStar.Core.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public LoggingLevel LoggingLevel {
+        public int LoggingLevel {
             get {
-                return ((LoggingLevel)(this["LoggingLevel"]));
+                return ((int)(this["LoggingLevel"]));
             }
             set {
                 this["LoggingLevel"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("400, 300")]
+        public global::System.Drawing.Size WindowMainSize {
+            get {
+                return ((global::System.Drawing.Size)(this["WindowMainSize"]));
+            }
+            set {
+                this["WindowMainSize"] = value;
             }
         }
     }

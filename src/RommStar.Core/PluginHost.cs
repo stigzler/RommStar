@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using RommStar.Core.Helpers;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Services;
 using RommStar.Core.UI.ViewModels;
 using RommStar.Core.UI.Views;
 using System.Windows;
+using System.Windows.Media;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
@@ -11,6 +13,10 @@ using Wpf.Ui.Controls;
 
 namespace RommStar.Core
 {
+    /// <summary>
+    /// DeFacto entry point given this is instantiated by the plugin system, so we can do all our setup here.
+    /// Also a singleton so other events routed through this.
+    /// </summary>
     internal class PluginHost
     {
         private static readonly object _padlock = new object();
@@ -38,6 +44,11 @@ namespace RommStar.Core
 
         private PluginHost()
         {
+            // Entry point for plugin initialization, do all setup here
+            InitialisationHelpers.CheckSettings();
+
+            InitialisationHelpers.UiSetup();
+
             var services = new ServiceCollection();
             ConfigureServices(services);
 
@@ -65,15 +76,15 @@ namespace RommStar.Core
             services.AddSingleton<INavigationService, NavigationService>();
             services.AddSingleton<ISnackbarService, SnackbarService>();
 
-            // Views and ViewModel
-            services.AddScoped<MainWindowVM>();
+            // Views and ViewModels
             services.AddScoped<MainWindowView>();
+            services.AddScoped<MainWindowVM>();
 
-            services.AddScoped<DashboardPageVM>();
             services.AddScoped<DashboardPageView>();
+            services.AddScoped<DashboardPageVM>();
 
-            services.AddScoped<SettingsPageVM>();
             services.AddScoped<SettingsPageView>();
+            services.AddScoped<SettingsPageVM>();
         }
 
         internal void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
@@ -88,8 +99,11 @@ namespace RommStar.Core
                 case LaunchboxMenuItem.ToolsMenuRommStar:
                     _loggingService.Log("Tools>RommStar selected.");
 
-                    var mainWindow = _serviceProvider.GetRequiredService<MainWindowView>();
-                    mainWindow.ShowDialog();
+                    using (var scope = _serviceProvider.CreateScope())
+                    {
+                        var mainWindow = scope.ServiceProvider.GetRequiredService<MainWindowView>();
+                        mainWindow.ShowDialog();
+                    }
 
                     break;
             }

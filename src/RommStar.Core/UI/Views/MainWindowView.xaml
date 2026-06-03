@@ -6,10 +6,14 @@
         xmlns:local="clr-namespace:RommStar.Core.UI.Views"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:viewmodels="clr-namespace:RommStar.Core.UI.ViewModels"
+        xmlns:properties="clr-namespace:RommStar.Core.Properties"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowVM, IsDesignTimeCreatable=True}"
-        d:Background="#202020" d:WindowStyle="None"
-        Title="RommStar" Height="450" Width="800">
+        d:Background="#202020" d:WindowStyle="None" d:MinHeight="400" d:MinWidth="600"
+        Height="{Binding Source={x:Static properties:Settings.Default},Path=WindowMainSize.Height}"
+        Width="{Binding Source={x:Static properties:Settings.Default},Path=WindowMainSize.Width}"
+        WindowStartupLocation="CenterScreen"
+        Title="RommStar" Closing="FluentWindow_Closing" SizeChanged="FluentWindow_SizeChanged">
 
     <ui:FluentWindow.Resources>
         <ResourceDictionary>
@@ -40,7 +44,6 @@
         <ui:NavigationView Grid.Row="1" x:Name="RootNavigationView"
             MenuItemsSource="{Binding ViewModel.MenuItems, Mode=OneWay}"
             FooterMenuItemsSource="{Binding ViewModel.FooterMenuItems, Mode=OneWay}"
-                           IsBackButtonVisible="Collapsed" IsFooterSeparatorVisible="False" IsTopSeparatorVisible="False">
-        </ui:NavigationView>
+                           IsBackButtonVisible="Collapsed" IsFooterSeparatorVisible="False" IsTopSeparatorVisible="False" OpenPaneLength="150" IsPaneOpen="False" />
     </Grid>
 </ui:FluentWindow>

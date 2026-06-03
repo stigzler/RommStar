@@ -5,5 +5,8 @@
     <Setting Name="LoggingLevel" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
+    <Setting Name="WindowMainSize" Type="System.Drawing.Size" Scope="User">
+      <Value Profile="(Default)">400, 300</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
