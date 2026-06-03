@@ -1,8 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Services;
+using RommStar.Core.UI.ViewModels;
 using RommStar.Core.UI.Views;
 using System.Windows;
+using Wpf.Ui;
+using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
@@ -14,6 +17,8 @@ namespace RommStar.Core
         private static PluginHost? _instance;
 
         // Store your services as private fields
+        private readonly IServiceProvider _serviceProvider;
+
         private readonly LoggingService _loggingService;
 
         internal static PluginHost Instance
@@ -37,10 +42,10 @@ namespace RommStar.Core
             ConfigureServices(services);
 
             // Build the provider ONCE and keep it for the lifetime of the singleton
-            var serviceProvider = services.BuildServiceProvider();
+            _serviceProvider = services.BuildServiceProvider();
 
             // Resolve and store your services
-            _loggingService = serviceProvider.GetRequiredService<LoggingService>();
+            _loggingService = _serviceProvider.GetRequiredService<LoggingService>();
 
             // Start logging
             _loggingService.LogClear();
@@ -52,8 +57,23 @@ namespace RommStar.Core
 
         private static void ConfigureServices(IServiceCollection services)
         {
+            // App Services
             services.AddSingleton<LoggingService>();
-            // Add other services here
+
+            // Wpf-Ui Navigation Services
+            services.AddSingleton<INavigationViewPageProvider, NavigationViewPageProvider>();
+            services.AddSingleton<INavigationService, NavigationService>();
+            services.AddSingleton<ISnackbarService, SnackbarService>();
+
+            // Views and ViewModel
+            services.AddScoped<MainWindowVM>();
+            services.AddScoped<MainWindowView>();
+
+            services.AddScoped<DashboardPageVM>();
+            services.AddScoped<DashboardPageView>();
+
+            services.AddScoped<SettingsPageVM>();
+            services.AddScoped<SettingsPageView>();
         }
 
         internal void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
@@ -67,8 +87,10 @@ namespace RommStar.Core
 
                 case LaunchboxMenuItem.ToolsMenuRommStar:
                     _loggingService.Log("Tools>RommStar selected.");
-                    var mainWindow = new MainWindowView();
+
+                    var mainWindow = _serviceProvider.GetRequiredService<MainWindowView>();
                     mainWindow.ShowDialog();
+
                     break;
             }
         }

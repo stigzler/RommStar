@@ -5,8 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RommStar.Core.UI.Views"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-        mc:Ignorable="d" d:Background="#202020"
+        xmlns:viewmodels="clr-namespace:RommStar.Core.UI.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowVM, IsDesignTimeCreatable=True}"
+        d:Background="#202020" d:WindowStyle="None"
         Title="RommStar" Height="450" Width="800">
+
     <ui:FluentWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -33,10 +37,10 @@
             </ui:TitleBar.Icon>
         </ui:TitleBar>
 
-        <Grid Grid.Row="1">
-            <StackPanel Orientation="Horizontal">
-                <ui:ToggleSwitch Content="Standard ToggleButton" />
-            </StackPanel>
-        </Grid>
+        <ui:NavigationView Grid.Row="1" x:Name="RootNavigationView"
+            MenuItemsSource="{Binding ViewModel.MenuItems, Mode=OneWay}"
+            FooterMenuItemsSource="{Binding ViewModel.FooterMenuItems, Mode=OneWay}"
+                           IsBackButtonVisible="Collapsed" IsFooterSeparatorVisible="False" IsTopSeparatorVisible="False">
+        </ui:NavigationView>
     </Grid>
 </ui:FluentWindow>

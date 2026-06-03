@@ -27,7 +27,7 @@
 			<HintPath>..\..\lib\launchbox\Unbroken.LaunchBox.Plugins.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-		<Reference Include="Unbroken.LaunchBox.Plugins">
+		<Reference Include="Microsoft.Extensions.DependencyInjection">
 			<HintPath>..\..\lib\launchbox\Microsoft.Extensions.DependencyInjection.dll</HintPath>
 			<Private>false</Private>
 		</Reference>

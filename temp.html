@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>NavigationView | WPF UI </title>
+      <link rel="dns-prefetch" href="//fonts.googleapis.com">
+      <link rel="dns-prefetch" href="//fonts.gstatic.com">
+      <meta property="og:locale" content="en_US">
+      <meta property="og:type" content="website">
+      <meta property="og:site_name" content="wpfui.lepo.co">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="NavigationView | WPF UI ">
+      
+      <link rel="icon" href="../images/favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="../toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/lepoco/wpfui/blob/main/docs/documentation/navigation-view.md/#L1">
+  </head>
+
+  <script type="module">
+    import { init } from './../public/docfx.min.js'
+    init()
+  </script>
+
+  <script>
+    const theme = localStorage.getItem('theme') || 'auto'
+    document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+  </script>
+
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/wpfui.png" alt="WPF UI">
+            WPF UI
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" style="margin-top: -.65em; margin-left: -.8em" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="navigationview">NavigationView</h1>
+
+<p><code>NavigationView</code> is a top-level navigation control that provides a collapsible navigation pane (the &quot;hamburger menu&quot;) and a content area. It is the primary way to implement top-level navigation in your app.</p>
+<div class="TIP">
+<h5>Tip</h5>
+<p>For a complete implementation example, see the <a href="https://github.com/lepoco/wpfui/tree/main/src/Wpf.Ui.Gallery">WPF UI Gallery</a> application.</p>
+</div>
+<h2 id="anatomy">Anatomy</h2>
+<p>The <code>NavigationView</code> control has several key areas:</p>
+<ul>
+<li><strong>Pane</strong>: The area on the left or top that contains navigation items.</li>
+<li><strong>Header</strong>: An area at the top of the content area, often used for a page title or a <code>BreadcrumbBar</code>.</li>
+<li><strong>Content Area</strong>: The main area of the control where page content is displayed.</li>
+<li><strong>AutoSuggestBox</strong>: An optional search box integrated into the navigation pane.</li>
+<li><strong>MenuItems</strong>: The primary list of navigation items.</li>
+<li><strong>FooterMenuItems</strong>: A secondary list of navigation items, typically for settings or about pages.</li>
+</ul>
+<h2 id="basic-usage">Basic Usage</h2>
+<p>Define <code>NavigationView</code> in your XAML and add <code>NavigationViewItem</code> objects to the <code>MenuItems</code> and <code>FooterMenuItems</code> collections.</p>
+<pre><code class="lang-xml">&lt;ui:NavigationView
+    xmlns:pages=&quot;clr-namespace:YourApp.Views.Pages&quot;
+    xmlns:ui=&quot;http://schemas.lepo.co/wpfui/2022/xaml&quot;&gt;
+    &lt;ui:NavigationView.MenuItems&gt;
+        &lt;ui:NavigationViewItem
+            Content=&quot;Home&quot;
+            Icon=&quot;{ui:SymbolIcon Home24}&quot;
+            TargetPageType=&quot;{x:Type pages:DashboardPage}&quot; /&gt;
+        &lt;ui:NavigationViewItem
+            Content=&quot;Data&quot;
+            Icon=&quot;{ui:SymbolIcon DataHistogram24}&quot;
+            TargetPageType=&quot;{x:Type pages:DataPage}&quot; /&gt;
+    &lt;/ui:NavigationView.MenuItems&gt;
+    &lt;ui:NavigationView.FooterMenuItems&gt;
+        &lt;ui:NavigationViewItem
+            Content=&quot;Settings&quot;
+            Icon=&quot;{ui:SymbolIcon Settings24}&quot;
+            TargetPageType=&quot;{x:Type pages:SettingsPage}&quot; /&gt;
+    &lt;/ui:NavigationView.FooterMenuItems&gt;
+&lt;/ui:NavigationView&gt;
+</code></pre>
+<div class="NOTE">
+<h5>Note</h5>
+<p><code>TargetPageType</code> is a required property on <code>NavigationViewItem</code> that specifies the page to navigate to when the item is selected. The value must be a <code>System.Type</code>.</p>
+</div>
+<h2 id="programmatic-navigation">Programmatic Navigation</h2>
+<p>You can navigate programmatically by calling the <code>Navigate</code> method with either the <code>Type</code> of the page or its <code>PageTag</code>.</p>
+<pre><code class="lang-csharp">// Navigate by Type
+MyNavigationView.Navigate(typeof(SettingsPage));
+
+// Navigate by Tag
+MyNavigationView.Navigate(&quot;settings&quot;);
+</code></pre>
+<p>To use tags, you must define a <code>PageTag</code> on the <code>NavigationViewItem</code>. If not defined, a tag is automatically generated from the <code>Content</code> property (e.g., &quot;Settings Page&quot; becomes &quot;settingspage&quot;).</p>
+<pre><code class="lang-xml">&lt;ui:NavigationViewItem
+    Content=&quot;Settings&quot;
+    PageTag=&quot;settings&quot;
+    TargetPageType=&quot;{x:Type pages:SettingsPage}&quot; /&gt;
+</code></pre>
+<h3 id="back-navigation">Back Navigation</h3>
+<p><code>NavigationView</code> automatically handles back navigation. The back button is shown when <code>CanGoBack</code> is <code>true</code>. You can also call <code>GoBack()</code> programmatically.</p>
+<pre><code class="lang-csharp">if (MyNavigationView.CanGoBack)
+{
+    MyNavigationView.GoBack();
+}
+</code></pre>
+<h2 id="pane-display-mode">Pane Display Mode</h2>
+<p>Control the visibility and behavior of the navigation pane with the <code>PaneDisplayMode</code> property.</p>
+<ul>
+<li><code>Left</code>: The pane is always open on the left.</li>
+<li><code>Top</code>: The pane is shown as a horizontal bar at the top.</li>
+<li><code>LeftCompact</code>: The pane is collapsed to show only icons, and expands on hover or when the hamburger button is clicked.</li>
+<li><code>LeftMinimal</code>: The pane is hidden and can be opened as an overlay.</li>
+</ul>
+<pre><code class="lang-xml">&lt;ui:NavigationView PaneDisplayMode=&quot;Top&quot; /&gt;
+</code></pre>
+<p>You can also control the pane's open state with the <code>IsPaneOpen</code> property.</p>
+<div class="TIP">
+<h5>Tip</h5>
+<p>To create a responsive layout that changes <code>PaneDisplayMode</code> based on window width, bind <code>PaneDisplayMode</code> to a property in your ViewModel and update it in the <code>Window.SizeChanged</code> event.</p>
+</div>
+<h2 id="header">Header</h2>
+<p>The <code>Header</code> property provides a content area above the navigation frame. It is commonly used with a <code>BreadcrumbBar</code> to show the user's location.</p>
+<pre><code class="lang-xml">&lt;ui:NavigationView&gt;
+    &lt;ui:NavigationView.Header&gt;
+        &lt;ui:BreadcrumbBar /&gt;
+    &lt;/ui:NavigationView.Header&gt;
+&lt;/ui:NavigationView&gt;
+</code></pre>
+<p>The <code>BreadcrumbBar</code> will automatically sync with the <code>NavigationView</code>'s navigation history.</p>
+<h2 id="mvvm-integration">MVVM Integration</h2>
+<p>For MVVM applications, it is recommended to use <code>INavigationService</code> and <code>IPageService</code> for navigation and page resolution.</p>
+<h3 id="1-service-configuration">1. Service Configuration</h3>
+<p>First, register the required services and your pages/ViewModels with your dependency injection container.</p>
+<pre><code class="lang-csharp">// Using Microsoft.Extensions.DependencyInjection
+Host.CreateDefaultBuilder()
+    .ConfigureServices((context, services) =&gt;
+    {
+        // Main window
+        services.AddScoped&lt;IWindow, MainWindow&gt;();
+        services.AddScoped&lt;MainWindowViewModel&gt;();
+
+        // Services
+        services.AddSingleton&lt;INavigationService, NavigationService&gt;();
+        services.AddSingleton&lt;IPageService, PageService&gt;();
+
+        // Pages and ViewModels
+        services.AddScoped&lt;DashboardPage&gt;();
+        services.AddScoped&lt;DashboardViewModel&gt;();
+        services.AddScoped&lt;SettingsPage&gt;();
+        services.AddScoped&lt;SettingsViewModel&gt;();
+    }).Build();
+</code></pre>
+<h3 id="2-viewmodel-setup">2. ViewModel Setup</h3>
+<p>In your <code>MainWindowViewModel</code>, define collections for your navigation items and bind them to the <code>NavigationView</code>.</p>
+<pre><code class="lang-csharp">public partial class MainWindowViewModel : ObservableObject
+{
+    [ObservableProperty]
+    private ICollection&lt;object&gt; _menuItems = new ObservableCollection&lt;object&gt;();
+
+    [ObservableProperty]
+    private ICollection&lt;object&gt; _footerMenuItems = new ObservableCollection&lt;object&gt;();
+
+    public MainWindowViewModel()
+    {
+        MenuItems = new ObservableCollection&lt;object&gt;
+        {
+            new NavigationViewItem(&quot;Home&quot;, SymbolRegular.Home24, typeof(DashboardPage)),
+            new NavigationViewItem(&quot;Data&quot;, SymbolRegular.DataHistogram24, typeof(DataPage))
+        };
+
+        FooterMenuItems = new ObservableCollection&lt;object&gt;
+        {
+            new NavigationViewItem(&quot;Settings&quot;, SymbolRegular.Settings24, typeof(SettingsPage))
+        };
+    }
+}
+</code></pre>
+<h3 id="3-view-setup">3. View Setup</h3>
+<p>In your <code>MainWindow.xaml</code>, bind the <code>MenuItemsSource</code> and <code>FooterMenuItemsSource</code> properties to the collections in your ViewModel. Then, attach the <code>INavigationService</code>.</p>
+<pre><code class="lang-xml">&lt;ui:NavigationView
+    x:Name=&quot;RootNavigationView&quot;
+    MenuItemsSource=&quot;{Binding MenuItems}&quot;
+    FooterMenuItemsSource=&quot;{Binding FooterMenuItems}&quot; /&gt;
+</code></pre>
+<pre><code class="lang-csharp">public partial class MainWindow : IWindow
+{
+    public MainWindow(
+        MainWindowViewModel viewModel,
+        INavigationService navigationService,
+        IPageService pageService
+    )
+    {
+        ViewModel = viewModel;
+        DataContext = this;
+        InitializeComponent();
+
+        // Attach the service to the NavigationView
+        navigationService.SetNavigationControl(RootNavigationView);
+        
+        // You can also set the page service, which is required for some functionalities
+        RootNavigationView.SetPageService(pageService);
+    }
+
+    public MainWindowViewModel ViewModel { get; }
+}
+</code></pre>
+<h3 id="4-navigating-from-a-viewmodel">4. Navigating from a ViewModel</h3>
+<p>Inject <code>INavigationService</code> into any ViewModel and use it to navigate.</p>
+<pre><code class="lang-csharp">public partial class DashboardViewModel : ObservableObject
+{
+    private readonly INavigationService _navigationService;
+
+    public DashboardViewModel(INavigationService navigationService)
+    {
+        _navigationService = navigationService;
+    }
+
+    [RelayCommand]
+    private void OnGoToSettings()
+    {
+        _navigationService.Navigate(typeof(SettingsPage));
+    }
+}
+</code></pre>
+<h2 id="navigation-events">Navigation Events</h2>
+<p><code>NavigationView</code> provides several events to hook into the navigation lifecycle:</p>
+<ul>
+<li><code>Navigating</code>: Occurs before navigation starts. Can be cancelled.</li>
+<li><code>Navigated</code>: Occurs after navigation is complete.</li>
+<li><code>SelectionChanged</code>: Occurs when a <code>NavigationViewItem</code> is selected.</li>
+</ul>
+<pre><code class="lang-csharp">private void OnNavigating(NavigationView sender, NavigatingCancelEventArgs args)
+{
+    // Don't navigate to settings if the user is not an admin
+    if (args.PageType == typeof(SettingsPage) &amp;&amp; !_isAdmin)
+    {
+        args.Cancel = true;
+    }
+}
+</code></pre>
+<h2 id="navigation-aware-pages">Navigation-Aware Pages</h2>
+<p>Implement <code>INavigationAware</code> on your page's code-behind or <code>INavigableView&lt;T&gt;</code> on your ViewModel to receive navigation events directly.</p>
+<h3 id="inavigationaware">INavigationAware</h3>
+<p>This interface is ideal for code-behind scenarios.</p>
+<pre><code class="lang-csharp">public partial class MyPage : INavigationAware
+{
+    public void OnNavigatedTo()
+    {
+        // Page was navigated to
+    }
+
+    public void OnNavigatedFrom()
+    {
+        // Page was navigated away from
+    }
+}
+</code></pre>
+<h3 id="inavigableviewt"><code>INavigableView&lt;T&gt;</code></h3>
+<p>This interface is designed for MVVM. Your page must inherit from <code>INavigableView&lt;T&gt;</code> where <code>T</code> is its ViewModel. The ViewModel will then receive the navigation calls.</p>
+<p><strong>Page:</strong></p>
+<pre><code class="lang-csharp">[GalleryPage(&quot;My Page&quot;, SymbolRegular.Page24)]
+public partial class MyPage : INavigableView&lt;MyViewModel&gt;
+{
+    public MyViewModel ViewModel { get; }
+
+    public MyPage(MyViewModel viewModel)
+    {
+        ViewModel = viewModel;
+        DataContext = this;
+        InitializeComponent();
+    }
+}
+</code></pre>
+<p><strong>ViewModel:</strong></p>
+<pre><code class="lang-csharp">public partial class MyViewModel : ObservableObject, INavigationAware
+{
+    public void OnNavigatedTo()
+    {
+        // Page was navigated to
+    }
+
+    public void OnNavigatedFrom()
+    {
+        // Page was navigated away from
+    }
+}
+</code></pre>
+<div class="IMPORTANT">
+<h5>Important</h5>
+<p>For <code>INavigableView&lt;T&gt;</code> to work, your page must have a public <code>ViewModel</code> property that returns an instance of the ViewModel.</p>
+</div>
+<h2 id="history-and-caching">History and Caching</h2>
+<p><code>NavigationView</code> maintains a navigation history.</p>
+<ul>
+<li><code>History</code>: A collection of <code>Page</code> instances that have been visited.</li>
+<li><code>CacheHistory</code>: The number of pages to keep in memory. The default is <code>0</code>. Set to a value greater than 0 to cache pages. When a cached page is navigated to, its previous state is preserved.</li>
+</ul>
+<pre><code class="lang-xml">&lt;ui:NavigationView CacheHistory=&quot;5&quot; /&gt;
+</code></pre>
+<div class="CAUTION">
+<h5>Caution</h5>
+<p>Caching pages increases memory consumption. Use it only for pages that are expensive to create or where preserving state is critical. Avoid caching pages that display frequently changing data.</p>
+</div>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/lepoco/wpfui/blob/main/docs/documentation/navigation-view.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+        
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top">
+      <div class="container-xxl">
+        <div class="row"><div class="col-12">WPF UI<a target="_blank" rel="noopener nofollow noreferrer" href="https://github.com/lepoco/wpfui"><code> https://github.com/lepoco/wpfui </code></a></div><div class="col-12">Build with<a target="_blank" rel="noopener nofollow noreferrer" href="https://dotnet.github.io/docfx/"><code> docfx </code></a>using <a target="_blank" rel="noopener nofollow noreferrer" href="https://highlightjs.org/"><code> highlight.js</code></a><a target="_blank" rel="noopener nofollow noreferrer" href="https://getbootstrap.com/"><code> bootstrap</code></a><a target="_blank" rel="noopener nofollow noreferrer" href="https://github.com/microsoft/fluentui-system-icons"><code> fluent-system-icons</code></a></div><div class="col-12">Copyright © 2026 lepo.co | Leszek Pomianowski and Open-Source Contributors</div></div>
+      </div>
+    </footer>
+  </body>
+</html>
+

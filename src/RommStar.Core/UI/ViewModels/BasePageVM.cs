@@ -8,11 +8,14 @@ using System.Threading.Tasks;
 
 namespace RommStar.Core.UI.ViewModels
 {
-    internal partial class BaseVM : ObservableObject
+    public partial class BasePageVM : ObservableObject
     {
         private LoggingService? loggingService;
 
-        public BaseVM(LoggingService loggingService)
+        [ObservableProperty]
+        private string? pageTitle;
+
+        public BasePageVM(LoggingService loggingService)
         {
             this.loggingService = loggingService;
         }

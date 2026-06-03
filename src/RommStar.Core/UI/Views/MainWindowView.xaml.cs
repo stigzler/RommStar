@@ -1,4 +1,6 @@
-﻿using System;
+﻿using RommStar.Core.Services;
+using RommStar.Core.UI.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +13,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Wpf.Ui;
+using Wpf.Ui.Abstractions;
 using Wpf.Ui.Controls;
 
 namespace RommStar.Core.UI.Views
@@ -20,9 +24,22 @@ namespace RommStar.Core.UI.Views
     /// </summary>
     public partial class MainWindowView : FluentWindow
     {
-        public MainWindowView()
+        public MainWindowVM ViewModel { get; }
+
+        public MainWindowView(MainWindowVM viewModel, INavigationService navigationService, INavigationViewPageProvider navigationViewPageProvider)
         {
+            ViewModel = viewModel;
+            DataContext = this;
             InitializeComponent();
+
+            // Attach the service to the NavigationView
+            navigationService.SetNavigationControl(RootNavigationView);
+
+            // You can also set the page service, which is required for some functionalities
+            RootNavigationView.SetPageProviderService(navigationViewPageProvider);
+
+            // Trigger initial navigation so the BreadcrumbBar gets populated
+            Loaded += (_, _) => RootNavigationView.Navigate(typeof(DashboardPageView));
         }
     }
 }

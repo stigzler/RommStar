@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace RommStar.Core.Services
 {
-    internal class LoggingService
+    public class LoggingService
     {
         private static readonly string LogPath = Path.Combine(
                                     Path.GetDirectoryName(typeof(LoggingService).Assembly.Location)!,
