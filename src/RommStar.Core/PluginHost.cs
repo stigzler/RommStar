@@ -1,17 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using ModernWpf;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Services;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using RommStar.Core.UI.Views;
 using System.Windows;
-using System.Windows.Resources;
-using Unbroken.LaunchBox.Plugins;
+using Wpf.Ui.Appearance;
+using Wpf.Ui.Controls;
 
 namespace RommStar.Core
 {
@@ -63,16 +56,6 @@ namespace RommStar.Core
             // Add other services here
         }
 
-        /// <summary>
-        /// Apply ModernWPF resources to a specific window.
-        /// Use this in XAML for each window: add Window.Resources with ThemeResources and XamlControlsResources
-        /// </summary>
-        internal static void ApplyModernWpfToWindow(Window window)
-        {
-            // Each window has its own resources defined in XAML - no need to do it here
-            // This method is a placeholder if you need programmatic application in the future
-        }
-
         internal void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
         {
             switch (menuItem)
@@ -84,8 +67,8 @@ namespace RommStar.Core
 
                 case LaunchboxMenuItem.ToolsMenuRommStar:
                     _loggingService.Log("Tools>RommStar selected.");
-                    //var mainWindow = new MainWindowView();
-                    //mainWindow.Show();
+                    var mainWindow = new MainWindowView();
+                    mainWindow.ShowDialog();
                     break;
             }
         }

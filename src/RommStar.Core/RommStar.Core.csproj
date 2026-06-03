@@ -15,6 +15,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="Resources\rommIcon64px.png" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Reference Include="System.Drawing.Common" Version="9.0.0">
 			<HintPath>..\..\lib\launchbox\System.Drawing.Common.dll</HintPath>
 			<Private>false</Private>
@@ -59,7 +63,7 @@
 
 	<ItemGroup>
 	  <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-	  <PackageReference Include="ModernWpfUI" Version="0.9.7-preview.2" />
+	  <PackageReference Include="WPF-UI" Version="4.3.0" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -71,7 +75,10 @@
 
 	<ItemGroup>
 	  <Folder Include="UI\Resources\Dictionaries\" />
-	  <Folder Include="UI\Views\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Resource Include="Resources\rommIcon64px.png" />
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

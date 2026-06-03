@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RommStar.Core.UI.ViewModels
 {
-    internal partial class MainVM : BaseVM
+    internal class SettingsPageVM : BaseVM
     {
     }
 }
