@@ -58,6 +58,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Folder Include="UI\Resources\Dictionaries\" />
 	  <Folder Include="UI\ViewModels\" />
 	  <Folder Include="UI\Views\" />
 	</ItemGroup>
