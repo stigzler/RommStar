@@ -14,7 +14,7 @@ namespace RommStar.Core.Badges
 
         public string UniqueId => "rommstarSynced";
 
-        public Image DefaultIcon => null;
+        public Image DefaultIcon => Properties.Resources.rommIcon64px;
 
         public int Index { get; set; } = 0;
 
