@@ -5,12 +5,17 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UseWPF>true</UseWPF>
 		<Nullable>enable</Nullable>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<Compile Remove="UI\Rommstar\**" />
 		<EmbeddedResource Remove="UI\Rommstar\**" />
 		<None Remove="UI\Rommstar\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="UI\Views\rommIcon64px.png" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -37,6 +42,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2">
+			<Private>true</Private>
+		</PackageReference>
 		<PackageReference Include="iNKORE.UI.WPF" Version="1.2.8" ExcludeAssets="runtime" />
 		<PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.10.2.1" ExcludeAssets="runtime" />
 	</ItemGroup>
@@ -47,6 +55,10 @@
 		</ItemGroup>
 		<Copy SourceFiles="@(TargetDlls)" DestinationFiles="@(TargetDlls->'$(TargetDir)%(FileName).dll.dep')" SkipUnchangedFiles="true" />
 	</Target>
+
+	<ItemGroup>
+	  <Resource Include="UI\Views\rommIcon64px.png" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<Compile Update="Properties\Resources.Designer.cs">
@@ -66,10 +78,6 @@
 			<Generator>ResXFileCodeGenerator</Generator>
 			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="UI\ViewModels\" />
 	</ItemGroup>
 
 	<ItemGroup>

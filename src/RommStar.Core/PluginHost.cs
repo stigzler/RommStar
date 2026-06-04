@@ -3,6 +3,7 @@ using iNKORE.UI.WPF.Modern.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Services;
+using RommStar.Core.UI.ViewModels;
 using RommStar.Core.UI.Views;
 using System;
 using System.IO;
@@ -17,6 +18,11 @@ namespace RommStar.Core
         private static PluginHost? _instance;
 
         private readonly LoggingService _loggingService;
+        private readonly IServiceProvider _serviceProvider;
+
+        private MainWindowVM MainWindowVM => _serviceProvider.GetRequiredService<MainWindowVM>();
+        private SettingsPageVM SettingsPageVM => _serviceProvider.GetRequiredService<SettingsPageVM>();
+        private HomePageVM HomePageVM => _serviceProvider.GetRequiredService<HomePageVM>();
 
         internal static PluginHost Instance
         {
@@ -33,18 +39,19 @@ namespace RommStar.Core
             }
         }
 
-        // Your original private instance constructor remains the sole entry point
         private PluginHost()
         {
-            // Subscribing to the dedicated method right here, exactly as you intended
+            // This picks up the assembly resolution for the iNKORE assemblies, which are disguised with a .dll.dep extension.
+            // This necessary because loading them normally (at plugin instantiation) interferes with launchbox libraries
+            // and produces an error. By using this method, we can load the iNKORE assemblies only when they are actually needed (when the admin window is launched), and avoid any conflicts with launchbox's assembly loading.
             AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
 
             var services = new ServiceCollection();
             ConfigureServices(services);
 
-            var serviceProvider = services.BuildServiceProvider();
+            _serviceProvider = services.BuildServiceProvider();
 
-            _loggingService = serviceProvider.GetRequiredService<LoggingService>();
+            _loggingService = _serviceProvider.GetRequiredService<LoggingService>();
 
             _loggingService.LogClear();
             _loggingService.Log($"Logging started at {DateTime.Now:dd.MM.yy - HH:mm:ss}");
@@ -53,7 +60,7 @@ namespace RommStar.Core
             _loggingService.Log($"  LogLevel: {Properties.Settings.Default.LoggingLevel.ToString()}");
         }
 
-        // The extracted method for assembly resolution, completely independent of instantiation
+        // The extracted method for assembly resolution, completely independent of plugin instantiation
         private static Assembly? OnAssemblyResolve(object? sender, ResolveEventArgs args)
         {
             string assemblyName = new AssemblyName(args.Name).Name ?? string.Empty;
@@ -81,6 +88,23 @@ namespace RommStar.Core
         private static void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<LoggingService>();
+
+            // Register ViewModels as singletons
+            services.AddSingleton<MainWindowVM>();
+            services.AddSingleton<SettingsPageVM>();
+            services.AddSingleton<HomePageVM>();
+
+            // Register Views as singletons
+            // MainWindowView requires all three ViewModels, so use a factory
+            services.AddSingleton<MainWindowView>(sp =>
+                new MainWindowView(
+                    sp.GetRequiredService<MainWindowVM>(),
+                    sp.GetRequiredService<HomePageVM>(),
+                    sp.GetRequiredService<SettingsPageVM>()
+                )
+            );
+            services.AddSingleton<SettingsPageView>();
+            services.AddSingleton<HomePageView>();
         }
 
         internal void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
@@ -105,7 +129,7 @@ namespace RommStar.Core
 
         private void LaunchAdminWindow()
         {
-            var adminWindow = new MainWindowView();
+            var adminWindow = _serviceProvider.GetRequiredService<MainWindowView>();
             adminWindow.ShowDialog();
         }
     }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RommStar.Core.UI.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,11 +19,17 @@ namespace RommStar.Core.UI.Views
     /// <summary>
     /// Interaction logic for SettingsPageView.xaml
     /// </summary>
+    ///
+
     public partial class SettingsPageView : Page
     {
-        public SettingsPageView()
+        private SettingsPageVM ViewModel;
+
+        public SettingsPageView(SettingsPageVM viewModel)
         {
             InitializeComponent();
+            ViewModel = viewModel;
+            DataContext = ViewModel;
         }
     }
 }

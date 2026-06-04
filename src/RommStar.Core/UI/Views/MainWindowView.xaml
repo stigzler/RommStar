@@ -9,12 +9,12 @@
         ui:WindowHelper.UseModernWindowStyle="True"
         ui:WindowHelper.SystemBackdropType="Mica"
         mc:Ignorable="d" d:Background="#202020" d:Foreground="Gainsboro"
-        Title="MainWindowView" Height="450" Width="800">
+        Title="RommStar" Height="450" Width="800">
 
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ui:ThemeResources RequestedTheme="Dark" AccentColor="#ff0000" />
+                <ui:ThemeResources RequestedTheme="Dark" AccentColor="#553e98" />
                 <ui:XamlControlsResources />
             </ResourceDictionary.MergedDictionaries>
 
@@ -22,7 +22,14 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <ui:NavigationView x:Name="NavigationView_Root" IsPaneOpen="False" SelectionChanged="NavigationView_SelectionChanged">
+    <ui:NavigationView x:Name="NavigationView_Root" IsPaneOpen="False" SelectionChanged="NavigationView_SelectionChanged" OpenPaneLength="147">
+
+        <ui:NavigationView.Resources>
+            <Thickness x:Key="NavigationViewHeaderMargin">15,10,10,10</Thickness>
+
+            <Thickness x:Key="NavigationViewContentMargin">5</Thickness>
+        </ui:NavigationView.Resources>
+
         <ui:NavigationView.MenuItems>
             <ui:NavigationViewItem Content="Home" x:Name="NavigationViewItem_Home">
                 <ui:NavigationViewItem.Icon>

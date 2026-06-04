@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RommStar.Core.UI.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,9 +21,13 @@ namespace RommStar.Core.UI.Views
     /// </summary>
     public partial class HomePageView : Page
     {
-        public HomePageView()
+        private HomePageVM ViewModel;
+
+        public HomePageView(HomePageVM viewModel)
         {
             InitializeComponent();
+            ViewModel = viewModel;
+            DataContext = ViewModel;
         }
     }
 }

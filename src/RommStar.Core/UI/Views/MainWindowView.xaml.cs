@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RommStar.Core.UI.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,13 +20,20 @@ namespace RommStar.Core.UI.Views
     /// </summary>
     public partial class MainWindowView : Window
     {
-        public MainWindowView()
+        private MainWindowVM ViewModel;
+
+        private HomePageView HomePageView;
+        private SettingsPageView SettingsPageView;
+
+        public MainWindowView(MainWindowVM mainWindowVM, HomePageVM homePageVM, SettingsPageVM settingsPageVM)
         {
             InitializeComponent();
-        }
+            ViewModel = mainWindowVM;
+            DataContext = ViewModel;
 
-        public Views.HomePageView HomePageView = new HomePageView();
-        public Views.SettingsPageView SettingsPageView = new SettingsPageView();
+            HomePageView = new HomePageView(homePageVM);
+            SettingsPageView = new SettingsPageView(settingsPageVM);
+        }
 
         private void NavigationView_SelectionChanged(iNKORE.UI.WPF.Modern.Controls.NavigationView sender, iNKORE.UI.WPF.Modern.Controls.NavigationViewSelectionChangedEventArgs args)
         {
