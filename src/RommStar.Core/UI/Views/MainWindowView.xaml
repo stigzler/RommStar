@@ -9,6 +9,7 @@
         ui:WindowHelper.UseModernWindowStyle="True"
         ui:WindowHelper.SystemBackdropType="Mica"
         mc:Ignorable="d" d:Background="#202020" d:Foreground="Gainsboro"
+        Icon="/RommStar.Core;component/Resources/rommIcon64px.ico"
         Title="RommStar" Height="450" Width="800">
 
     <Window.Resources>

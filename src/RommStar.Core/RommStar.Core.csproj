@@ -15,7 +15,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="UI\Views\rommIcon64px.png" />
+	  <None Remove="Resources\rommIcon64px.ico" />
+	  <None Remove="Resources\rommIcon64px.png" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -57,6 +58,8 @@
 	</Target>
 
 	<ItemGroup>
+	  <Resource Include="Resources\rommIcon64px.ico" />
+	  <Resource Include="Resources\rommIcon64px.png" />
 	  <Resource Include="UI\Views\rommIcon64px.png" />
 	</ItemGroup>
 
