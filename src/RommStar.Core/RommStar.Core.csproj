@@ -58,6 +58,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Folder Include="UI\Views\" />
 	  <Folder Include="UI\ViewModels\" />
 	  <Folder Include="UI\Views\" />
 	</ItemGroup>
