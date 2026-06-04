@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 
 namespace RommStar.Core.UI.ViewModels
 {
-    public class SettingsPageVM : ObservableObject
+    public partial class SettingsPageVM : ObservableObject
     {
+        [ObservableProperty]
+        private string dave = "Dave Woz Ere";
     }
 }
