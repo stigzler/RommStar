@@ -11,7 +11,21 @@
       d:DesignHeight="450" d:DesignWidth="800" d:Foreground="Gainsboro"
       Title="Settings">
 
-    <Grid>
-        <TextBlock Text="{Binding Dave}" />
-    </Grid>
+    <TabControl ui:TabControlHelper.IsAddTabButtonVisible="False">
+
+        <TabItem Header="Romm" ui:TabItemHelper.IsClosable="False">
+            <ui:TabItemHelper.Icon>
+                <Image Source="/RommStar.Core;component/Resources/rommIcon64px.png" />
+            </ui:TabItemHelper.Icon>
+            <TextBlock Text="Content 1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </TabItem>
+
+        <TabItem Header="TabItem 2">
+            <TextBlock Text="Content 2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </TabItem>
+
+        <TabItem Header="TabItem 3">
+            <TextBlock Text="Content 3" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </TabItem>
+    </TabControl>
 </Page>
