@@ -41,12 +41,11 @@
 		<PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.10.2.1" ExcludeAssets="runtime" />
 	</ItemGroup>
 
-	<Target Name="EmbedNugetAssemblies" AfterTargets="ResolveReferences">
+	<Target Name="CopyAndDisguiseAssemblies" AfterTargets="CopyFilesToOutputDirectory">
 		<ItemGroup>
-			<EmbeddedResource Include="@(ReferencePath)" Condition="'%(FileName)' == 'iNKORE.UI.WPF' or '%(FileName)' == 'iNKORE.UI.WPF.Modern' or '%(FileName)' == 'iNKORE.UI.WPF.Modern.Controls'">
-				<LogicalName>%(FileName)%(Extension)</LogicalName>
-			</EmbeddedResource>
+			<TargetDlls Include="@(ReferencePath)" Condition="'%(FileName)' == 'iNKORE.UI.WPF' or '%(FileName)' == 'iNKORE.UI.WPF.Modern' or '%(FileName)' == 'iNKORE.UI.WPF.Modern.Controls'" />
 		</ItemGroup>
+		<Copy SourceFiles="@(TargetDlls)" DestinationFiles="@(TargetDlls->'$(TargetDir)%(FileName).dll.dep')" SkipUnchangedFiles="true" />
 	</Target>
 
 	<ItemGroup>
