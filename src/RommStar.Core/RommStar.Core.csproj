@@ -60,7 +60,6 @@
 	<ItemGroup>
 	  <Resource Include="Resources\rommIcon64px.ico" />
 	  <Resource Include="Resources\rommIcon64px.png" />
-	  <Resource Include="UI\Views\rommIcon64px.png" />
 	</ItemGroup>
 
 	<ItemGroup>
