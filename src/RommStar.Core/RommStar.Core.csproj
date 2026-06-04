@@ -5,13 +5,12 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UseWPF>true</UseWPF>
 		<Nullable>enable</Nullable>
-		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="UI\Rommstar\**" />
-	  <EmbeddedResource Remove="UI\Rommstar\**" />
-	  <None Remove="UI\Rommstar\**" />
+		<Compile Remove="UI\Rommstar\**" />
+		<EmbeddedResource Remove="UI\Rommstar\**" />
+		<None Remove="UI\Rommstar\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -23,7 +22,7 @@
 			<HintPath>..\..\lib\launchbox\Unbroken.LaunchBox.Plugins.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-		<Reference Include="Unbroken.LaunchBox.Plugins">
+		<Reference Include="Microsoft.Extensions.DependencyInjection">
 			<HintPath>..\..\lib\launchbox\Microsoft.Extensions.DependencyInjection.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
@@ -38,40 +37,51 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Update="Properties\Resources.Designer.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>Resources.resx</DependentUpon>
-	  </Compile>
-	  <Compile Update="Properties\Settings.Designer.cs">
-	    <DesignTimeSharedInput>True</DesignTimeSharedInput>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>Settings.settings</DependentUpon>
-	  </Compile>
+		<PackageReference Include="iNKORE.UI.WPF" Version="1.2.8" ExcludeAssets="runtime" />
+		<PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.10.2.1" ExcludeAssets="runtime" />
+	</ItemGroup>
+
+	<Target Name="EmbedNugetAssemblies" AfterTargets="ResolveReferences">
+		<ItemGroup>
+			<EmbeddedResource Include="@(ReferencePath)" Condition="'%(FileName)' == 'iNKORE.UI.WPF' or '%(FileName)' == 'iNKORE.UI.WPF.Modern' or '%(FileName)' == 'iNKORE.UI.WPF.Modern.Controls'">
+				<LogicalName>%(FileName)%(Extension)</LogicalName>
+			</EmbeddedResource>
+		</ItemGroup>
+	</Target>
+
+	<ItemGroup>
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+		<Compile Update="Properties\Settings.Designer.cs">
+			<DesignTimeSharedInput>True</DesignTimeSharedInput>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Settings.settings</DependentUpon>
+		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Update="Properties\Resources.resx">
-	    <Generator>ResXFileCodeGenerator</Generator>
-	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="UI\Views\" />
-	  <Folder Include="UI\ViewModels\" />
-	  <Folder Include="UI\Views\" />
+		<Folder Include="UI\ViewModels\" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="Properties\Settings.settings">
-	    <Generator>SettingsSingleFileGenerator</Generator>
-	    <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-	  </None>
+		<None Update="Properties\Settings.settings">
+			<Generator>SettingsSingleFileGenerator</Generator>
+			<LastGenOutput>Settings.Designer.cs</LastGenOutput>
+		</None>
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-	  <Exec Command="call &quot;$(SolutionDir)\build\scripts\moveDebugBuild.bat&quot; &quot;$(ConfigurationName)&quot; &quot;$(SolutionDir)&quot; &quot;C:\Users\stigz\LaunchboxDEV\LaunchBox\Plugins\RommStar&quot; &quot;src\RommStar.Core\bin\Debug\net9.0-windows&quot;" />
+		<Exec Command="call &quot;$(SolutionDir)\build\scripts\moveDebugBuild.bat&quot; &quot;$(ConfigurationName)&quot; &quot;$(SolutionDir)&quot; &quot;C:\Users\stigz\LaunchboxDEV\LaunchBox\Plugins\RommStar&quot; &quot;src\RommStar.Core\bin\Debug\net9.0-windows&quot;" />
 	</Target>
 
 </Project>

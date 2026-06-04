@@ -1,13 +1,19 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using iNKORE.UI.WPF.Modern;
+using iNKORE.UI.WPF.Modern.Controls;
+using Microsoft.Extensions.DependencyInjection;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Services;
+using RommStar.Core.UI.Views;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using Unbroken.LaunchBox.Plugins;
 
 namespace RommStar.Core
@@ -37,6 +43,50 @@ namespace RommStar.Core
 
         private PluginHost()
         {
+            AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
+
+            //AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+            //{
+            //    // Get the clean name of the assembly requested (e.g., "iNKORE.UI.WPF")
+            //    string assemblyName = new AssemblyName(args.Name).Name ?? string.Empty;
+
+            //    // Match against the internal embedded resource logical naming
+            //    string requestedDll = assemblyName + ".dll";
+
+            //    var currentAssembly = Assembly.GetExecutingAssembly();
+
+            //    string? resourceName = currentAssembly.GetManifestResourceNames()
+            //        .FirstOrDefault(name => name.EndsWith(requestedDll, StringComparison.OrdinalIgnoreCase));
+
+            //    if (resourceName == null) return null;
+
+            //    // Set up our safe dependencies subfolder
+            //    string pluginDir = Path.GetDirectoryName(currentAssembly.Location) ?? AppContext.BaseDirectory;
+            //    string targetDir = Path.Combine(pluginDir, "Dependencies");
+
+            //    // Append a custom extension so LaunchBox's boot scanner skips right over it
+            //    string safeFileName = assemblyName + ".dll.dep";
+            //    string targetPath = Path.Combine(targetDir, safeFileName);
+
+            //    // Extract if it doesn't exist yet
+            //    if (!File.Exists(targetPath))
+            //    {
+            //        Directory.CreateDirectory(targetDir);
+            //        using (var stream = currentAssembly.GetManifestResourceStream(resourceName))
+            //        {
+            //            if (stream == null) return null;
+            //            using (var fileStream = File.Create(targetPath))
+            //            {
+            //                stream.CopyTo(fileStream);
+            //            }
+            //        }
+            //    }
+
+            //    // Load the assembly. LoadFrom handles custom extensions perfectly
+            //    // while preserving the location context WPF needs for themes.
+            //    return Assembly.LoadFrom(targetPath);
+            //};
+
             var services = new ServiceCollection();
             ConfigureServices(services);
 
@@ -53,6 +103,68 @@ namespace RommStar.Core
             _loggingService.Log("Settings:");
             _loggingService.Log($"  LogLevel: {Properties.Settings.Default.LoggingLevel.ToString()}");
         }
+
+        private static Assembly? OnAssemblyResolve(object? sender, ResolveEventArgs args)
+        {
+            // Get the clean name of the assembly requested (e.g., "iNKORE.UI.WPF")
+            string assemblyName = new AssemblyName(args.Name).Name ?? string.Empty;
+
+            // Match against the internal embedded resource logical naming
+            string requestedDll = assemblyName + ".dll";
+
+            var currentAssembly = Assembly.GetExecutingAssembly();
+
+            string? resourceName = currentAssembly.GetManifestResourceNames()
+                .FirstOrDefault(name => name.EndsWith(requestedDll, StringComparison.OrdinalIgnoreCase));
+
+            if (resourceName == null) return null;
+
+            // Updated target directory name
+            string pluginDir = Path.GetDirectoryName(currentAssembly.Location) ?? AppContext.BaseDirectory;
+            string targetDir = Path.Combine(pluginDir, "inkoreDlls");
+
+            // Disguise extension to keep LaunchBox from aggressively loading it on boot
+            string safeFileName = assemblyName + ".dll.dep";
+            string targetPath = Path.Combine(targetDir, safeFileName);
+
+            // Extract the embedded asset if it doesn't exist on disk yet
+            if (!File.Exists(targetPath))
+            {
+                Directory.CreateDirectory(targetDir);
+                using (var stream = currentAssembly.GetManifestResourceStream(resourceName))
+                {
+                    if (stream == null) return null;
+                    using (var fileStream = File.Create(targetPath))
+                    {
+                        stream.CopyTo(fileStream);
+                    }
+                }
+            }
+
+            // Load directly from the safe folder with full context for WPF layout bindings
+            return Assembly.LoadFrom(targetPath);
+        }
+
+        //private Assembly? OnAssemblyResolve(object? sender, ResolveEventArgs args)
+        //{
+        //    // Get the clean name of the assembly being requested (e.g., "iNKORE.UI.WPF.Modern")
+        //    string assemblyName = new AssemblyName(args.Name).Name;
+
+        //    // Only intercept requests for iNKORE libraries
+        //    if (assemblyName.StartsWith("iNKORE", StringComparison.OrdinalIgnoreCase))
+        //    {
+        //        // Look inside the 'lib' subfolder relative to your main plugin DLL
+        //        string pluginDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+        //        string expectedPath = Path.Combine(pluginDir, "lib", $"{assemblyName}.dll");
+
+        //        if (File.Exists(expectedPath))
+        //        {
+        //            return Assembly.LoadFrom(expectedPath);
+        //        }
+        //    }
+
+        //    return null;
+        //}
 
         private static void ConfigureServices(IServiceCollection services)
         {
@@ -71,6 +183,8 @@ namespace RommStar.Core
 
                 case LaunchboxMenuItem.ToolsMenuRommStar:
                     _loggingService.Log("Tools>RommStar selected.");
+                    LaunchAdminWindow();
+
                     break;
             }
         }
@@ -88,6 +202,40 @@ namespace RommStar.Core
                 default:
                     break;
             }
+        }
+
+        private void LaunchAdminWindow()
+        {
+            // Ensure we are running on the UI thread and Application.Current exists
+            // Ensure we are running on the UI thread and Application.Current exists
+            //if (Application.Current != null)
+            //{
+            //    // Check if you've already added the resources so you don't duplicate them
+            //    bool alreadyLoaded = false;
+            //    foreach (var dictionary in Application.Current.Resources.MergedDictionaries)
+            //    {
+            //        // Check by type since the library uses custom ResourceDictionary classes
+            //        if (dictionary.GetType().Name == "ThemeResources" || dictionary.GetType().Name == "XamlControlsResources")
+            //        {
+            //            alreadyLoaded = true;
+            //            break;
+            //        }
+            //    }
+
+            //    if (!alreadyLoaded)
+            //    {
+            //        // Instantiate the library's custom ResourceDictionary classes directly
+            //        var themeStyles = new ThemeResources();
+            //        var controlStyles = new XamlControlsResources();
+
+            //        Application.Current.Resources.MergedDictionaries.Add(themeStyles);
+            //        Application.Current.Resources.MergedDictionaries.Add(controlStyles);
+            //    }
+            //}
+
+            // Now safely open your window
+            var adminWindow = new MainWindowView();
+            adminWindow.ShowDialog();
         }
     }
 }
