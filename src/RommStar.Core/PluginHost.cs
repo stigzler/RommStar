@@ -89,6 +89,15 @@ namespace RommStar.Core
         {
             services.AddSingleton<LoggingService>();
 
+            // Register initial RommServerConfig & RommService
+            services.AddSingleton<RommStar.Core.Models.RommServerConfig>(sp => new RommStar.Core.Models.RommServerConfig
+            {
+                BaseUrl = "http://localhost:8080", // placeholder defaults
+                ApiToken = "",
+                ServerName = "Default Romm Server"
+            });
+            services.AddSingleton<RommStar.Core.Services.RommService>();
+
             // Register ViewModels as singletons
             services.AddSingleton<MainWindowVM>();
             services.AddSingleton<SettingsPageVM>();

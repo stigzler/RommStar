@@ -14,4 +14,7 @@
     <None Include="$(MSBuildThisFileDirectory)docs\userGuideDraft.md" />
     <None Include="$(MSBuildThisFileDirectory)images\xcf\icons64px.xcf" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)docs\Snippets\RommServiceSketch.cs" />
+  </ItemGroup>
 </Project>

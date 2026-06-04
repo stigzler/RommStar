@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".copilot-instructions.md" />
+  </Folder>
   <Project Path="dev/dev.shproj" />
   <Project Path="src/RommStar.Core/RommStar.Core.csproj" />
 </Solution>
