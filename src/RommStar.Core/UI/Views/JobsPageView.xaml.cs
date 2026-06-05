@@ -1,5 +1,4 @@
-﻿using iNKORE.UI.WPF.Modern;
-using RommStar.Core.UI.ViewModels;
+﻿using RommStar.Core.UI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,27 +17,17 @@ using System.Windows.Shapes;
 namespace RommStar.Core.UI.Views
 {
     /// <summary>
-    /// Interaction logic for SettingsPageView.xaml
+    /// Interaction logic for JobsPageView.xaml
     /// </summary>
-    ///
-
-    public partial class SettingsPageView : Page
+    public partial class JobsPageView : Page
     {
-        private SettingsPageVM ViewModel;
+        private JobsPageVM ViewModel;
 
-        public SettingsPageView(SettingsPageVM viewModel)
+        public JobsPageView(JobsPageVM viewModel)
         {
             InitializeComponent();
             ViewModel = viewModel;
             DataContext = ViewModel;
-        }
-
-        private void ToggleSwitch_Toggled(object sender, RoutedEventArgs e)
-        {
-            if (DarkModeToggle.IsOn)
-                ThemeManager.Current.ApplicationTheme = ApplicationTheme.Light;
-            else
-                ThemeManager.Current.ApplicationTheme = ApplicationTheme.Dark;
         }
     }
 }

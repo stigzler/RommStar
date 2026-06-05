@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RommStar.Core.Services
+namespace RommStar.Core.Primitives
 {
     public enum LoggingLevel
     {

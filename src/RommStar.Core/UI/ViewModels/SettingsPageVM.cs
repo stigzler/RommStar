@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using RommStar.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,11 @@ namespace RommStar.Core.UI.ViewModels
 {
     public partial class SettingsPageVM : ObservableObject
     {
-        [ObservableProperty]
-        private string dave = "Dave Woz Ere";
+        private readonly SettingsService _settingsService;
+
+        public SettingsPageVM(SettingsService settingsService)
+        {
+            _settingsService = settingsService;
+        }
     }
 }

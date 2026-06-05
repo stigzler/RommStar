@@ -10,7 +10,7 @@
         ui:WindowHelper.SystemBackdropType="Mica"
         mc:Ignorable="d" d:Background="#202020" d:Foreground="Gainsboro"
         Icon="/RommStar.Core;component/Resources/rommIcon64px.ico"
-        Title="RommStar" Height="450" Width="800">
+        Title="RommStar" Height="450" Width="800" Closing="Window_Closing">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -18,16 +18,15 @@
                 <ui:ThemeResources RequestedTheme="Dark" AccentColor="#553e98" />
                 <ui:XamlControlsResources />
             </ResourceDictionary.MergedDictionaries>
-
             <!--Your other resources here (if exists)-->
         </ResourceDictionary>
     </Window.Resources>
 
-    <ui:NavigationView x:Name="NavigationView_Root" IsPaneOpen="False" SelectionChanged="NavigationView_SelectionChanged" OpenPaneLength="147">
+    <ui:NavigationView x:Name="NavigationView_Root" IsPaneOpen="False" SelectionChanged="NavigationView_SelectionChanged"
+                       OpenPaneLength="147" PaneDisplayMode="Left">
 
         <ui:NavigationView.Resources>
             <Thickness x:Key="NavigationViewHeaderMargin">15,10,10,10</Thickness>
-
             <Thickness x:Key="NavigationViewContentMargin">5</Thickness>
         </ui:NavigationView.Resources>
 
@@ -38,9 +37,9 @@
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem Content="Apps">
+            <ui:NavigationViewItem Content="Sync Jobs" x:Name="NavigationViewItem_Jobs">
                 <ui:NavigationViewItem.Icon>
-                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.OEM}" />
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
@@ -57,11 +56,28 @@
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Settings}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
+
             <ui:NavigationViewItem Content="About">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Info}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem>
+                <ui:NavigationViewItem.Content>
+                    <ui:ToggleSwitch x:Name="DarkModeToggle" IsOn="{Binding IsDarkMode}" OnContent="" OffContent="" />
+                </ui:NavigationViewItem.Content>
+                <ui:NavigationViewItem.Icon>
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.WeatherMoon_20_Regular}" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+
+            <!--<ui:NavigationViewItem>
+                <StackPanel Orientation="Horizontal">
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.WeatherMoon_20_Regular}" />
+                    <ui:ToggleSwitch x:Name="DarkModeToggle" Margin="8,0,0,0" IsOn="{Binding IsDarkMode}" />
+                </StackPanel>
+            </ui:NavigationViewItem>-->
         </ui:NavigationView.FooterMenuItems>
 
         <ui:Frame x:Name="Frame_Main" />

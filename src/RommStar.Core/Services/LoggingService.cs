@@ -1,4 +1,5 @@
-﻿using RommStar.Core.Properties;
+﻿using RommStar.Core.Primitives;
+using RommStar.Core.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,6 +12,13 @@ namespace RommStar.Core.Services
 {
     internal class LoggingService
     {
+        private readonly SettingsService _settingsService;
+
+        public LoggingService(SettingsService settingsService)
+        {
+            _settingsService = settingsService;
+        }
+
         private static readonly string LogPath = Path.Combine(
                                     Path.GetDirectoryName(typeof(LoggingService).Assembly.Location)!,
                                     "RommStar.log");
@@ -40,7 +48,7 @@ namespace RommStar.Core.Services
 
         public void Log(string message, LoggingLevel logLevel = LoggingLevel.Normal)
         {
-            if (logLevel > Settings.Default.LoggingLevel)
+            if (logLevel > _settingsService.Settings.LoggingLevel)
             {
                 return; // Skip logging if the message's log level is higher than the configured log level
             }

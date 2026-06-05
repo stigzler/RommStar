@@ -6,6 +6,7 @@ namespace RommStar.Core.Sync
         ProcessingMetadata,
         SyncingFiles,
         Completed,
+        CompletedWithWarnings,
         CompletedWithErrors,
         Cancelled
     }

@@ -2,7 +2,10 @@
 using iNKORE.UI.WPF.Modern.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using RommStar.Core.Launchbox;
+using RommStar.Core.Primitives;
+using RommStar.Core.Properties;
 using RommStar.Core.Services;
+using RommStar.Core.Temp;
 using RommStar.Core.UI.ViewModels;
 using RommStar.Core.UI.Views;
 using System;
@@ -18,6 +21,8 @@ namespace RommStar.Core
         private static PluginHost? _instance;
 
         private readonly LoggingService _loggingService;
+        private readonly SettingsService _settingsService;
+
         private readonly IServiceProvider _serviceProvider;
 
         private MainWindowVM MainWindowVM => _serviceProvider.GetRequiredService<MainWindowVM>();
@@ -52,12 +57,17 @@ namespace RommStar.Core
             _serviceProvider = services.BuildServiceProvider();
 
             _loggingService = _serviceProvider.GetRequiredService<LoggingService>();
+            _settingsService = _serviceProvider.GetRequiredService<SettingsService>();
 
             _loggingService.LogClear();
             _loggingService.Log($"Logging started at {DateTime.Now:dd.MM.yy - HH:mm:ss}");
             _loggingService.Log("PluginHost initialized and services configured.");
             _loggingService.Log("Settings:");
-            _loggingService.Log($"  LogLevel: {Properties.Settings.Default.LoggingLevel.ToString()}");
+            _loggingService.Log($"  LogLevel: {_settingsService.Settings.LoggingLevel.ToString()}");
+
+            // TESTS
+            Tests.PopulateTestSettings(_settingsService.Settings);
+            _settingsService.Save();
         }
 
         // The extracted method for assembly resolution, completely independent of plugin instantiation
@@ -88,6 +98,7 @@ namespace RommStar.Core
         private static void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<LoggingService>();
+            services.AddSingleton<SettingsService>();
 
             // Register initial RommServerConfig & RommService
             services.AddSingleton<RommStar.Core.Models.RommServerConfig>(sp => new RommStar.Core.Models.RommServerConfig
@@ -102,6 +113,7 @@ namespace RommStar.Core
             services.AddSingleton<MainWindowVM>();
             services.AddSingleton<SettingsPageVM>();
             services.AddSingleton<HomePageVM>();
+            services.AddSingleton<JobsPageVM>();
 
             // Register Views as singletons
             // MainWindowView requires all three ViewModels, so use a factory
@@ -109,11 +121,14 @@ namespace RommStar.Core
                 new MainWindowView(
                     sp.GetRequiredService<MainWindowVM>(),
                     sp.GetRequiredService<HomePageVM>(),
-                    sp.GetRequiredService<SettingsPageVM>()
+                    sp.GetRequiredService<SettingsPageVM>(),
+                    sp.GetRequiredService<JobsPageVM>()
                 )
             );
+
             services.AddSingleton<SettingsPageView>();
             services.AddSingleton<HomePageView>();
+            services.AddSingleton<JobsPageView>();
         }
 
         internal void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
@@ -139,7 +154,7 @@ namespace RommStar.Core
         private void LaunchAdminWindow()
         {
             var adminWindow = _serviceProvider.GetRequiredService<MainWindowView>();
-            adminWindow.ShowDialog();
+            adminWindow.Show();
         }
     }
 }

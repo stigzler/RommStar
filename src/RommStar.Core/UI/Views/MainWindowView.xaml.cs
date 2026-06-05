@@ -1,4 +1,5 @@
-﻿using RommStar.Core.UI.ViewModels;
+﻿using iNKORE.UI.WPF.Modern;
+using RommStar.Core.UI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,8 +25,10 @@ namespace RommStar.Core.UI.Views
 
         private HomePageView HomePageView;
         private SettingsPageView SettingsPageView;
+        private JobsPageView JobsPageView;
 
-        public MainWindowView(MainWindowVM mainWindowVM, HomePageVM homePageVM, SettingsPageVM settingsPageVM)
+        public MainWindowView(MainWindowVM mainWindowVM, HomePageVM homePageVM,
+            SettingsPageVM settingsPageVM, JobsPageVM jobsPageVM)
         {
             InitializeComponent();
             ViewModel = mainWindowVM;
@@ -33,6 +36,7 @@ namespace RommStar.Core.UI.Views
 
             HomePageView = new HomePageView(homePageVM);
             SettingsPageView = new SettingsPageView(settingsPageVM);
+            JobsPageView = new JobsPageView(jobsPageVM);
         }
 
         private void NavigationView_SelectionChanged(iNKORE.UI.WPF.Modern.Controls.NavigationView sender, iNKORE.UI.WPF.Modern.Controls.NavigationViewSelectionChangedEventArgs args)
@@ -48,6 +52,10 @@ namespace RommStar.Core.UI.Views
             {
                 page = SettingsPageView;
             }
+            else if (item == NavigationViewItem_Jobs)
+            {
+                page = JobsPageView;
+            }
 
             if (page != null)
             {
@@ -59,6 +67,20 @@ namespace RommStar.Core.UI.Views
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             NavigationView_Root.SelectedItem = NavigationViewItem_Home;
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // If application is shutting down, allow normal close.
+            if (Application.Current?.Dispatcher?.HasShutdownStarted == true ||
+                Application.Current?.Dispatcher?.HasShutdownFinished == true)
+            {
+                return;
+            }
+
+            // Cancel the close and hide the window so the singleton ViewModel and bindings remain alive.
+            e.Cancel = true;
+            this.Hide();
         }
     }
 }

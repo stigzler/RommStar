@@ -19,10 +19,14 @@ namespace RommStar.Core.Services
     /// </summary>
     public class RommService
     {
+        // Tracks active cancellation tokens based on the LaunchBox platform name
+        private readonly ConcurrentDictionary<string, CancellationTokenSource> _activeTokens = new(StringComparer.OrdinalIgnoreCase);
+
         private readonly HttpClient _client;
 
         // Channel pipelines handling FIFO operations natively across background threads
         private readonly Channel<PlatformSyncTask> _platformQueue = Channel.CreateUnbounded<PlatformSyncTask>();
+
         private readonly Channel<DownloadJob> _fileDownloadQueue = Channel.CreateUnbounded<DownloadJob>();
 
         // Tracks remaining active file counts per platform to enforce strict sequential progression
@@ -33,6 +37,7 @@ namespace RommStar.Core.Services
 
         // Media Profiles configuration sets
         public MediaSelectionProfile CatalogProfile { get; set; } = new() { BoxFront = true, Screenshots = true };
+
         public MediaSelectionProfile InstallProfile { get; set; } = new() { BoxFront = true, Box3D = true, Videos = true, Manuals = true, Music = true };
 
         public event Action<PlatformSyncJob>? OnSyncCompletedNotification;
@@ -68,20 +73,33 @@ namespace RommStar.Core.Services
                 LaunchBoxPlatformName = lbPlatformName,
                 RommPlatformIds = rommPlatformIds,
                 DownloadRomFiles = downloadRoms,
-                UiCard = uiCard
+                UiCard = uiCard,
             };
+
+            // REGISTER THE TASK CTS SO IT CAN BE RECOVERED BY THE CANCEL BUTTON CLICK
+            _activeTokens[lbPlatformName] = task.Cts;
 
             _platformQueue.Writer.TryWrite(task);
         }
 
         public void CancelPlatformSync(string lbPlatformName)
         {
-            // Locate the card/task and trip its cancellation token source
             var card = ActiveSyncJobs.FirstOrDefault(j => j.LaunchBoxPlatformName.Equals(lbPlatformName, StringComparison.OrdinalIgnoreCase));
+
             if (card != null && (card.Status == SyncStatus.Queued || card.Status == SyncStatus.SyncingFiles || card.Status == SyncStatus.ProcessingMetadata))
             {
+                // 1. Immediately visually update the UI state
                 card.Status = SyncStatus.Cancelled;
-                // Hook to trip associated PlatformSyncTask.Cts.Cancel() can be mapped here via tracking collection
+
+                // 2. Extract the internal task token and trip it
+                if (_activeTokens.TryRemove(lbPlatformName, out var cts))
+                {
+                    try
+                    {
+                        cts.Cancel();
+                    }
+                    catch (ObjectDisposedException) { }
+                }
             }
         }
 
@@ -160,6 +178,8 @@ namespace RommStar.Core.Services
 
                     // Flush active counter memory tracking
                     _activeFileCounters.TryRemove(platformTask.LaunchBoxPlatformName, out _);
+
+                    _activeTokens.TryRemove(platformTask.LaunchBoxPlatformName, out _);
                 }
             }
         }
@@ -222,6 +242,16 @@ namespace RommStar.Core.Services
         private async Task<bool> StreamFileFromNetworkAsync(string relativeUrl, string targetPath, RommServerConfig server)
         {
             if (string.IsNullOrEmpty(relativeUrl)) return true; // Gracefully pass missing remote paths
+
+            // TEMP TEST DATA
+            // Simulate a slow file download (2 seconds per file)
+            // This gives your iNKORE Progress Bar time to actually move on screen!
+            await Task.Delay(2000);
+
+            return true; // Pretend the download succeeded perfectly
+
+            // END TEMP TEST DATA
+
             try
             {
                 string completeUrl = $"{server.BaseUrl.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
@@ -248,6 +278,18 @@ namespace RommStar.Core.Services
         // Core Helper Methods
         private async Task<List<RomDto>?> FetchMetadataFromRommAsync(List<int> platformIds, RommServerConfig server)
         {
+            // TEMP test Data
+            // Simulate the network delay of hitting the Romm API
+            await Task.Delay(1500);
+
+            // Return 3 fake games so we have items to process
+            return new List<RomDto>
+                {
+                    new RomDto { Id = 1, Name = "Super Mario Bros", FileName = "mario.zip", RomUrl = "fake/mario.zip", BoxFrontUrl = "fake/mario.png" },
+                    new RomDto { Id = 2, Name = "Sonic the Hedgehog", FileName = "sonic.zip", RomUrl = "fake/sonic.zip", BoxFrontUrl = "fake/sonic.png" },
+                    new RomDto { Id = 3, Name = "The Legend of Zelda", FileName = "zelda.zip", RomUrl = "fake/zelda.zip", BoxFrontUrl = "fake/zelda.png" }
+                };
+
             // API implementation loop querying your target paths goes here...
             await Task.Delay(1000); // Simulate network
             return new List<RomDto>();

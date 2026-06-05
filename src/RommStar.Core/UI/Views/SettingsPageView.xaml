@@ -5,10 +5,11 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:local="clr-namespace:RommStar.Core.UI.Views"
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+      xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
       xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels"
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance Type=vm:SettingsPageVM, IsDesignTimeCreatable=True}"
-      d:DesignHeight="450" d:DesignWidth="800" d:Foreground="Gainsboro"
+      d:DesignHeight="450" d:DesignWidth="800" d:Background="#202020" d:Foreground="Gainsboro"
       Title="Settings">
 
     <TabControl ui:TabControlHelper.IsAddTabButtonVisible="False">
@@ -20,8 +21,14 @@
             <TextBlock Text="Content 1" HorizontalAlignment="Center" VerticalAlignment="Center" />
         </TabItem>
 
-        <TabItem Header="TabItem 2">
-            <TextBlock Text="Content 2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <!-- APPLICATION SETTINGS -->
+        <TabItem Header="Application" ui:TabItemHelper.IsClosable="False">
+            <ui:TabItemHelper.Icon>
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.AppGeneric_20_Regular}" />
+            </ui:TabItemHelper.Icon>
+            <StackPanel>
+                <ui:ToggleSwitch x:Name="DarkModeToggle" Header="Dark Mode" Margin="0,0,0,12" Toggled="ToggleSwitch_Toggled" />
+            </StackPanel>
         </TabItem>
 
         <TabItem Header="TabItem 3">
