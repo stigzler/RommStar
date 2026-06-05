@@ -60,6 +60,9 @@ namespace RommStar.Core.UI.Views
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            Properties.Settings.Default.WindowSize = new System.Drawing.Size((int)this.Width, (int)this.Height);
+            Properties.Settings.Default.Save();
+
             // If application is shutting down, allow normal close.
             if (Application.Current?.Dispatcher?.HasShutdownStarted == true ||
                 Application.Current?.Dispatcher?.HasShutdownFinished == true)

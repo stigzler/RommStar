@@ -6,16 +6,20 @@
         xmlns:local="clr-namespace:RommStar.Core.UI.Views"
         xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
         xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
+        xmlns:properties="clr-namespace:RommStar.Core.Properties"
         ui:WindowHelper.UseModernWindowStyle="True"
         ui:WindowHelper.SystemBackdropType="Mica"
-        mc:Ignorable="d" d:Background="#202020" d:Foreground="Gainsboro"
+        mc:Ignorable="d" d:Background="#202020" d:Foreground="Gainsboro" d:Width="600" d:Height="400"
         Icon="/RommStar.Core;component/Resources/rommIcon64px.ico"
-        Title="RommStar" Height="450" Width="800" Closing="Window_Closing">
+        Height="{Binding Source={x:Static properties:Settings.Default},Path=WindowSize.Height}"
+        Width="{Binding Source={x:Static properties:Settings.Default},Path=WindowSize.Width}"
+        WindowStartupLocation="CenterScreen"
+        Title="RommStar" Closing="Window_Closing">
 
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ui:ThemeResources RequestedTheme="Dark" AccentColor="#553e98" />
+                <ui:ThemeResources  AccentColor="#553e98" />
                 <ui:XamlControlsResources />
             </ResourceDictionary.MergedDictionaries>
             <!--Your other resources here (if exists)-->
@@ -23,7 +27,7 @@
     </Window.Resources>
 
     <ui:NavigationView x:Name="NavigationView_Root" IsPaneOpen="False" SelectionChanged="NavigationView_SelectionChanged"
-                       OpenPaneLength="147" PaneDisplayMode="Left">
+                       OpenPaneLength="147" PaneDisplayMode="Left" IsBackButtonVisible="Collapsed">
 
         <ui:NavigationView.Resources>
             <Thickness x:Key="NavigationViewHeaderMargin">15,10,10,10</Thickness>
@@ -64,8 +68,9 @@
             </ui:NavigationViewItem>
 
             <ui:NavigationViewItem MouseLeftButtonUp="DarkModeToggle_MouseLeftButtonUp">
+
                 <ui:NavigationViewItem.Content>
-                    <ui:ToggleSwitch x:Name="DarkModeToggle" IsOn="{Binding IsDarkMode}" OnContent="" OffContent=""  />
+                    <ui:ToggleSwitch x:Name="DarkModeToggle" IsOn="{Binding IsDarkMode, Mode=TwoWay}" OnContent="" OffContent="" />
                 </ui:NavigationViewItem.Content>
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.WeatherMoon_20_Regular}" MouseLeftButtonUp="FontIcon_MouseLeftButtonUp" />

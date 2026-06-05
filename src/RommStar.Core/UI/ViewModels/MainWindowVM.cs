@@ -16,7 +16,7 @@ namespace RommStar.Core.UI.ViewModels
         private readonly SettingsService _settingsService;
 
         [ObservableProperty]
-        private bool isDarkMode;
+        private bool isDarkMode = true;
 
         public MainWindowVM(SettingsService settingsService)
         {
