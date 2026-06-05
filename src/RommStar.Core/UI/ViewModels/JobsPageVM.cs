@@ -37,11 +37,11 @@ namespace RommStar.Core.UI.ViewModels
         }
 
         [RelayCommand]
-        private void CancelJob(string platformName)
+        private void CancelJob(Guid id)
         {
-            if (!string.IsNullOrEmpty(platformName))
+            if (id != Guid.Empty)
             {
-                _rommService.CancelPlatformSync(platformName);
+                _rommService.CancelPlatformSync(id);
             }
         }
     }

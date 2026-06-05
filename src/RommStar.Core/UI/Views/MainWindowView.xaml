@@ -63,12 +63,12 @@
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem>
+            <ui:NavigationViewItem MouseLeftButtonUp="DarkModeToggle_MouseLeftButtonUp">
                 <ui:NavigationViewItem.Content>
-                    <ui:ToggleSwitch x:Name="DarkModeToggle" IsOn="{Binding IsDarkMode}" OnContent="" OffContent="" />
+                    <ui:ToggleSwitch x:Name="DarkModeToggle" IsOn="{Binding IsDarkMode}" OnContent="" OffContent=""  />
                 </ui:NavigationViewItem.Content>
                 <ui:NavigationViewItem.Icon>
-                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.WeatherMoon_20_Regular}" />
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.WeatherMoon_20_Regular}" MouseLeftButtonUp="FontIcon_MouseLeftButtonUp" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 

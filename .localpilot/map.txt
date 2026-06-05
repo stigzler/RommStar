@@ -1,0 +1,119 @@
+## WORKSPACE EXECUTIVE SUMMARY (YAML)
+# Generated: 2026-06-05T18:43:08.1023141+01:00
+# Root: C:\Users\stigz\source\repos\0.MyCode\NET\RommStar
+Architecture:
+  Type: Backend (C#/.NET)
+  Scale: 46 relevant source files
+  Components: 0
+  Controllers: 0
+  Models: 4
+  Services: 3
+---
+- File: WpfControlLibrary1\WpfControlLibrary1.csproj
+  Preview: "<Project Sdk='Microsoft.NET.Sdk'>  <PropertyGroup>   <TargetFramework>net9.0-windows</TargetFramework>   <Nullable>enable</Nullable>   <UseWPF>true</U..."
+- File: src\RommStar.Core\RommStar.Core.csproj
+  Preview: "<Project Sdk='Microsoft.NET.Sdk.WindowsDesktop'> 	<PropertyGroup> 		<TargetFramework>net9.0-windows</TargetFramework> 		<ImplicitUsings>enable</Implic..."
+- File: .copilot-instructions.md
+  Preview: "# RommStar Architecture Specification ## Overview RommStar is a LaunchBox plugin serving as a state-driven client for Romm servers. It manages metadat..."
+- File: LICENSE.txt
+  Preview: "MIT License Copyright (c) [year] [fullname] Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associat..."
+- File: readme.md
+  Preview: "# Plugin Template ## Overview This is a template for creating plugins for Launchbox. It's designed to be as 'out of the box' as possible, but there ar..."
+- File: RommStar.slnx
+  Preview: "<Solution>  <Folder Name='/Solution Items/'>   <File Path='.copilot-instructions.md' />  </Folder>  <Project Path='dev/dev.shproj' />  <Project Path='..."
+- File: WpfControlLibrary1\AssemblyInfo.cs
+  Preview: "using System.Windows; [assembly: ThemeInfo(   ResourceDictionaryLocation.None,      //where theme specific resource dictionaries are located          ..."
+- File: WpfControlLibrary1\UserControl1.xaml.cs
+  Preview: "using System.Text; using System.Windows; using System.Windows.Controls; using System.Windows.Data; using System.Windows.Documents; using System.Window..."
+- File: dev\docs\reserach.md
+  Preview: "# Research ## Plugin Api ### Retrieve a game ### Import System Leverage existing LB systems:  - IGame has a 'Installed' property. When syncing Romm da..."
+- File: dev\docs\scope.md
+  Preview: "# Scope ## MVP 1. Pulls roms for a platform from Romm and puts a placeholder in the local library indicating available 1. ## Stratch 1. Upload local r..."
+- File: dev\docs\userGuideDraft.md
+  Preview: "# User Guide Draft ## Setup to dos - - Enable Rombox badges in Badges>Plugins -"
+- File: src\RommStar.Core\GlobalSuppressions.cs
+  Preview: "// This file is used by Code Analysis to maintain SuppressMessage // attributes that are applied to this project. // Project-level suppressions either..."
+- File: src\RommStar.Core\PluginHost.cs
+  Preview: "using iNKORE.UI.WPF.Modern; using iNKORE.UI.WPF.Modern.Controls; using Microsoft.Extensions.DependencyInjection; using RommStar.Core.Launchbox; using ..."
+- File: dev\docs\Snippets\RommServiceSketch.cs
+  Preview: "using System; using System.Collections.Concurrent; using System.Collections.Generic; using System.Collections.ObjectModel; using System.IO; using Syst..."
+- File: src\RommStar.Core\Badges\RommSynced.cs
+  Symbols: [RommSynced]
+  Preview: "using System; using System.Collections.Generic; using System.Drawing; using System.Linq; using System.Text; using System.Threading.Tasks; using Unbrok..."
+- File: src\RommStar.Core\Dtos\RomDto.cs
+  Symbols: [RomDto]
+  Preview: "namespace RommStar.Core.Dtos {   /// <summary>   /// Placeholder Data Transfer Object mapping Romm's API response layout.   /// </summary>   public cl..."
+- File: src\RommStar.Core\Launchbox\GameMenuItem.cs
+  Symbols: [GameMen]
+  Preview: "using System; using System.Collections.Generic; using System.Drawing; using System.Linq; using System.Text; using System.Threading.Tasks; using Unbrok..."
+- File: src\RommStar.Core\Launchbox\LaunchboxMenuItem.cs
+  Preview: "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; namespace RommStar.Core.Launchbox ..."
+- File: src\RommStar.Core\Models\CustomField.cs
+  Symbols: [CustomField]
+  Preview: "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; using Unbroken.LaunchBox.Plugins.D..."
+- File: src\RommStar.Core\Models\MediaSelectionProfile.cs
+  Symbols: [MediaSelectionProfile]
+  Preview: "namespace RommStar.Core.Models {   /// <summary>   /// Dictates which asset streams are pulled during a specific runtime operation.   /// </summary>  ..."
+- File: src\RommStar.Core\Models\RommServerConfig.cs
+  Symbols: [RommServerConfig]
+  Preview: "namespace RommStar.Core.Models {   public class RommServerConfig   {     public string BaseUrl { get; set; } = string.Empty;     public string ApiToke..."
+- File: src\RommStar.Core\Plugins\GameMultiMenuItemPlugin.cs
+  Preview: "using RommStar.Core.Launchbox; using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; usi..."
+- File: src\RommStar.Core\Plugins\SystemEventsPlugin.cs
+  Symbols: [SystemEventsPlugin]
+  Preview: "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; using Unbroken.LaunchBox.Plugins; ..."
+- File: src\RommStar.Core\Plugins\SystemMenuItemPlugin.cs
+  Preview: "using RommStar.Core.Launchbox; using System; using System.Collections.Generic; using System.Drawing; using System.Linq; using System.Text; using Syste..."
+- File: src\RommStar.Core\Primitives\LoggingLevel.cs
+  Preview: "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; namespace RommStar.Core.Primitives..."
+- File: src\RommStar.Core\Properties\launchSettings.json
+  Preview: "{  'profiles': {   'PluginDebug': {    'commandName': 'Executable',    'executablePath': 'C:\\Users\\stigz\\LaunchboxDEV\\LaunchBox\\Core\\LaunchBox.e..."
+- File: src\RommStar.Core\Properties\PluginSettings.cs
+  Symbols: [PluginSet]
+  Preview: "using RommStar.Core.Models; using RommStar.Core.Primitives; using System; using System.Collections.Generic; using System.Linq; using System.Text; usin..."
+- File: src\RommStar.Core\Properties\Resources.Designer.cs
+  Preview: "//------------------------------------------------------------------------------ // <auto-generated> //   This code was generated by a tool. //   Runt..."
+- File: src\RommStar.Core\Services\LoggingService.cs
+  Preview: "using RommStar.Core.Primitives; using RommStar.Core.Properties; using System; using System.Collections.Generic; using System.Diagnostics; using System..."
+- File: src\RommStar.Core\Services\RommService.cs
+  Symbols: [catch, StartPlatformQueueProcessorAsync, QueuePlatformSync, EnqueueFileDownload, new, new, StreamFileFromNetworkAsync, RommService, RommService, FetchMetadataFromRommAsync, ScheduleMediaDownloads, ExecuteOnDemandInstallAsync, StartFileQueueProcessorAsync, CancelPlatformSync, SyncWithLaunchBoxDatabase]
+  Preview: "using System; using System.Collections.Concurrent; using System.Collections.Generic; using System.Collections.ObjectModel; using System.IO; using Syst..."
+- File: src\RommStar.Core\Services\SettingsService.cs
+  Symbols: [SettingsService]
+  Preview: "using System; using System.IO; using System.Reflection; using System.Text.Json; using RommStar.Core.Models; using RommStar.Core.Properties; namespace ..."
+- File: src\RommStar.Core\Sync\DownloadJob.cs
+  Symbols: [DownloadJob]
+  Preview: "using System; using RommStar.Core.Models; namespace RommStar.Core.Sync {   /// <summary>   /// Represents an isolated, micro-level file streaming payl..."
+- File: src\RommStar.Core\Sync\DownloadJobType.cs
+  Preview: "namespace RommStar.Core.Sync {   public enum DownloadJobType   {     Media,     Rom   } } "
+- File: src\RommStar.Core\Sync\PlatformSyncJob.cs
+  Symbols: [PlatformSyncJob]
+  Preview: "using CommunityToolkit.Mvvm.ComponentModel; using static System.Runtime.InteropServices.JavaScript.JSType; namespace RommStar.Core.Sync {   /// <summa..."
+- File: src\RommStar.Core\Sync\PlatformSyncTask.cs
+  Symbols: [PlatformSync]
+  Preview: "using System.Collections.Generic; using System.Threading; namespace RommStar.Core.Sync {   /// <summary>   /// Holds the structural execution context ..."
+- File: src\RommStar.Core\Sync\SyncStatus.cs
+  Preview: "namespace RommStar.Core.Sync {   public enum SyncStatus   {     Queued,     ProcessingMetadata,     SyncingFiles,     Completed,     CompletedWithWarn..."
+- File: src\RommStar.Core\Temp\RommServerTestingGemini.md
+  Preview: "Step 1: Feed the Engine 'Fake' Server Data Open your freshly created RommService.cs file. Go to the bottom where the helper methods live, and hardcode..."
+- File: src\RommStar.Core\Temp\TestSettings.cs
+  Symbols: [Tests]
+  Preview: "using RommStar.Core.Models; using RommStar.Core.Properties; using System; using System.Collections.Generic; using System.Linq; using System.Text; usin..."
+- File: src\RommStar.Core\UI\ViewModels\HomePageVM.cs
+  Symbols: [HomePageVM]
+  Preview: "using CommunityToolkit.Mvvm.ComponentModel; using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threadi..."
+- File: src\RommStar.Core\UI\ViewModels\JobsPageVM.cs
+  Preview: "using CommunityToolkit.Mvvm.ComponentModel; using CommunityToolkit.Mvvm.Input; using RommStar.Core.Services; using RommStar.Core.Sync; using System; u..."
+- File: src\RommStar.Core\UI\ViewModels\MainWindowVM.cs
+  Preview: "using Accessibility; using CommunityToolkit.Mvvm.ComponentModel; using CommunityToolkit.Mvvm.Input; using iNKORE.UI.WPF.Modern; using RommStar.Core.Se..."
+- File: src\RommStar.Core\UI\ViewModels\SettingsPageVM.cs
+  Preview: "using CommunityToolkit.Mvvm.ComponentModel; using RommStar.Core.Services; using System; using System.Collections.Generic; using System.Linq; using Sys..."
+- File: src\RommStar.Core\UI\Views\HomePageView.xaml.cs
+  Preview: "using RommStar.Core.UI.ViewModels; using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks;..."
+- File: src\RommStar.Core\UI\Views\JobsPageView.xaml.cs
+  Preview: "using RommStar.Core.UI.ViewModels; using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks;..."
+- File: src\RommStar.Core\UI\Views\MainWindowView.xaml.cs
+  Symbols: [MainWindowView, MainWindowView, NavigationView_SelectionChanged, Window_Closing, Window_Loaded, FontIcon_MouseLeftButtonUp, DarkModeToggle_MouseLeftButtonUp]
+  Preview: "using iNKORE.UI.WPF.Modern; using RommStar.Core.UI.ViewModels; using System; using System.Collections.Generic; using System.Linq; using System.Text; u..."
+- File: src\RommStar.Core\UI\Views\SettingsPageView.xaml.cs
+  Preview: "using iNKORE.UI.WPF.Modern; using RommStar.Core.UI.ViewModels; using System; using System.Collections.Generic; using System.Linq; using System.Text; u..."

@@ -1,18 +1,7 @@
-﻿using iNKORE.UI.WPF.Modern;
-using RommStar.Core.UI.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using RommStar.Core.UI.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace RommStar.Core.UI.Views
 {
@@ -81,6 +70,18 @@ namespace RommStar.Core.UI.Views
             // Cancel the close and hide the window so the singleton ViewModel and bindings remain alive.
             e.Cancel = true;
             this.Hide();
+        }
+
+        private void FontIcon_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+        }
+
+        private void DarkModeToggle_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!NavigationView_Root.IsPaneOpen)
+            {
+                NavigationView_Root.IsPaneOpen = true;
+            }
         }
     }
 }

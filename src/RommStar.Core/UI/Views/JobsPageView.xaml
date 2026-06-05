@@ -47,21 +47,22 @@
                                                    FontSize="14" />
 
                                         <TextBlock Text="{Binding Status, StringFormat=' - \{0\}'}"
-                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" Opacity="0.8"
+                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                     Margin="8,0,0,0"
                                                     VerticalAlignment="Center"
                                                     FontSize="12" />
                                     </WrapPanel>
 
                                     <!-- Native ProgressBar automatically tints to your iNKORE window accent color -->
-                                    <ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
+                                    <ui:ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
                                                  Minimum="0"
                                                  Maximum="100"
-                                                 Height="10"
-                                                 Margin="0,0,0,0" Foreground="#371f69" />
+                                                 Height="1" Background="#80808080"
+                                                 Margin="0,10,0,0" Foreground="Green" MinHeight="5">
+                                    </ui:ProgressBar>
 
                                     <TextBlock Text="{Binding ProcessedItems, StringFormat='Files Processed: \{0\}'}"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" Opacity="0.6"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                FontSize="11"
                                                Margin="0,6,0,0" />
                                 </StackPanel>
@@ -78,7 +79,7 @@
                                     Background="Transparent"
                                     BorderBrush="Transparent"
                                     Command="{Binding DataContext.CancelJobCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                    CommandParameter="{Binding LaunchBoxPlatformName}">
+                                    CommandParameter="{Binding Id}">
 
                                     <!-- ToolTip layout helper for enhanced accessibility feedback states -->
                                     <Button.ToolTip>
@@ -104,13 +105,13 @@
 
                             <!-- 3. Completed State: Green -->
                             <DataTrigger Binding="{Binding Status}" Value="Completed">
-                                <Setter TargetName="JobCard" Property="Background" Value="#a0408040" />
+                                <Setter TargetName="JobCard" Property="Background" Value="#40408040" />
                                 <Setter TargetName="JobCard" Property="BorderBrush" Value="#808080" />
                             </DataTrigger>
 
-                            <!-- 4. Cancelled State: Green -->
+                            <!-- 4. Cancelled State: Red -->
                             <DataTrigger Binding="{Binding Status}" Value="Cancelled">
-                                <Setter TargetName="JobCard" Property="Background" Value="#804A6572" />
+                                <Setter TargetName="JobCard" Property="Background" Value="#40ff0000" />
                                 <Setter TargetName="JobCard" Property="BorderBrush" Value="#808080" />
                             </DataTrigger>
                         </DataTemplate.Triggers>

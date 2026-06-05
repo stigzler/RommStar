@@ -8,6 +8,9 @@ namespace RommStar.Core.Sync
     /// </summary>
     public class PlatformSyncTask
     {
+        // 2. This now safely references the property on the UiCard above
+        public Guid Id => UiCard.Id;
+
         public string LaunchBoxPlatformName { get; set; } = string.Empty;
         public List<int> RommPlatformIds { get; set; } = new();
         public bool DownloadRomFiles { get; set; }
