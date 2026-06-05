@@ -47,7 +47,7 @@
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem Content="Games">
+            <ui:NavigationViewItem Content="Servers">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Game}" />
                 </ui:NavigationViewItem.Icon>

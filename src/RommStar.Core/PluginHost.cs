@@ -5,6 +5,7 @@ using RommStar.Core.Launchbox;
 using RommStar.Core.Primitives;
 using RommStar.Core.Properties;
 using RommStar.Core.Services;
+using RommStar.Core.Sync;
 using RommStar.Core.Temp;
 using RommStar.Core.UI.ViewModels;
 using RommStar.Core.UI.Views;
@@ -22,6 +23,7 @@ namespace RommStar.Core
 
         private readonly LoggingService _loggingService;
         private readonly SettingsService _settingsService;
+        private readonly RommService _rommService;
 
         private readonly IServiceProvider _serviceProvider;
 
@@ -99,15 +101,16 @@ namespace RommStar.Core
         {
             services.AddSingleton<LoggingService>();
             services.AddSingleton<SettingsService>();
+            services.AddSingleton<RommService>();
 
-            // Register initial RommServerConfig & RommService
+            // Register initial RommServerConfig & SyncManager
             services.AddSingleton<RommStar.Core.Models.RommServerConfig>(sp => new RommStar.Core.Models.RommServerConfig
             {
                 BaseUrl = "http://localhost:8080", // placeholder defaults
                 ApiToken = "",
                 ServerName = "Default Romm Server"
             });
-            services.AddSingleton<RommStar.Core.Services.RommService>();
+            services.AddSingleton<SyncManager>();
 
             // Register ViewModels as singletons
             services.AddSingleton<MainWindowVM>();

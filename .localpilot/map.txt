@@ -1,12 +1,12 @@
 ## WORKSPACE EXECUTIVE SUMMARY (YAML)
-# Generated: 2026-06-05T19:31:03.8887263+01:00
+# Generated: 2026-06-05T21:59:03.2851940+01:00
 # Root: C:\Users\stigz\source\repos\0.MyCode\NET\RommStar
 Architecture:
   Type: Backend (C#/.NET)
-  Scale: 48 relevant source files
+  Scale: 53 relevant source files
   Components: 0
   Controllers: 0
-  Models: 4
+  Models: 5
   Services: 3
 ---
 - File: WpfControlLibrary1\WpfControlLibrary1.csproj
@@ -57,6 +57,8 @@ Architecture:
 - File: src\RommStar.Core\Models\MediaSelectionProfile.cs
   Symbols: [MediaSelectionProfile]
   Preview: "namespace RommStar.Core.Models {   /// <summary>   /// Dictates which asset streams are pulled during a specific runtime operation.   /// </summary>  ..."
+- File: src\RommStar.Core\Models\RommApiResponse.cs
+  Preview: "using RommStar.Core.Primitives; using System; using System.Collections.Generic; using System.Linq; using System.Net.Http; using System.Text; using Sys..."
 - File: src\RommStar.Core\Models\RommServerConfig.cs
   Symbols: [RommServerConfig]
   Preview: "namespace RommStar.Core.Models {   public class RommServerConfig   {     public string BaseUrl { get; set; } = string.Empty;     public string ApiToke..."
@@ -68,6 +70,8 @@ Architecture:
 - File: src\RommStar.Core\Plugins\SystemMenuItemPlugin.cs
   Preview: "using RommStar.Core.Launchbox; using System; using System.Collections.Generic; using System.Drawing; using System.Linq; using System.Text; using Syste..."
 - File: src\RommStar.Core\Primitives\LoggingLevel.cs
+  Preview: "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; namespace RommStar.Core.Primitives..."
+- File: src\RommStar.Core\Primitives\RommApiFailureReason.cs
   Preview: "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; namespace RommStar.Core.Primitives..."
 - File: src\RommStar.Core\Properties\launchSettings.json
   Preview: "{  'profiles': {   'PluginDebug': {    'commandName': 'Executable',    'executablePath': 'C:\\Users\\stigz\\LaunchboxDEV\\LaunchBox\\Core\\LaunchBox.e..."
@@ -81,7 +85,8 @@ Architecture:
 - File: src\RommStar.Core\Services\LoggingService.cs
   Preview: "using RommStar.Core.Primitives; using RommStar.Core.Properties; using System; using System.Collections.Generic; using System.Diagnostics; using System..."
 - File: src\RommStar.Core\Services\RommService.cs
-  Preview: "using System; using System.Collections.Concurrent; using System.Collections.Generic; using System.Collections.ObjectModel; using System.IO; using Syst..."
+  Symbols: [SendRequestAsync, TestConnectionAsync, catch, catch, catch, RommService, RommService]
+  Preview: "using RommStar.Core.Models; using RommStar.Core.Primitives; using System; using System.Collections.Generic; using System.Linq; using System.Net; using..."
 - File: src\RommStar.Core\Services\SettingsService.cs
   Symbols: [SettingsService]
   Preview: "using System; using System.IO; using System.Reflection; using System.Text.Json; using RommStar.Core.Models; using RommStar.Core.Properties; namespace ..."
@@ -95,6 +100,9 @@ Architecture:
 - File: src\RommStar.Core\Sync\PlatformSyncTask.cs
   Symbols: [PlatformSync]
   Preview: "using System.Collections.Generic; using System.Threading; namespace RommStar.Core.Sync {   /// <summary>   /// Holds the structural execution context ..."
+- File: src\RommStar.Core\Sync\SyncManager.cs
+  Symbols: [ScheduleMediaDownloads, EnqueueFileDownload, SyncManager, SyncManager, FetchMetadataFromRommAsync, catch, catch, StartFileQueueProcessorAsync, new, new, StartPlatformQueueProcessorAsync, ExecuteOnDemandInstallAsync, StreamFileFromNetworkAsync, SyncWithLaunchBoxDatabase, QueuePlatformSync]
+  Preview: "using System; using System.Collections.Concurrent; using System.Collections.Generic; using System.Collections.ObjectModel; using System.IO; using Syst..."
 - File: src\RommStar.Core\Sync\SyncStatus.cs
   Preview: "namespace RommStar.Core.Sync {   public enum SyncStatus   {     Queued,     ProcessingMetadata,     SyncingFiles,     Completed,     CompletedWithWarn..."
 - File: src\RommStar.Core\Temp\RommServerTestingGemini.md
@@ -106,10 +114,14 @@ Architecture:
   Symbols: [HomePageVM]
   Preview: "using CommunityToolkit.Mvvm.ComponentModel; using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threadi..."
 - File: src\RommStar.Core\UI\ViewModels\JobsPageVM.cs
-  Preview: "using CommunityToolkit.Mvvm.ComponentModel; using CommunityToolkit.Mvvm.Input; using RommStar.Core.Services; using RommStar.Core.Sync; using System; u..."
+  Symbols: [CancelJob, StartSyncJob, JobsPageVM, JobsPageVM, JobsPageVM]
+  Preview: "using CommunityToolkit.Mvvm.ComponentModel; using CommunityToolkit.Mvvm.Input; using RommStar.Core.Sync; using System; using System.Collections.Generi..."
 - File: src\RommStar.Core\UI\ViewModels\MainWindowVM.cs
-  Symbols: [OnIsDarkModeChanged, MainWindowVM, MainWindowVM]
+  Symbols: [MainWindowVM, MainWindowVM, OnIsDarkModeChanged]
   Preview: "using Accessibility; using CommunityToolkit.Mvvm.ComponentModel; using CommunityToolkit.Mvvm.Input; using iNKORE.UI.WPF.Modern; using RommStar.Core.Se..."
+- File: src\RommStar.Core\UI\ViewModels\ServersPageVM.cs
+  Symbols: [ServersPageVM, ServersPageVM]
+  Preview: "using CommunityToolkit.Mvvm.ComponentModel; using CommunityToolkit.Mvvm.Input; using RommStar.Core.Models; using RommStar.Core.Primitives; using RommS..."
 - File: src\RommStar.Core\UI\ViewModels\SettingsPageVM.cs
   Preview: "using CommunityToolkit.Mvvm.ComponentModel; using RommStar.Core.Services; using System; using System.Collections.Generic; using System.Linq; using Sys..."
 - File: src\RommStar.Core\UI\Views\HomePageView.xaml.cs
@@ -118,5 +130,8 @@ Architecture:
   Preview: "using RommStar.Core.UI.ViewModels; using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks;..."
 - File: src\RommStar.Core\UI\Views\MainWindowView.xaml.cs
   Preview: "using RommStar.Core.UI.ViewModels; using System.Windows; using System.Windows.Controls; using System.Windows.Input; namespace RommStar.Core.UI.Views {..."
+- File: src\RommStar.Core\UI\Views\ServersPageView.xaml.cs
+  Symbols: [ServersPageView, ServersPageView]
+  Preview: "using RommStar.Core.UI.ViewModels; using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks;..."
 - File: src\RommStar.Core\UI\Views\SettingsPageView.xaml.cs
   Preview: "using iNKORE.UI.WPF.Modern; using RommStar.Core.UI.ViewModels; using System; using System.Collections.Generic; using System.Linq; using System.Text; u..."

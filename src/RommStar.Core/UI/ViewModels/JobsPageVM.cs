@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using RommStar.Core.Services;
 using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
@@ -16,24 +15,24 @@ namespace RommStar.Core.UI.ViewModels
         [ObservableProperty]
         private ObservableCollection<PlatformSyncJob> _activeJobs;
 
-        private readonly RommService? _rommService;
+        private readonly SyncManager? _syncManager;
 
         public JobsPageVM()
         {
         }
 
-        public JobsPageVM(RommService rommService)
+        public JobsPageVM(SyncManager syncManager)
         {
-            _rommService = rommService;
-            _activeJobs = _rommService.ActiveSyncJobs;
+            _syncManager = syncManager;
+            _activeJobs = _syncManager.ActiveSyncJobs;
         }
 
         [RelayCommand]
         private void StartSyncJob()
         {
-            _rommService?.QueuePlatformSync("Atari 2600", new List<int>() { 1, 2, 4 }, false);
-            _rommService?.QueuePlatformSync("Dave 2000", new List<int>() { 7, 9, 11 }, false);
-            _rommService?.QueuePlatformSync("Amiga 7000", new List<int>() { 13, 19, 32 }, false);
+            _syncManager?.QueuePlatformSync("Atari 2600", new List<int>() { 1, 2, 4 }, false);
+            _syncManager?.QueuePlatformSync("Dave 2000", new List<int>() { 7, 9, 11 }, false);
+            _syncManager?.QueuePlatformSync("Amiga 7000", new List<int>() { 13, 19, 32 }, false);
         }
 
         [RelayCommand]
@@ -41,7 +40,7 @@ namespace RommStar.Core.UI.ViewModels
         {
             if (id != Guid.Empty)
             {
-                _rommService.CancelPlatformSync(id);
+                _syncManager.CancelPlatformSync(id);
             }
         }
     }
