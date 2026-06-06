@@ -39,7 +39,7 @@ namespace RommStar.Core.Services
         /// </summary>
         public async Task<RommApiResponse> TestConnectionAsync(RommServer server, CancellationToken externalToken = default)
         {
-            string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/heartbeat";
+            string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/users/me";
             return await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
         }
 

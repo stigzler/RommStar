@@ -68,8 +68,6 @@ namespace RommStar.Core
             _loggingService.Log($"  LogLevel: {_settingsService.Settings.LoggingLevel.ToString()}");
 
             // TESTS
-            Tests.PopulateTestSettings(_settingsService.Settings);
-            _settingsService.Save();
         }
 
         // The extracted method for assembly resolution, completely independent of plugin instantiation
@@ -102,6 +100,7 @@ namespace RommStar.Core
             services.AddSingleton<LoggingService>();
             services.AddSingleton<SettingsService>();
             services.AddSingleton<RommService>();
+            services.AddSingleton<CryptoService>();
 
             // Register initial RommServerConfig & SyncManager
             services.AddSingleton<RommStar.Core.Models.RommServer>(sp => new RommStar.Core.Models.RommServer

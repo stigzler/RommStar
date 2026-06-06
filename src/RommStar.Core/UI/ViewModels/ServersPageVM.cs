@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using iNKORE.UI.WPF.Modern.Controls;
 using RommStar.Core.Models;
 using RommStar.Core.Primitives;
 using RommStar.Core.Services;
@@ -9,6 +10,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using Unbroken.LaunchBox.Plugins;
 
 namespace RommStar.Core.UI.ViewModels
 {
@@ -44,11 +47,20 @@ namespace RommStar.Core.UI.ViewModels
         // LIVE HEALTH STATUS CHECKING
         // =========================================================================
 
-        private async Task CheckServerHealthAsync(ServerDisplayItem item)
+        private async Task CheckServerHealthAsync(ServerDisplayItem item, bool isManualTest = false)
         {
+            // Reset layout flags before running the connection test
+            item.IsMessageDismissed = false;
+            item.HasError = false;
+            item.HasSuccessMessage = false;
+
             item.IsWorking = true;
-            item.StatusColor = "#A0A0A0"; // Neutral processing tone
+            item.StatusColor = "#A0A0A0";
             item.ConnectionStatusText = "Connecting...";
+
+            // Clear out any old success banner history before running a new test
+            item.HasSuccessMessage = false;
+            item.SuccessMessage = string.Empty;
 
             var result = await _rommService.TestConnectionAsync(item.Server);
 
@@ -58,6 +70,13 @@ namespace RommStar.Core.UI.ViewModels
                 item.ConnectionStatusText = "Connected";
                 item.HasError = false;
                 item.ErrorMessage = string.Empty;
+
+                // ONLY trip this visibility banner if triggered interactively
+                if (isManualTest)
+                {
+                    item.HasSuccessMessage = true;
+                    item.SuccessMessage = $"Successfully authenticated with {item.Server.ServerName}! Ready to sync.";
+                }
             }
             else
             {
@@ -80,7 +99,8 @@ namespace RommStar.Core.UI.ViewModels
             var blankServer = new RommServer
             {
                 ServerName = "New RomM Server",
-                BaseUrl = "http://localhost:8080"
+                BaseUrl = "http://localhost:8080",
+                ApiToken = "{TokenHere}"
             };
 
             var wrapper = new ServerDisplayItem(blankServer);
@@ -92,12 +112,21 @@ namespace RommStar.Core.UI.ViewModels
         }
 
         [RelayCommand]
-        public void DeleteServer(ServerDisplayItem item)
+        public async Task DeleteServer(ServerDisplayItem item)
         {
-            if (item != null)
-            {
-                DisplayServers.Remove(item);
-            }
+            if (item == null) return;
+
+            ContentDialog dialog = new ContentDialog();
+            dialog.Title = "Are you sure?";
+            dialog.Content = $"This will permanently delete the server \"{item.Server.ServerName}\" from your settings. Are you sure?";
+            dialog.PrimaryButtonText = "Yes";
+            dialog.SecondaryButtonText = "No";
+
+            var result = await dialog.ShowAsync();
+
+            if (result == ContentDialogResult.Secondary) return;
+
+            DisplayServers.Remove(item);
         }
 
         [RelayCommand]
@@ -105,7 +134,8 @@ namespace RommStar.Core.UI.ViewModels
         {
             if (item != null)
             {
-                await CheckServerHealthAsync(item);
+                // Set flag to true because the user directly clicked the button!
+                await CheckServerHealthAsync(item, isManualTest: true);
             }
         }
 

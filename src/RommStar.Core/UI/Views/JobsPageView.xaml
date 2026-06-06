@@ -11,7 +11,7 @@
       d:DataContext="{d:DesignInstance Type=vm:JobsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="Jobs">
+      Title="Sync Jobs">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />

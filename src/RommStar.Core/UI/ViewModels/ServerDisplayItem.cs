@@ -18,6 +18,9 @@ namespace RommStar.Core.UI.ViewModels
         [ObservableProperty] private bool _isWorking;
         [ObservableProperty] private string _errorMessage = string.Empty;
         [ObservableProperty] private bool _hasError;
+        [ObservableProperty] private bool _hasSuccessMessage;
+        [ObservableProperty] private string _successMessage = string.Empty;
+        [ObservableProperty] private bool _isMessageDismissed;
 
         public ServerDisplayItem(RommServer server)
         {

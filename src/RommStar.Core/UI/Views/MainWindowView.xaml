@@ -35,21 +35,22 @@
         </ui:NavigationView.Resources>
 
         <ui:NavigationView.MenuItems>
+
             <ui:NavigationViewItem Content="Home" x:Name="NavigationViewItem_Home">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Home}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem Content="Sync Jobs" x:Name="NavigationViewItem_Jobs">
-                <ui:NavigationViewItem.Icon>
-                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
-                </ui:NavigationViewItem.Icon>
-            </ui:NavigationViewItem>
-
             <ui:NavigationViewItem Content="Servers" x:Name="NavigationViewItem_Servers">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ServerSurfaceMultiple_16_Regular}" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Sync Jobs" x:Name="NavigationViewItem_Jobs">
+                <ui:NavigationViewItem.Icon>
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
         </ui:NavigationView.MenuItems>

@@ -79,6 +79,16 @@ namespace RommStar.Core.UI.Views
             Properties.Settings.Default.WindowSize = new System.Drawing.Size((int)this.Width, (int)this.Height);
             Properties.Settings.Default.Save();
 
+            // ENSURE RELEVANT SETINGS SAVES
+            // In case of launchbox shutdown etc.
+            if (Frame_Main.Content is ServersPageView activeServersPage)
+            {
+                if (activeServersPage.DataContext is ServersPageVM serversVm)
+                {
+                    serversVm.OnNavigatedAway();
+                }
+            }
+
             // If application is shutting down, allow normal close.
             if (Application.Current?.Dispatcher?.HasShutdownStarted == true ||
                 Application.Current?.Dispatcher?.HasShutdownFinished == true)

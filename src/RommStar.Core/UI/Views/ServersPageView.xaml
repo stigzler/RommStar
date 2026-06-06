@@ -32,7 +32,7 @@
             <ItemsControl ItemsSource="{Binding DisplayServers}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Margin="0,0,0,12" Background="#40000000" CornerRadius="14" BorderBrush="#80808080" BorderThickness="1">
+                        <Border Margin="0,0,20,10" Background="#40000000" CornerRadius="14" BorderBrush="#80808080" BorderThickness="1">
                             <StackPanel>
 
                                 <Border Padding="16,12">
@@ -43,7 +43,7 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
 
-                                        <Ellipse Grid.Column="0" Width="10" Height="10" Margin="4,0,16,0"
+                                        <Ellipse Grid.Column="0" Width="14" Height="14" Margin="4,0,16,0"
                                                  Fill="{Binding StatusColor}" VerticalAlignment="Center" />
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -59,50 +59,135 @@
                                                     <RowDefinition Height="auto " />
                                                 </Grid.RowDefinitions>
 
-                                                <TextBlock Grid.Column ="0" Text="Name:"  Margin="0,5,0,10" />
+                                                <TextBlock Grid.Column ="0" Text="Name:"  Margin="0,5,0,10" ToolTip="Arbitrary name to idenitify this server in RommStar." />
                                                 <TextBox Grid.Column ="1" Text="{Binding Server.ServerName, UpdateSourceTrigger=PropertyChanged}"
                                                      VerticalAlignment="Center"
                                                      FontWeight="SemiBold" BorderThickness="1"
                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="10,0,10,10" />
 
-                                                <TextBlock Grid.Column ="0" Grid.Row="1" Text="Base URL:"  Margin="0,5,0,10" />
+                                                <TextBlock Grid.Column ="0" Grid.Row="1" Text="Base URL:"  Margin="0,5,0,10" ToolTip="Base URL of the RomM Server. Eg. https://roms.dave.org" />
                                                 <TextBox Grid.Column ="1" Grid.Row="1" Text="{Binding Server.BaseUrl, UpdateSourceTrigger=PropertyChanged}"
                                                           VerticalAlignment="Center"
                                                         BorderThickness="1"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="10,0,10,10" />
 
-                                                <TextBlock Grid.Column ="0" Grid.Row="2" Text="API Key:"  Margin="0,5,0,10" />
-                                                <Grid Grid.Column ="1" Grid.Row="2"  Margin="10,0,10,0">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*" />
-                                                        <ColumnDefinition Width="auto" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <PasswordBox Grid.Column="0" x:Name="passwordBoxWithReveal"  Margin="0,0,8,0"
-                                                            Password="{Binding Server.ApiToken, UpdateSourceTrigger=PropertyChanged}"
-                                                            ui:PasswordBoxHelper.PasswordRevealMode="Hidden" AutomationProperties.Name="Sample password box" />
-                                                    <CheckBox Grid.Column="1" x:Name="revealModeCheckBox" Content="Show password" IsChecked="False"
-                                                    Checked="RevealModeCheckbox_Changed" Unchecked="RevealModeCheckbox_Changed" />
-                                                </Grid>
+                                                <TextBlock Grid.Column ="0" Grid.Row="2" Text="API Key:"  Margin="0,5,0,10" ToolTip="Your API key for this Server" />
+                                                <TextBox Grid.Column ="1" Grid.Row="2" Text="{Binding Server.ApiToken, UpdateSourceTrigger=PropertyChanged}"
+                                                          VerticalAlignment="Center"
+                                                        BorderThickness="1"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="10,0,10,10" />
                                             </Grid>
                                         </StackPanel>
 
-                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
-                                            <Button Content="Test Connection"
+                                        <StackPanel Grid.Column="2" Orientation="Vertical" VerticalAlignment="Top">
+                                            <Button Content="Test"
                                                     Command="{Binding DataContext.TestServerConnectionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}"
-                                                    Margin="0,0,8,0" />
+                                                    Margin="0,0,0,5" />
 
                                             <Button Content="Delete"
                                                     Command="{Binding DataContext.DeleteServerCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}"
-                                                    Background="#80ff0000" Foreground="white" />
+                                                    Background="#80ff0000" Foreground="white"
+                                                    Margin="0,0,0,5" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
 
-                                <Border Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" CornerRadius="14" Margin="5"
-                                        Background="#40ff0000" BorderBrush="#d0808080" BorderThickness="1" Padding="16,10">
-                                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                                <!-- Main Card End -->
+
+                                <Border CornerRadius="14" Margin="5"
+                                        Background="#2A1815" BorderBrush="#3D201C" BorderThickness="1" Padding="16,10">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMessageDismissed}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="✗" Foreground="#F1707B" FontWeight="Bold" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" Foreground="#F1707B" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+
+                                        <Button Grid.Column="2" Width="24" Height="24" Margin="10,0,0,0" Padding="0"
+                                                Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="Transparent">
+                                                        <TextBlock Text="✕" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" />
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                            <Button.Triggers>
+                                                <EventTrigger RoutedEvent="Button.Click">
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="DataContext.IsMessageDismissed">
+                                                                <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True" />
+                                                            </BooleanAnimationUsingKeyFrames>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                            </Button.Triggers>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
+                                <Border CornerRadius="14" Margin="5"
+                                        Background="#142A18" BorderBrush="#1C3D22" BorderThickness="1" Padding="16,10">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="{Binding HasSuccessMessage, Converter={StaticResource BoolToVis}}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsMessageDismissed}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="✓" Foreground="#7BF19E" FontWeight="Bold" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding SuccessMessage}" Foreground="#7BF19E" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+
+                                        <Button Grid.Column="2" Width="24" Height="24" Margin="10,0,0,0" Padding="0"
+                                                Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="Transparent">
+                                                        <TextBlock Text="✕" Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" />
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                            <Button.Triggers>
+                                                <EventTrigger RoutedEvent="Button.Click">
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <BooleanAnimationUsingKeyFrames Storyboard.TargetProperty="DataContext.IsMessageDismissed">
+                                                                <DiscreteBooleanKeyFrame KeyTime="0:0:0" Value="True" />
+                                                            </BooleanAnimationUsingKeyFrames>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                            </Button.Triggers>
+                                        </Button>
+                                    </Grid>
                                 </Border>
                             </StackPanel>
                         </Border>
