@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using RommStar.Core.Models;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,12 @@ namespace RommStar.Core.UI.ViewModels
         [ObservableProperty] private bool _hasSuccessMessage;
         [ObservableProperty] private string _successMessage = string.Empty;
         [ObservableProperty] private bool _isMessageDismissed;
+
+        [RelayCommand]
+        private void DismissMessage()
+        {
+            IsMessageDismissed = true;
+        }
 
         public ServerDisplayItem(RommServer server)
         {
