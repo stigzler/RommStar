@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using iNKORE.UI.WPF.Modern.Common;
 using RommStar.Core.Models;
 using System;
 using System.Collections.Generic;
@@ -22,11 +23,25 @@ namespace RommStar.Core.UI.ViewModels
         [ObservableProperty] private bool _hasSuccessMessage;
         [ObservableProperty] private string _successMessage = string.Empty;
         [ObservableProperty] private bool _isMessageDismissed;
+        [ObservableProperty] private PasswordRevealMode _apiKeyVisibility = PasswordRevealMode.Hidden;
 
         [RelayCommand]
         private void DismissMessage()
         {
             IsMessageDismissed = true;
+        }
+
+        [RelayCommand]
+        public void ToggleApiKeyVisibility()
+        {
+            if (ApiKeyVisibility == PasswordRevealMode.Hidden)
+            {
+                ApiKeyVisibility = PasswordRevealMode.Visible;
+            }
+            else
+            {
+                ApiKeyVisibility = PasswordRevealMode.Hidden;
+            }
         }
 
         public ServerDisplayItem(RommServer server)
