@@ -35,7 +35,7 @@ namespace RommStar.Core.UI.Views
         {
             //HACK: To Correct for WPF squiffy/dogmatic PasswordBox behaviours (clears when navigate away - need to restore it when reloads page)
             PasswordBox passwordBox = (PasswordBox)sender;
-            passwordBox.Password = ((ServerDisplayItem)passwordBox.DataContext).Server.ApiToken;
+            passwordBox.Password = ((ServerDisplayItemVM)passwordBox.DataContext).Server.ApiToken;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using RommStar.Core.Models;
+﻿using RommStar.Core.Dtos;
+using RommStar.Core.Models;
 using RommStar.Core.Primitives;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,9 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace RommStar.Core.Services
 {
@@ -41,6 +44,42 @@ namespace RommStar.Core.Services
         {
             string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/users/me";
             return await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
+        }
+
+        public async Task<RommApiResponse<List<RommPlatformDTO>>> GetRommPlatformsAsync(RommServer server, CancellationToken externalToken = default)
+        {
+            string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/platforms";
+
+            var response = await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
+            if (!response.IsSuccess)
+            {
+                return RommApiResponse<List<RommPlatformDTO>>.Fail(response.FailureReason, response.ExceptionMessage);
+            }
+
+            try
+            {
+                //var jsonString = await response.HttpResponse.Content.ReadAsStringAsync();
+
+                //var platforms = JsonSerializer.Deserialize<List<RommPlatformDTO>>(
+                //    jsonString,
+                //    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                //);
+
+                using var contentStream = await response.HttpResponse.Content.ReadAsStreamAsync();
+                var platforms = await JsonSerializer.DeserializeAsync<List<RommPlatformDTO>>(
+                    contentStream,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                );
+
+                response.HttpResponse?.Dispose();
+
+                return RommApiResponse<List<RommPlatformDTO>>.SuccessWithData(response.HttpResponse!, platforms ?? new List<RommPlatformDTO>());
+            }
+            catch (Exception ex)
+            {
+                response.HttpResponse?.Dispose();
+                return RommApiResponse<List<RommPlatformDTO>>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
+            }
         }
 
         // =========================================================================

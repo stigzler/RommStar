@@ -16,9 +16,11 @@ namespace RommStar.Core.UI.Views
         private SettingsPageView SettingsPageView;
         private JobsPageView JobsPageView;
         private ServersPageView ServersPageView;
+        private PlatformsPageView PlatformsPageView;
 
         public MainWindowView(MainWindowVM mainWindowVM, HomePageVM homePageVM,
-            SettingsPageVM settingsPageVM, JobsPageVM jobsPageVM, ServersPageVM serversPageVM)
+            SettingsPageVM settingsPageVM, JobsPageVM jobsPageVM, ServersPageVM serversPageVM,
+            PlatformsPageVM platformsPageVM)
         {
             InitializeComponent();
             ViewModel = mainWindowVM;
@@ -28,6 +30,7 @@ namespace RommStar.Core.UI.Views
             SettingsPageView = new SettingsPageView(settingsPageVM);
             JobsPageView = new JobsPageView(jobsPageVM);
             ServersPageView = new ServersPageView(serversPageVM);
+            PlatformsPageView = new PlatformsPageView(platformsPageVM);
         }
 
         private void NavigationView_SelectionChanged(iNKORE.UI.WPF.Modern.Controls.NavigationView sender, iNKORE.UI.WPF.Modern.Controls.NavigationViewSelectionChangedEventArgs args)
@@ -60,6 +63,10 @@ namespace RommStar.Core.UI.Views
             else if (item == NavigationViewItem_Servers)
             {
                 page = ServersPageView;
+            }
+            else if (item == NavigationViewItem_Platforms)
+            {
+                page = PlatformsPageView;
             }
 
             if (page != null)

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace RommStar.Core.UI.ViewModels
 {
-    public partial class ServerDisplayItem : ObservableObject
+    public partial class ServerDisplayItemVM : ObservableObject
     {
         // The core underlying domain data
         public RommServer Server { get; }
@@ -44,7 +44,7 @@ namespace RommStar.Core.UI.ViewModels
             }
         }
 
-        public ServerDisplayItem(RommServer server)
+        public ServerDisplayItemVM(RommServer server)
         {
             Server = server;
         }

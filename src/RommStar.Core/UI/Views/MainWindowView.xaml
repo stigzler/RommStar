@@ -48,6 +48,12 @@
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
+            <ui:NavigationViewItem Content="Platforms" x:Name="NavigationViewItem_Platforms">
+                <ui:NavigationViewItem.Icon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+
             <ui:NavigationViewItem Content="Sync Jobs" x:Name="NavigationViewItem_Jobs">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />

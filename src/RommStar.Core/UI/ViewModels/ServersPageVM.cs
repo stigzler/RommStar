@@ -2,16 +2,8 @@
 using CommunityToolkit.Mvvm.Input;
 using iNKORE.UI.WPF.Modern.Controls;
 using RommStar.Core.Models;
-using RommStar.Core.Primitives;
 using RommStar.Core.Services;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using Unbroken.LaunchBox.Plugins;
 
 namespace RommStar.Core.UI.ViewModels
 {
@@ -21,7 +13,7 @@ namespace RommStar.Core.UI.ViewModels
         private readonly SettingsService _settingsService;
 
         // The UI binds strictly to this display wrapper collection
-        public ObservableCollection<ServerDisplayItem> DisplayServers { get; } = new();
+        public ObservableCollection<ServerDisplayItemVM> DisplayServers { get; } = new();
 
         public ServersPageVM()
         {
@@ -35,7 +27,7 @@ namespace RommStar.Core.UI.ViewModels
             // Map saved items to our interactive UI wrappers
             foreach (var server in _settingsService.Settings.RommServers)
             {
-                var wrappedItem = new ServerDisplayItem(server);
+                var wrappedItem = new ServerDisplayItemVM(server);
                 DisplayServers.Add(wrappedItem);
 
                 // Fire-and-forget a live background health check on load
@@ -47,7 +39,7 @@ namespace RommStar.Core.UI.ViewModels
         // LIVE HEALTH STATUS CHECKING
         // =========================================================================
 
-        private async Task CheckServerHealthAsync(ServerDisplayItem item, bool isManualTest = false)
+        private async Task CheckServerHealthAsync(ServerDisplayItemVM item, bool isManualTest = false)
         {
             // Reset layout flags before running the connection test
             item.IsMessageDismissed = false;
@@ -103,7 +95,7 @@ namespace RommStar.Core.UI.ViewModels
                 ApiToken = "{TokenHere}"
             };
 
-            var wrapper = new ServerDisplayItem(blankServer);
+            var wrapper = new ServerDisplayItemVM(blankServer);
             DisplayServers.Add(wrapper);
 
             // Instantly marks it as requiring input
@@ -112,7 +104,7 @@ namespace RommStar.Core.UI.ViewModels
         }
 
         [RelayCommand]
-        public async Task DeleteServer(ServerDisplayItem item)
+        public async Task DeleteServer(ServerDisplayItemVM item)
         {
             if (item == null) return;
 
@@ -130,7 +122,7 @@ namespace RommStar.Core.UI.ViewModels
         }
 
         [RelayCommand]
-        public async Task TestServerConnection(ServerDisplayItem item)
+        public async Task TestServerConnection(ServerDisplayItemVM item)
         {
             if (item != null)
             {

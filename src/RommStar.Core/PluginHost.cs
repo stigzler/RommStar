@@ -13,6 +13,8 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Windows;
+using Unbroken.LaunchBox.Plugins;
+using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core
 {
@@ -23,13 +25,8 @@ namespace RommStar.Core
 
         private readonly LoggingService _loggingService;
         private readonly SettingsService _settingsService;
-        private readonly RommService _rommService;
 
         private readonly IServiceProvider _serviceProvider;
-
-        private MainWindowVM MainWindowVM => _serviceProvider.GetRequiredService<MainWindowVM>();
-        private SettingsPageVM SettingsPageVM => _serviceProvider.GetRequiredService<SettingsPageVM>();
-        private HomePageVM HomePageVM => _serviceProvider.GetRequiredService<HomePageVM>();
 
         internal static PluginHost Instance
         {
@@ -68,6 +65,7 @@ namespace RommStar.Core
             _loggingService.Log($"  LogLevel: {_settingsService.Settings.LoggingLevel.ToString()}");
 
             // TESTS
+            var platfroms = PluginHelper.DataManager.GetAllPlatforms();
         }
 
         // The extracted method for assembly resolution, completely independent of plugin instantiation
@@ -101,6 +99,7 @@ namespace RommStar.Core
             services.AddSingleton<SettingsService>();
             services.AddSingleton<RommService>();
             services.AddSingleton<CryptoService>();
+            services.AddSingleton<LaunchboxService>();
 
             // Register initial RommServerConfig & SyncManager
             services.AddSingleton<RommStar.Core.Models.RommServer>(sp => new RommStar.Core.Models.RommServer
@@ -117,6 +116,7 @@ namespace RommStar.Core
             services.AddSingleton<HomePageVM>();
             services.AddSingleton<JobsPageVM>();
             services.AddSingleton<ServersPageVM>();
+            services.AddSingleton<PlatformsPageVM>();
 
             // Register Views as singletons
             // MainWindowView requires all three ViewModels, so use a factory
@@ -126,7 +126,8 @@ namespace RommStar.Core
                     sp.GetRequiredService<HomePageVM>(),
                     sp.GetRequiredService<SettingsPageVM>(),
                     sp.GetRequiredService<JobsPageVM>(),
-                    sp.GetRequiredService<ServersPageVM>()
+                    sp.GetRequiredService<ServersPageVM>(),
+                    sp.GetRequiredService<PlatformsPageVM>()
                 )
             );
 
@@ -153,6 +154,12 @@ namespace RommStar.Core
         internal void LaunchboxEventReceived(string eventType)
         {
             _loggingService.Log($"Launchbox event received: {eventType}", LoggingLevel.Verbose);
+            switch (eventType)
+            {
+                case SystemEventTypes.GameStarting:
+                    _loggingService.Log("Game starting event received.");
+                    break;
+            }
         }
 
         private void LaunchAdminWindow()
