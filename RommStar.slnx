@@ -4,4 +4,5 @@
   </Folder>
   <Project Path="dev/dev.shproj" />
   <Project Path="src/RommStar.Core/RommStar.Core.csproj" />
+  <Project Path="src/RommStar.Tests/RommStar.Tests.csproj" Id="e994ea29-1629-4f3d-85f7-101fb4b15121" />
 </Solution>

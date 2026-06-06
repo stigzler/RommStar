@@ -17,7 +17,7 @@ namespace RommStar.Core.Sync
         public string RelativeUrl { get; set; } = string.Empty;
         public string DestinationPath { get; set; } = string.Empty;
         public string LaunchBoxPlatformName { get; set; } = string.Empty;
-        public RommServerConfig ServerContext { get; set; } = null!;
+        public RommServer ServerContext { get; set; } = null!;
         public PlatformSyncJob? UiCard { get; set; } // Null if bypassed via on-demand
         public Action? OnSuccessCallback { get; set; }
         public CancellationToken CancellationToken { get; set; }

@@ -104,7 +104,7 @@ namespace RommStar.Core
             services.AddSingleton<RommService>();
 
             // Register initial RommServerConfig & SyncManager
-            services.AddSingleton<RommStar.Core.Models.RommServerConfig>(sp => new RommStar.Core.Models.RommServerConfig
+            services.AddSingleton<RommStar.Core.Models.RommServer>(sp => new RommStar.Core.Models.RommServer
             {
                 BaseUrl = "http://localhost:8080", // placeholder defaults
                 ApiToken = "",

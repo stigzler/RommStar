@@ -21,6 +21,15 @@ namespace RommStar.Core.Services
             _client = new HttpClient();
         }
 
+        /// <summary>
+        /// Used in Testing
+        /// </summary>
+        /// <param name="mockedClient"></param>
+        public RommService(HttpClient mockedClient)
+        {
+            _client = mockedClient;
+        }
+
         // =========================================================================
         // PUBLIC API METHODS
         // =========================================================================
@@ -28,10 +37,9 @@ namespace RommStar.Core.Services
         /// <summary>
         /// Validates connection and credentials against an isolated server snapshot.
         /// </summary>
-        public async Task<ApiResponse> TestConnectionAsync(RommServerConfig server, CancellationToken externalToken = default)
+        public async Task<RommApiResponse> TestConnectionAsync(RommServer server, CancellationToken externalToken = default)
         {
-            string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/v1/users/me";
-
+            string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/heartbeat";
             return await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
         }
 
@@ -39,15 +47,15 @@ namespace RommStar.Core.Services
         // CENTRALIZED PLUMBING (The DRY Exception & Timeout Gateway)
         // =========================================================================
 
-        private async Task<ApiResponse> SendRequestAsync(
+        private async Task<RommApiResponse> SendRequestAsync(
             HttpMethod method,
             string url,
-            RommServerConfig server,
+            RommServer server,
             CancellationToken externalToken)
         {
             if (server == null || string.IsNullOrWhiteSpace(server.BaseUrl) || string.IsNullOrWhiteSpace(server.ApiToken))
             {
-                return ApiResponse.Fail(RommApiFailureReason.InvalidConfiguration, "Server configuration values cannot be null or empty.");
+                return RommApiResponse.Fail(RommApiFailureReason.InvalidConfiguration, "Server configuration values cannot be null or empty.");
             }
 
             using var timeoutCts = new CancellationTokenSource(_defaultTimeout);
@@ -74,10 +82,10 @@ namespace RommStar.Core.Services
                     string rawStatusCodeMessage = $"Server returned HTTP status code {(int)response.StatusCode} ({response.StatusCode}).";
 
                     response.Dispose();
-                    return ApiResponse.Fail(reason, rawStatusCodeMessage);
+                    return RommApiResponse.Fail(reason, rawStatusCodeMessage);
                 }
 
-                return ApiResponse.Success(response);
+                return RommApiResponse.Success(response);
             }
             catch (OperationCanceledException ex)
             {
@@ -85,7 +93,7 @@ namespace RommStar.Core.Services
                 bool isTimeout = timeoutCts.IsCancellationRequested && !externalToken.IsCancellationRequested;
                 var reason = isTimeout ? RommApiFailureReason.Timeout : RommApiFailureReason.UnexpectedError;
 
-                return ApiResponse.Fail(reason, ex.Message);
+                return RommApiResponse.Fail(reason, ex.Message);
             }
             catch (HttpRequestException ex)
             {
@@ -93,14 +101,14 @@ namespace RommStar.Core.Services
                 if (ex.InnerException is System.Net.Sockets.SocketException ||
                     ex.Message.Contains("Name or service not known", StringComparison.OrdinalIgnoreCase))
                 {
-                    return ApiResponse.Fail(RommApiFailureReason.ServerNotFound, ex.Message);
+                    return RommApiResponse.Fail(RommApiFailureReason.ServerNotFound, ex.Message);
                 }
 
-                return ApiResponse.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
+                return RommApiResponse.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
             }
             catch (Exception ex)
             {
-                return ApiResponse.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
+                return RommApiResponse.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
             }
         }
     }

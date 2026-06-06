@@ -36,7 +36,7 @@ namespace RommStar.Core.Sync
         private readonly Channel<DownloadJob> _fileDownloadQueue = Channel.CreateUnbounded<DownloadJob>();
 
         public ObservableCollection<PlatformSyncJob> ActiveSyncJobs { get; } = new();
-        public RommServerConfig ActiveServer { get; set; }
+        public RommServer ActiveServer { get; set; }
 
         // Media Profiles configuration sets
         public MediaSelectionProfile CatalogProfile { get; set; } = new() { BoxFront = true, Screenshots = true };
@@ -45,7 +45,7 @@ namespace RommStar.Core.Sync
 
         public event Action<PlatformSyncJob>? OnSyncCompletedNotification;
 
-        public SyncManager(RommServerConfig initialServer)
+        public SyncManager(RommServer initialServer)
         {
             // Thread-safe client initialization without global default authorization headers
             _client = new HttpClient();
@@ -197,7 +197,7 @@ namespace RommStar.Core.Sync
         // =========================================================================
         // PARALLEL ON-DEMAND BYPASS (Bypasses macro structural sync channel entirely)
         // =========================================================================
-        public async Task ExecuteOnDemandInstallAsync(string lbPlatform, RomDto rom)
+        public async Task ExecuteOnDemandInstallAsync(string lbPlatform, RommRomDto rom)
         {
             var currentSnapshot = ActiveServer;
             string destinationRomPath = Path.Combine("C:\\LaunchBox\\Games", lbPlatform, rom.FileName);
@@ -259,7 +259,7 @@ namespace RommStar.Core.Sync
             }
         }
 
-        private async Task<bool> StreamFileFromNetworkAsync(string relativeUrl, string targetPath, RommServerConfig server, CancellationToken cancellationToken = default)
+        private async Task<bool> StreamFileFromNetworkAsync(string relativeUrl, string targetPath, RommServer server, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(relativeUrl)) return true;
 
@@ -303,35 +303,35 @@ namespace RommStar.Core.Sync
         }
 
         // Core Helper Methods
-        private async Task<List<RomDto>?> FetchMetadataFromRommAsync(List<int> platformIds, RommServerConfig server)
+        private async Task<List<RommRomDto>?> FetchMetadataFromRommAsync(List<int> platformIds, RommServer server)
         {
             // TEMP test Data
             // Simulate the network delay of hitting the Romm API
             await Task.Delay(1000);
 
             // Return 3 fake games so we have items to process
-            return new List<RomDto>
+            return new List<RommRomDto>
                 {
-                    new RomDto { Id = 1, Name = "Super Mario Bros", FileName = "mario.zip", RomUrl = "fake/mario.zip", BoxFrontUrl = "fake/mario.png" },
-                    new RomDto { Id = 2, Name = "Sonic the Hedgehog", FileName = "sonic.zip", RomUrl = "fake/sonic.zip", BoxFrontUrl = "fake/sonic.png" },
-                    new RomDto { Id = 3, Name = "The Legend of Zelda", FileName = "zelda.zip", RomUrl = "fake/zelda.zip", BoxFrontUrl = "fake/zelda.png" },
-                    new RomDto { Id = 1, Name = "S Bros", FileName = "mario.zip", RomUrl = "fake/mario.zip", BoxFrontUrl = "fake/mario.png" },
-                    new RomDto { Id = 2, Name = "Sonic ", FileName = "sonic.zip", RomUrl = "fake/sonic.zip", BoxFrontUrl = "fake/sonic.png" },
-                    new RomDto { Id = 3, Name = "Zelda", FileName = "zelda.zip", RomUrl = "fake/zelda.zip", BoxFrontUrl = "fake/zelda.png" }
+                    new RommRomDto { Id = 1, Name = "Super Mario Bros", FileName = "mario.zip", RomUrl = "fake/mario.zip", BoxFrontUrl = "fake/mario.png" },
+                    new RommRomDto { Id = 2, Name = "Sonic the Hedgehog", FileName = "sonic.zip", RomUrl = "fake/sonic.zip", BoxFrontUrl = "fake/sonic.png" },
+                    new RommRomDto { Id = 3, Name = "The Legend of Zelda", FileName = "zelda.zip", RomUrl = "fake/zelda.zip", BoxFrontUrl = "fake/zelda.png" },
+                    new RommRomDto { Id = 1, Name = "S Bros", FileName = "mario.zip", RomUrl = "fake/mario.zip", BoxFrontUrl = "fake/mario.png" },
+                    new RommRomDto { Id = 2, Name = "Sonic ", FileName = "sonic.zip", RomUrl = "fake/sonic.zip", BoxFrontUrl = "fake/sonic.png" },
+                    new RommRomDto { Id = 3, Name = "Zelda", FileName = "zelda.zip", RomUrl = "fake/zelda.zip", BoxFrontUrl = "fake/zelda.png" }
                 };
 
             // API implementation loop querying your target paths goes here...
             await Task.Delay(1000); // Simulate network
-            return new List<RomDto>();
+            return new List<RommRomDto>();
         }
 
-        private object SyncWithLaunchBoxDatabase(RomDto rom, string platformName)
+        private object SyncWithLaunchBoxDatabase(RommRomDto rom, string platformName)
         {
             // Core injection wrapper matching LaunchBox plugin SDK rules
             return new object();
         }
 
-        private void ScheduleMediaDownloads(RomDto rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServerConfig server)
+        private void ScheduleMediaDownloads(RommRomDto rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServer server)
         {
             if (profile.BoxFront && !string.IsNullOrEmpty(rom.BoxFrontUrl))
             {

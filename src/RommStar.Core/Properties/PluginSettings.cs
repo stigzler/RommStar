@@ -13,7 +13,7 @@ namespace RommStar.Core.Properties
         /// <summary>
         /// Store User set Romm Server details
         /// </summary>
-        public List<RommServerConfig> RommServers { get; set; } = new();
+        public List<RommServer> RommServers { get; set; } = new();
 
         /// <summary>
         /// RommStar logging level

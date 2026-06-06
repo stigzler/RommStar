@@ -14,7 +14,7 @@ namespace RommStar.Core.Temp
         {
             settings.RommServers.Clear();
             settings.RommServers.AddRange(
-                new RommServerConfig
+                new RommServer
                 {
                     ServerName = "stig.life",
                     BaseUrl = "https://roms.stif.life",

@@ -49,7 +49,7 @@
 
             <ui:NavigationViewItem Content="Servers">
                 <ui:NavigationViewItem.Icon>
-                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Game}" />
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ServerSurfaceMultiple_16_Regular}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
         </ui:NavigationView.MenuItems>

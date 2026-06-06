@@ -1,9 +1,9 @@
 ## WORKSPACE EXECUTIVE SUMMARY (YAML)
-# Generated: 2026-06-05T21:59:03.2851940+01:00
+# Generated: 2026-06-06T09:26:17.1421918+01:00
 # Root: C:\Users\stigz\source\repos\0.MyCode\NET\RommStar
 Architecture:
   Type: Backend (C#/.NET)
-  Scale: 53 relevant source files
+  Scale: 56 relevant source files
   Components: 0
   Controllers: 0
   Models: 5
@@ -13,6 +13,8 @@ Architecture:
   Preview: "<Project Sdk='Microsoft.NET.Sdk'>  <PropertyGroup>   <TargetFramework>net9.0-windows</TargetFramework>   <Nullable>enable</Nullable>   <UseWPF>true</U..."
 - File: src\RommStar.Core\RommStar.Core.csproj
   Preview: "<Project Sdk='Microsoft.NET.Sdk.WindowsDesktop'> 	<PropertyGroup> 		<TargetFramework>net9.0-windows</TargetFramework> 		<ImplicitUsings>enable</Implic..."
+- File: src\RommStar.Tests\RommStar.Tests.csproj
+  Preview: "<Project Sdk='Microsoft.NET.Sdk'>  <PropertyGroup>   <TargetFramework>net9.0-windows</TargetFramework>   <ImplicitUsings>enable</ImplicitUsings>   <Nu..."
 - File: .copilot-instructions.md
   Preview: "# RommStar Architecture Specification ## Overview RommStar is a LaunchBox plugin serving as a state-driven client for Romm servers. It manages metadat..."
 - File: LICENSE.txt
@@ -35,6 +37,9 @@ Architecture:
   Preview: "// This file is used by Code Analysis to maintain SuppressMessage // attributes that are applied to this project. // Project-level suppressions either..."
 - File: src\RommStar.Core\PluginHost.cs
   Preview: "using iNKORE.UI.WPF.Modern; using iNKORE.UI.WPF.Modern.Controls; using Microsoft.Extensions.DependencyInjection; using RommStar.Core.Launchbox; using ..."
+- File: src\RommStar.Tests\RommServiceTests.cs
+  Symbols: [TestConnectionAsync_ShouldReturnInvalidConfiguration_WhenTokenIsEmpty, TestConnectionAsync_ShouldReturnSuccess_WhenServerResponds200Ok, RommServiceTests, TestConnectionAsync_ShouldReturnUnauthorized_WhenServerResponds401]
+  Preview: "using RommStar.Core.Models; using RommStar.Core.Primitives; using RommStar.Core.Services; using RommStar.Tests.Handlers; using System.Net; namespace R..."
 - File: dev\docs\Snippets\RommServiceSketch.cs
   Preview: "using System; using System.Collections.Concurrent; using System.Collections.Generic; using System.Collections.ObjectModel; using System.IO; using Syst..."
 - File: src\RommStar.Core\Badges\RommSynced.cs
@@ -44,7 +49,7 @@ Architecture:
   Symbols: [RomDto]
   Preview: "namespace RommStar.Core.Dtos {   /// <summary>   /// Placeholder Data Transfer Object mapping Romm's API response layout.   /// </summary>   public cl..."
 - File: src\RommStar.Core\Helpers\SettingsHelper.cs
-  Symbols: [SettingsHelper, CheckForSettingsUpgrade]
+  Symbols: [SettingsHelper]
   Preview: "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; using System.Windows.Controls; nam..."
 - File: src\RommStar.Core\Launchbox\GameMenuItem.cs
   Symbols: [GameMen]
@@ -58,6 +63,7 @@ Architecture:
   Symbols: [MediaSelectionProfile]
   Preview: "namespace RommStar.Core.Models {   /// <summary>   /// Dictates which asset streams are pulled during a specific runtime operation.   /// </summary>  ..."
 - File: src\RommStar.Core\Models\RommApiResponse.cs
+  Symbols: [RommApiResponse]
   Preview: "using RommStar.Core.Primitives; using System; using System.Collections.Generic; using System.Linq; using System.Net.Http; using System.Text; using Sys..."
 - File: src\RommStar.Core\Models\RommServerConfig.cs
   Symbols: [RommServerConfig]
@@ -85,7 +91,7 @@ Architecture:
 - File: src\RommStar.Core\Services\LoggingService.cs
   Preview: "using RommStar.Core.Primitives; using RommStar.Core.Properties; using System; using System.Collections.Generic; using System.Diagnostics; using System..."
 - File: src\RommStar.Core\Services\RommService.cs
-  Symbols: [SendRequestAsync, TestConnectionAsync, catch, catch, catch, RommService, RommService]
+  Symbols: [catch, catch, catch, SendRequestAsync, RommService, RommService, RommService, TestConnectionAsync]
   Preview: "using RommStar.Core.Models; using RommStar.Core.Primitives; using System; using System.Collections.Generic; using System.Linq; using System.Net; using..."
 - File: src\RommStar.Core\Services\SettingsService.cs
   Symbols: [SettingsService]
@@ -101,7 +107,6 @@ Architecture:
   Symbols: [PlatformSync]
   Preview: "using System.Collections.Generic; using System.Threading; namespace RommStar.Core.Sync {   /// <summary>   /// Holds the structural execution context ..."
 - File: src\RommStar.Core\Sync\SyncManager.cs
-  Symbols: [ScheduleMediaDownloads, EnqueueFileDownload, SyncManager, SyncManager, FetchMetadataFromRommAsync, catch, catch, StartFileQueueProcessorAsync, new, new, StartPlatformQueueProcessorAsync, ExecuteOnDemandInstallAsync, StreamFileFromNetworkAsync, SyncWithLaunchBoxDatabase, QueuePlatformSync]
   Preview: "using System; using System.Collections.Concurrent; using System.Collections.Generic; using System.Collections.ObjectModel; using System.IO; using Syst..."
 - File: src\RommStar.Core\Sync\SyncStatus.cs
   Preview: "namespace RommStar.Core.Sync {   public enum SyncStatus   {     Queued,     ProcessingMetadata,     SyncingFiles,     Completed,     CompletedWithWarn..."
@@ -110,17 +115,17 @@ Architecture:
 - File: src\RommStar.Core\Temp\TestSettings.cs
   Symbols: [Tests]
   Preview: "using RommStar.Core.Models; using RommStar.Core.Properties; using System; using System.Collections.Generic; using System.Linq; using System.Text; usin..."
+- File: src\RommStar.Tests\Handlers\TestHttpMessageHandler.cs
+  Symbols: [SendAsync, TestHttpMessageHandler, TestHttpMessageHandler]
+  Preview: "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; namespace RommStar.Tests.Handlers ..."
 - File: src\RommStar.Core\UI\ViewModels\HomePageVM.cs
   Symbols: [HomePageVM]
   Preview: "using CommunityToolkit.Mvvm.ComponentModel; using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threadi..."
 - File: src\RommStar.Core\UI\ViewModels\JobsPageVM.cs
-  Symbols: [CancelJob, StartSyncJob, JobsPageVM, JobsPageVM, JobsPageVM]
   Preview: "using CommunityToolkit.Mvvm.ComponentModel; using CommunityToolkit.Mvvm.Input; using RommStar.Core.Sync; using System; using System.Collections.Generi..."
 - File: src\RommStar.Core\UI\ViewModels\MainWindowVM.cs
-  Symbols: [MainWindowVM, MainWindowVM, OnIsDarkModeChanged]
   Preview: "using Accessibility; using CommunityToolkit.Mvvm.ComponentModel; using CommunityToolkit.Mvvm.Input; using iNKORE.UI.WPF.Modern; using RommStar.Core.Se..."
 - File: src\RommStar.Core\UI\ViewModels\ServersPageVM.cs
-  Symbols: [ServersPageVM, ServersPageVM]
   Preview: "using CommunityToolkit.Mvvm.ComponentModel; using CommunityToolkit.Mvvm.Input; using RommStar.Core.Models; using RommStar.Core.Primitives; using RommS..."
 - File: src\RommStar.Core\UI\ViewModels\SettingsPageVM.cs
   Preview: "using CommunityToolkit.Mvvm.ComponentModel; using RommStar.Core.Services; using System; using System.Collections.Generic; using System.Linq; using Sys..."
@@ -131,7 +136,6 @@ Architecture:
 - File: src\RommStar.Core\UI\Views\MainWindowView.xaml.cs
   Preview: "using RommStar.Core.UI.ViewModels; using System.Windows; using System.Windows.Controls; using System.Windows.Input; namespace RommStar.Core.UI.Views {..."
 - File: src\RommStar.Core\UI\Views\ServersPageView.xaml.cs
-  Symbols: [ServersPageView, ServersPageView]
   Preview: "using RommStar.Core.UI.ViewModels; using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks;..."
 - File: src\RommStar.Core\UI\Views\SettingsPageView.xaml.cs
   Preview: "using iNKORE.UI.WPF.Modern; using RommStar.Core.UI.ViewModels; using System; using System.Collections.Generic; using System.Linq; using System.Text; u..."

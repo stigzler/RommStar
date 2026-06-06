@@ -3,7 +3,7 @@ namespace RommStar.Core.Dtos
     /// <summary>
     /// Placeholder Data Transfer Object mapping Romm's API response layout.
     /// </summary>
-    public class RomDto
+    public class RommRomDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
