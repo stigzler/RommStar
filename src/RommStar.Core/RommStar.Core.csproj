@@ -98,7 +98,6 @@
 
 	<ItemGroup>
 	  <Folder Include="UI\Behaviours\" />
-	  <Folder Include="UI\Helpers\" />
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

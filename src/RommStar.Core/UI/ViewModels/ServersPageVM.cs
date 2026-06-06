@@ -149,7 +149,6 @@ namespace RommStar.Core.UI.ViewModels
         /// </summary>
         public void OnNavigatedAway()
         {
-            return;
             // Re-compile the raw list back down to our clean model layout
             _settingsService.Settings.RommServers = DisplayServers
                 .Select(wrapper => wrapper.Server)
