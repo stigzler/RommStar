@@ -3,15 +3,112 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:local="clr-namespace:RommStar.Core.UI.Views"
-      xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels"
+      xmlns:local="clr-namespace=RommStar.Core.UI.Views"
+      xmlns:vm="clr-namespace=RommStar.Core.UI.ViewModels"
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
-      xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
-      d:DataContext="{d:DesignInstance Type=vm:ServersPageVM, IsDesignTimeCreatable=True}"
+      xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf" xmlns:viewmodels="clr-namespace:RommStar.Core.UI.ViewModels"
+      d:DataContext="{d:DesignInstance Type=viewmodels:ServersPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="ServersPageView">
+      Title="RomM Servers">
 
-    <Grid>
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Page.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+            <Button Content="Add Server"
+                    Command="{Binding AddNewServerCommand}"
+                    Style="{DynamicResource AccentButtonStyle}" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding DisplayServers}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,12" Background="#40000000" CornerRadius="14" BorderBrush="#80808080" BorderThickness="1">
+                            <StackPanel>
+
+                                <Border Padding="16,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Ellipse Grid.Column="0" Width="10" Height="10" Margin="4,0,16,0"
+                                                 Fill="{Binding StatusColor}" VerticalAlignment="Center" />
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="auto " />
+                                                    <RowDefinition Height="auto " />
+                                                    <RowDefinition Height="auto " />
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock Grid.Column ="0" Text="Name:"  Margin="0,5,0,10" />
+                                                <TextBox Grid.Column ="1" Text="{Binding Server.ServerName, UpdateSourceTrigger=PropertyChanged}"
+                                                     VerticalAlignment="Center"
+                                                     FontWeight="SemiBold" BorderThickness="1"
+                                                     Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="10,0,10,10" />
+
+                                                <TextBlock Grid.Column ="0" Grid.Row="1" Text="Base URL:"  Margin="0,5,0,10" />
+                                                <TextBox Grid.Column ="1" Grid.Row="1" Text="{Binding Server.BaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                                                          VerticalAlignment="Center"
+                                                        BorderThickness="1"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="10,0,10,10" />
+
+                                                <TextBlock Grid.Column ="0" Grid.Row="2" Text="API Key:"  Margin="0,5,0,10" />
+                                                <Grid Grid.Column ="1" Grid.Row="2"  Margin="10,0,10,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <PasswordBox Grid.Column="0" x:Name="passwordBoxWithReveal"  Margin="0,0,8,0"
+                                                            Password="{Binding Server.ApiToken, UpdateSourceTrigger=PropertyChanged}"
+                                                            ui:PasswordBoxHelper.PasswordRevealMode="Hidden" AutomationProperties.Name="Sample password box" />
+                                                    <CheckBox Grid.Column="1" x:Name="revealModeCheckBox" Content="Show password" IsChecked="False"
+                                                    Checked="RevealModeCheckbox_Changed" Unchecked="RevealModeCheckbox_Changed" />
+                                                </Grid>
+                                            </Grid>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                                            <Button Content="Test Connection"
+                                                    Command="{Binding DataContext.TestServerConnectionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Margin="0,0,8,0" />
+
+                                            <Button Content="Delete"
+                                                    Command="{Binding DataContext.DeleteServerCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="#80ff0000" Foreground="white" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <Border Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" CornerRadius="14" Margin="5"
+                                        Background="#40ff0000" BorderBrush="#d0808080" BorderThickness="1" Padding="16,10">
+                                    <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="12" TextWrapping="Wrap" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
     </Grid>
 </Page>

@@ -15,9 +15,10 @@ namespace RommStar.Core.UI.Views
         private HomePageView HomePageView;
         private SettingsPageView SettingsPageView;
         private JobsPageView JobsPageView;
+        private ServersPageView ServersPageView;
 
         public MainWindowView(MainWindowVM mainWindowVM, HomePageVM homePageVM,
-            SettingsPageVM settingsPageVM, JobsPageVM jobsPageVM)
+            SettingsPageVM settingsPageVM, JobsPageVM jobsPageVM, ServersPageVM serversPageVM)
         {
             InitializeComponent();
             ViewModel = mainWindowVM;
@@ -26,10 +27,21 @@ namespace RommStar.Core.UI.Views
             HomePageView = new HomePageView(homePageVM);
             SettingsPageView = new SettingsPageView(settingsPageVM);
             JobsPageView = new JobsPageView(jobsPageVM);
+            ServersPageView = new ServersPageView(serversPageVM);
         }
 
         private void NavigationView_SelectionChanged(iNKORE.UI.WPF.Modern.Controls.NavigationView sender, iNKORE.UI.WPF.Modern.Controls.NavigationViewSelectionChangedEventArgs args)
         {
+            // --- ANY PAGE TRANSITION TASKS ---
+            if (Frame_Main.Content is ServersPageView oldServersPage)
+            {
+                // Safely extract its ViewModel context and execute the data save
+                if (oldServersPage.DataContext is ServersPageVM serversVm)
+                {
+                    serversVm.OnNavigatedAway();
+                }
+            }
+
             var item = sender.SelectedItem;
             Page? page = null;
 
@@ -44,6 +56,10 @@ namespace RommStar.Core.UI.Views
             else if (item == NavigationViewItem_Jobs)
             {
                 page = JobsPageView;
+            }
+            else if (item == NavigationViewItem_Servers)
+            {
+                page = ServersPageView;
             }
 
             if (page != null)

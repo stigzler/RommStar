@@ -117,6 +117,7 @@ namespace RommStar.Core
             services.AddSingleton<SettingsPageVM>();
             services.AddSingleton<HomePageVM>();
             services.AddSingleton<JobsPageVM>();
+            services.AddSingleton<ServersPageVM>();
 
             // Register Views as singletons
             // MainWindowView requires all three ViewModels, so use a factory
@@ -125,7 +126,8 @@ namespace RommStar.Core
                     sp.GetRequiredService<MainWindowVM>(),
                     sp.GetRequiredService<HomePageVM>(),
                     sp.GetRequiredService<SettingsPageVM>(),
-                    sp.GetRequiredService<JobsPageVM>()
+                    sp.GetRequiredService<JobsPageVM>(),
+                    sp.GetRequiredService<ServersPageVM>()
                 )
             );
 

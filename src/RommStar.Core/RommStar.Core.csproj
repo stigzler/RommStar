@@ -15,8 +15,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="Monikers.imagemanifest" />
 	  <None Remove="Resources\rommIcon64px.ico" />
 	  <None Remove="Resources\rommIcon64px.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <content Include="Monikers.imagemanifest">
+	    <IncludeInVSIX>true</IncludeInVSIX>
+	  </content>
 	</ItemGroup>
 
 	<ItemGroup>

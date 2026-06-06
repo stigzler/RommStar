@@ -47,7 +47,7 @@
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem Content="Servers">
+            <ui:NavigationViewItem Content="Servers" x:Name="NavigationViewItem_Servers">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ServerSurfaceMultiple_16_Regular}" />
                 </ui:NavigationViewItem.Icon>
