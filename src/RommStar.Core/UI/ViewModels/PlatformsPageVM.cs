@@ -17,13 +17,17 @@ namespace RommStar.Core.UI.ViewModels
         private readonly LaunchboxService _launchboxService;
         private readonly RommService _rommService;
 
+        private string? _loadedServerNameInUi;
+
         // Master Left Sidebar Collection
         public ObservableCollection<MappedPlatformItemVM> DisplayPlatforms { get; } = new();
 
         // Detail Right Panel dropdown & selection targets
         public ObservableCollection<RommServer> AvailableServers { get; } = new();
 
-        public ObservableCollection<RommPlatformDTO> CurrentServerAvailablePlatforms { get; } = new();
+        //public ObservableCollection<RommPlatformDTO> CurrentServerAvailablePlatforms { get; } = new();
+        [ObservableProperty]
+        private List<RommPlatformDTO> _currentServerAvailablePlatforms = new();
 
         [ObservableProperty] private MappedPlatformItemVM? _selectedPlatform;
 
@@ -133,21 +137,22 @@ namespace RommStar.Core.UI.ViewModels
         {
             if (SelectedPlatform?.AssignedServer == null) return;
 
-            // Evict target instance from cache layer to guarantee live data sync
+            // Explicitly clear cache for this server
             _rommPlatformsCacheByServer.Remove(SelectedPlatform.AssignedServer.ServerName);
+
+            // Force the UI property to refresh by clearing the tracker
+            _loadedServerNameInUi = null;
 
             await UpdateWorkspacePlatformsAsync(SelectedPlatform.AssignedServer, SelectedPlatform);
         }
 
         partial void OnSelectedPlatformChanged(MappedPlatformItemVM? value)
         {
-            CurrentServerAvailablePlatforms.Clear();
+            //CurrentServerAvailablePlatforms = new List<RommPlatformDTO>(); // one notification, clear
             if (value == null) return;
 
             if (value.AssignedServer != null)
-            {
                 _ = UpdateWorkspacePlatformsAsync(value.AssignedServer, value);
-            }
         }
 
         [RelayCommand]
@@ -157,49 +162,47 @@ namespace RommStar.Core.UI.ViewModels
 
             SelectedPlatform.MappedRommPlatforms.Clear();
             SelectedPlatform.StoredRommPlatformIds.Clear();
-            CurrentServerAvailablePlatforms.Clear();
+            CurrentServerAvailablePlatforms = new List<RommPlatformDTO>();
 
             SelectedPlatform.AssignedServer = newServer;
 
             if (newServer != null)
-            {
                 await UpdateWorkspacePlatformsAsync(newServer, SelectedPlatform);
-            }
         }
 
+        // not this
         private async Task UpdateWorkspacePlatformsAsync(RommServer server, MappedPlatformItemVM targetRow)
         {
             List<RommPlatformDTO> serverPlatforms;
 
+            // 1. Caching logic (unchanged, but solidifies the network bypass)
             if (!_rommPlatformsCacheByServer.TryGetValue(server.ServerName, out serverPlatforms!))
             {
                 var result = await _rommService.GetRommPlatformsAsync(server);
-                if (result is { IsSuccess: true, Data: not null })
-                {
-                    serverPlatforms = result.Data;
-                    _rommPlatformsCacheByServer[server.ServerName] = serverPlatforms;
-                }
-                else
-                {
-                    serverPlatforms = new List<RommPlatformDTO>();
-                }
+                serverPlatforms = result is { IsSuccess: true, Data: not null }
+                    ? result.Data
+                    : new List<RommPlatformDTO>();
+
+                _rommPlatformsCacheByServer[server.ServerName] = serverPlatforms;
             }
 
-            CurrentServerAvailablePlatforms.Clear();
-            foreach (var platform in serverPlatforms)
+            // 2. UI OPTIMIZATION: Only swap the list property if it's a different server.
+            // This prevents the ListView from re-rendering thousands of items when switching
+            // between platforms on the same server.
+            if (_loadedServerNameInUi != server.ServerName)
             {
-                CurrentServerAvailablePlatforms.Add(platform);
+                CurrentServerAvailablePlatforms = serverPlatforms;
+                _loadedServerNameInUi = server.ServerName;
             }
 
-            // Always hydrate the rich DTO collection when updating or moving views
+            // 3. Hydrate the mapped tokens for the SPECIFIC row selected
+            // This happens every time because each platform has its own mapping
             targetRow.MappedRommPlatforms.Clear();
             foreach (var id in targetRow.StoredRommPlatformIds)
             {
                 var match = serverPlatforms.FirstOrDefault(p => p.RommId == id);
                 if (match != null)
-                {
                     targetRow.MappedRommPlatforms.Add(match);
-                }
             }
         }
 

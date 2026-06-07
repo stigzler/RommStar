@@ -19,6 +19,14 @@ namespace RommStar.Core.Services
         private readonly HttpClient _client;
         private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(5);
 
+        // Cached once — System.Text.Json keys its internal type metadata cache by options
+        // instance identity. Creating a new instance on every call busts that cache and
+        // forces a full reflection scan + deserialiser JIT on each invocation.
+        private static readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         public RommService()
         {
             _client = new HttpClient();
@@ -58,21 +66,10 @@ namespace RommStar.Core.Services
 
             try
             {
-                //var jsonString = await response.HttpResponse.Content.ReadAsStringAsync();
-
-                //var platforms = JsonSerializer.Deserialize<List<RommPlatformDTO>>(
-                //    jsonString,
-                //    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                //);
-
                 using var contentStream = await response.HttpResponse.Content.ReadAsStreamAsync();
-                var platforms = await JsonSerializer.DeserializeAsync<List<RommPlatformDTO>>(
-                    contentStream,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                );
+                var platforms = await JsonSerializer.DeserializeAsync<List<RommPlatformDTO>>(contentStream, _jsonOptions);
 
                 response.HttpResponse?.Dispose();
-
                 return RommApiResponse<List<RommPlatformDTO>>.SuccessWithData(response.HttpResponse!, platforms ?? new List<RommPlatformDTO>());
             }
             catch (Exception ex)
