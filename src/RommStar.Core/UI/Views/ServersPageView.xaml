@@ -24,7 +24,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
-            <Button Content="Add Server"
+            <Button Content="Add Server" Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
                     Command="{Binding AddNewServerCommand}"
                      BorderBrush="#80000000" BorderThickness="1" />
         </StackPanel>
