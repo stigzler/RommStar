@@ -17,6 +17,9 @@ namespace RommStar.Core.UI.ViewModels
 
         public ServersPageVM()
         {
+            _rommService = new RommService();
+            _settingsService = new SettingsService(new CryptoService());
+            DisplayServers.Add(new ServerDisplayItemVM(new RommServer()));
         }
 
         public ServersPageVM(RommService rommService, SettingsService settingsService)

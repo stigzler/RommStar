@@ -1,14 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using RommStar.Core.Dtos;
-using RommStar.Core.Models;
-using RommStar.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using RommStar.Core.Dtos;
+using RommStar.Core.Models;
+using RommStar.Core.Services;
 
 namespace RommStar.Core.UI.ViewModels
 {
@@ -18,7 +17,31 @@ namespace RommStar.Core.UI.ViewModels
         private readonly LaunchboxService _launchboxService;
         private readonly RommService _rommService;
 
+        // Master Left Sidebar Collection
         public ObservableCollection<MappedPlatformItemVM> DisplayPlatforms { get; } = new();
+
+        // Detail Right Panel dropdown & selection targets
+        public ObservableCollection<RommServer> AvailableServers { get; } = new();
+
+        public ObservableCollection<RommPlatformDTO> CurrentServerAvailablePlatforms { get; } = new();
+
+        [ObservableProperty] private MappedPlatformItemVM? _selectedPlatform;
+
+        // Cache memory dictionary to avoid slamming RomM endpoints on rapid UI clicks
+        private readonly Dictionary<string, List<RommPlatformDTO>> _rommPlatformsCacheByServer = new(StringComparer.OrdinalIgnoreCase);
+
+        // 1. Parameterless constructor for the XAML Designer
+        public PlatformsPageVM() : this(
+            new SettingsService(new CryptoService()),
+            new LaunchboxService(),
+            new RommService())
+        {
+            // If you need design-time specific setup, do it here safely:
+            if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject()))
+            {
+                // DisplayPlatforms.Add(new MappedPlatformItemVM("Super Nintendo", false));
+            }
+        }
 
         public PlatformsPageVM(SettingsService settingsService, LaunchboxService launchboxService, RommService rommService)
         {
@@ -26,42 +49,29 @@ namespace RommStar.Core.UI.ViewModels
             _launchboxService = launchboxService;
             _rommService = rommService;
 
-            // Fire-and-forget data loading safely
+            PopulateServersDropdown();
             _ = LoadAndReconcileDataAsync();
         }
 
-        [RelayCommand]
-        private async void Test()
+        private void PopulateServersDropdown()
         {
-            List<LaunchboxPlatformDTO> liveLbPlatforms = _launchboxService.GetPlatforms();
-
-            RommServer rommServer = new RommServer()
+            AvailableServers.Clear();
+            foreach (var server in _settingsService.Settings.RommServers)
             {
-                ApiToken = "rmm_7d639eb487bbe8ddae4a89996603dc4e13d43af1bf604bb7742330a46576557a",
-                BaseUrl = "https://roms.stig.life",
-                ServerName = "Dave"
-            };
-
-            var result = await _rommService.GetRommPlatformsAsync(rommServer);
+                AvailableServers.Add(server);
+            }
         }
 
         private async Task LoadAndReconcileDataAsync()
         {
-            // 1. Grab clean data boundaries directly from your specialized services
+            // 1. Fetch live canon platform array from LaunchBox
             List<LaunchboxPlatformDTO> liveLbPlatforms = _launchboxService.GetPlatforms();
 
-            var result = await _rommService.GetRommPlatformsAsync(new Models.RommServer());
+            // 2. Fetch target persistence configuration data list
+            List<PlatformSyncSettings> savedSettings = _settingsService.Settings.PlatformSyncSettings
+                ?? new List<PlatformSyncSettings>();
 
-            List<RommPlatformDTO> liveRommPlatforms = new List<RommPlatformDTO>();
-
-            if (result != null && !result.IsSuccess && result.Data != null)
-            {
-                liveRommPlatforms = result.Data;
-            }
-
-            // 2. Fetch the primitive dictionary map from settings
-            var savedMap = _settingsService.Settings.LaunchboxRommPlatformsMap
-                ?? new Dictionary<string, List<int>>();
+            DisplayPlatforms.Clear();
 
             // 3. Process Live LaunchBox Platforms
             foreach (var lbPlatform in liveLbPlatforms)
@@ -71,59 +81,185 @@ namespace RommStar.Core.UI.ViewModels
                     //IconPath = _launchboxService.ResolvePlatformIconPath(lbPlatform.Name)
                 };
 
-                if (savedMap.TryGetValue(lbPlatform.Name, out var rommIds))
+                var match = savedSettings.FirstOrDefault(s => s.LaunchboxPlatformName.Equals(lbPlatform.Name, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
                 {
-                    PopulateRommMappings(rowVM, rommIds, liveRommPlatforms);
+                    rowVM.AssignedServer = AvailableServers.FirstOrDefault(s => s.ServerName == match.RommServer?.ServerName);
+                    rowVM.StoredRommPlatformIds = match.RommServerPlatforms ?? new List<int>();
                 }
 
                 DisplayPlatforms.Add(rowVM);
             }
 
-            // 4. SIMPLE ORPHAN DETECTION: Map entries missing from live LaunchBox
-            foreach (var savedKey in savedMap.Keys)
+            // 4. SIMPLE ORPHAN RECONCILIATION
+            foreach (var setting in savedSettings)
             {
-                bool isLive = liveLbPlatforms.Any(p => p.Name.Equals(savedKey, StringComparison.OrdinalIgnoreCase));
+                bool isLive = liveLbPlatforms.Any(p => p.Name.Equals(setting.LaunchboxPlatformName, StringComparison.OrdinalIgnoreCase));
                 if (!isLive)
                 {
-                    var orphanVM = new MappedPlatformItemVM(savedKey, isOrphaned: true);
-                    PopulateRommMappings(orphanVM, savedMap[savedKey], liveRommPlatforms);
+                    var orphanVM = new MappedPlatformItemVM(setting.LaunchboxPlatformName, isOrphaned: true)
+                    {
+                        AssignedServer = AvailableServers.FirstOrDefault(s => s.ServerName == setting.RommServer?.ServerName),
+                        StoredRommPlatformIds = setting.RommServerPlatforms ?? new List<int>()
+                    };
 
                     DisplayPlatforms.Add(orphanVM);
                 }
             }
         }
 
-        private void PopulateRommMappings(MappedPlatformItemVM rowVM, List<int> ids, List<RommPlatformDTO> availableRomm)
+        /// <summary>
+        /// Command to refresh the LaunchBox sidebar platforms and re-evaluate orphans dynamically.
+        /// </summary>
+        [RelayCommand]
+        public async Task RefreshLaunchboxPlatforms()
         {
-            foreach (var id in ids)
+            // Store current selection to try and preserve UI state after sidebar rebuild
+            string? previouslySelectedName = SelectedPlatform?.LaunchboxPlatformName;
+
+            await LoadAndReconcileDataAsync();
+
+            if (!string.IsNullOrEmpty(previouslySelectedName))
             {
-                var match = availableRomm.FirstOrDefault(r => r.RommId == id);
+                SelectedPlatform = DisplayPlatforms.FirstOrDefault(p => p.LaunchboxPlatformName == previouslySelectedName);
+            }
+        }
+
+        /// <summary>
+        /// Command to force-refresh the current active RomM Server's configuration platform listings.
+        /// </summary>
+        [RelayCommand]
+        public async Task RefreshServerPlatforms()
+        {
+            if (SelectedPlatform?.AssignedServer == null) return;
+
+            // Evict target instance from cache layer to guarantee live data sync
+            _rommPlatformsCacheByServer.Remove(SelectedPlatform.AssignedServer.ServerName);
+
+            await UpdateWorkspacePlatformsAsync(SelectedPlatform.AssignedServer, SelectedPlatform);
+        }
+
+        partial void OnSelectedPlatformChanged(MappedPlatformItemVM? value)
+        {
+            CurrentServerAvailablePlatforms.Clear();
+            if (value == null) return;
+
+            if (value.AssignedServer != null)
+            {
+                _ = UpdateWorkspacePlatformsAsync(value.AssignedServer, value);
+            }
+        }
+
+        [RelayCommand]
+        public async Task HandleServerSelectionChanged(RommServer? newServer)
+        {
+            if (SelectedPlatform == null) return;
+
+            SelectedPlatform.MappedRommPlatforms.Clear();
+            SelectedPlatform.StoredRommPlatformIds.Clear();
+            CurrentServerAvailablePlatforms.Clear();
+
+            SelectedPlatform.AssignedServer = newServer;
+
+            if (newServer != null)
+            {
+                await UpdateWorkspacePlatformsAsync(newServer, SelectedPlatform);
+            }
+        }
+
+        private async Task UpdateWorkspacePlatformsAsync(RommServer server, MappedPlatformItemVM targetRow)
+        {
+            List<RommPlatformDTO> serverPlatforms;
+
+            if (!_rommPlatformsCacheByServer.TryGetValue(server.ServerName, out serverPlatforms!))
+            {
+                var result = await _rommService.GetRommPlatformsAsync(server);
+                if (result is { IsSuccess: true, Data: not null })
+                {
+                    serverPlatforms = result.Data;
+                    _rommPlatformsCacheByServer[server.ServerName] = serverPlatforms;
+                }
+                else
+                {
+                    serverPlatforms = new List<RommPlatformDTO>();
+                }
+            }
+
+            CurrentServerAvailablePlatforms.Clear();
+            foreach (var platform in serverPlatforms)
+            {
+                CurrentServerAvailablePlatforms.Add(platform);
+            }
+
+            // Always hydrate the rich DTO collection when updating or moving views
+            targetRow.MappedRommPlatforms.Clear();
+            foreach (var id in targetRow.StoredRommPlatformIds)
+            {
+                var match = serverPlatforms.FirstOrDefault(p => p.RommId == id);
                 if (match != null)
                 {
-                    rowVM.MappedRommPlatforms.Add(match);
+                    targetRow.MappedRommPlatforms.Add(match);
                 }
             }
         }
 
         // =========================================================================
-        // AUTO-SAVE ON NAVIGATE AWAY
+        // AUTO-SAVE LOGIC ON PAGE TRANSITION
         // =========================================================================
         public void OnNavigatedAway()
         {
-            var cleanMap = new Dictionary<string, List<int>>();
+            var cleanSettingsList = new List<PlatformSyncSettings>();
 
             foreach (var rowVM in DisplayPlatforms)
             {
-                if (rowVM.MappedRommPlatforms.Any())
+                if (rowVM.AssignedServer != null)
                 {
-                    cleanMap[rowVM.LaunchboxPlatformName] = rowVM.MappedRommPlatforms
-                        .Select(romm => romm.RommId)
-                        .ToList();
+                    var assignedIds = rowVM.MappedRommPlatforms.Any()
+                        ? rowVM.MappedRommPlatforms.Select(r => r.RommId).ToList()
+                        : rowVM.StoredRommPlatformIds;
+
+                    cleanSettingsList.Add(new PlatformSyncSettings
+                    {
+                        LaunchboxPlatformName = rowVM.LaunchboxPlatformName,
+                        RommServer = rowVM.AssignedServer,
+                        RommServerPlatforms = assignedIds
+                    });
                 }
             }
 
-            _settingsService.Settings.LaunchboxRommPlatformsMap = cleanMap;
+            _settingsService.Settings.PlatformSyncSettings = cleanSettingsList;
             _settingsService.Save();
+        }
+
+        /// <summary>
+        /// Executed from view event boundaries when a rich item is selected out of the active DropDownButton array flyout.
+        /// </summary>
+        public void AddMappedPlatformToSelectedRow(RommPlatformDTO platform)
+        {
+            if (SelectedPlatform == null || platform == null) return;
+
+            // Guard against duplicates inside the mapping array
+            if (!SelectedPlatform.MappedRommPlatforms.Any(p => p.RommId == platform.RommId))
+            {
+                SelectedPlatform.MappedRommPlatforms.Add(platform);
+
+                // Ensure data bridge tracks state consistently in case they navigate away immediately
+                if (!SelectedPlatform.StoredRommPlatformIds.Contains(platform.RommId))
+                {
+                    SelectedPlatform.StoredRommPlatformIds.Add(platform.RommId);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Executed when the user targets the '✕' close button embedded inside a platform token capsule row wrapper.
+        /// </summary>
+        public void RemoveMappedPlatformFromSelectedRow(RommPlatformDTO platform)
+        {
+            if (SelectedPlatform == null || platform == null) return;
+
+            SelectedPlatform.MappedRommPlatforms.Remove(platform);
+            SelectedPlatform.StoredRommPlatformIds.Remove(platform.RommId);
         }
     }
 }

@@ -9,6 +9,8 @@ namespace RommStar.Core.Dtos
 {
     public class RommPlatformDTO
     {
+        //NOTE: Romm confirmed this IS NOT a universal unique ID for platforms - slug is.
+
         [JsonPropertyName("id")]
         public int RommId { get; set; }
 

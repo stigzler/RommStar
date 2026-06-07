@@ -15,7 +15,7 @@ namespace RommStar.Core.Properties
         /// </summary>
         public List<RommServer> RommServers { get; set; } = new();
 
-        public Dictionary<string, List<int>> LaunchboxRommPlatformsMap = new();
+        public List<PlatformSyncSettings> PlatformSyncSettings { get; set; } = new();
 
         /// <summary>
         /// RommStar logging level

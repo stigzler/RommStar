@@ -72,7 +72,7 @@ namespace RommStar.Core.UI.Helpers
             passwordBox.PasswordChanged += PasswordChanged;
         }
 
-        private static void Attach(DependencyObject sender,
+        public static void Attach(DependencyObject sender,
             DependencyPropertyChangedEventArgs e)
         {
             PasswordBox passwordBox = sender as PasswordBox;
