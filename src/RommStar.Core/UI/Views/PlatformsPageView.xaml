@@ -19,6 +19,16 @@
         <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
     </Page.Resources>
 
+    <Page.Style>
+        <Style TargetType="Page">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                    <Setter Property="Cursor" Value="Wait" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Page.Style>
+
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />

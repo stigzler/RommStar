@@ -31,6 +31,8 @@ namespace RommStar.Core.UI.ViewModels
 
         [ObservableProperty] private MappedPlatformItemVM? _selectedPlatform;
 
+        [ObservableProperty] private bool _isBusy; // Tracks loading state
+
         // Cache memory dictionary to avoid slamming RomM endpoints on rapid UI clicks
         private readonly Dictionary<string, List<RommPlatformDTO>> _rommPlatformsCacheByServer = new(StringComparer.OrdinalIgnoreCase);
 
@@ -173,36 +175,43 @@ namespace RommStar.Core.UI.ViewModels
         // not this
         private async Task UpdateWorkspacePlatformsAsync(RommServer server, MappedPlatformItemVM targetRow)
         {
-            List<RommPlatformDTO> serverPlatforms;
-
-            // 1. Caching logic (unchanged, but solidifies the network bypass)
-            if (!_rommPlatformsCacheByServer.TryGetValue(server.ServerName, out serverPlatforms!))
+            try
             {
-                var result = await _rommService.GetRommPlatformsAsync(server);
-                serverPlatforms = result is { IsSuccess: true, Data: not null }
-                    ? result.Data
-                    : new List<RommPlatformDTO>();
+                IsBusy = true; // Start "Wait" state
+                List<RommPlatformDTO> serverPlatforms;
 
-                _rommPlatformsCacheByServer[server.ServerName] = serverPlatforms;
+                if (!_rommPlatformsCacheByServer.TryGetValue(server.ServerName, out serverPlatforms!))
+                {
+                    // This is the network await - UI stays responsive
+                    var result = await _rommService.GetRommPlatformsAsync(server);
+                    serverPlatforms = result is { IsSuccess: true, Data: not null }
+                        ? result.Data
+                        : new List<RommPlatformDTO>();
+
+                    _rommPlatformsCacheByServer[server.ServerName] = serverPlatforms;
+                }
+
+                if (_loadedServerNameInUi != server.ServerName)
+                {
+                    CurrentServerAvailablePlatforms = serverPlatforms;
+                    _loadedServerNameInUi = server.ServerName;
+                }
+
+                // OPTIMIZATION: Use a Dictionary for O(1) lookups instead of FirstOrDefault in a loop
+                var platformLookup = serverPlatforms.ToDictionary(p => p.RommId);
+
+                targetRow.MappedRommPlatforms.Clear();
+                foreach (var id in targetRow.StoredRommPlatformIds)
+                {
+                    if (platformLookup.TryGetValue(id, out var match))
+                    {
+                        targetRow.MappedRommPlatforms.Add(match);
+                    }
+                }
             }
-
-            // 2. UI OPTIMIZATION: Only swap the list property if it's a different server.
-            // This prevents the ListView from re-rendering thousands of items when switching
-            // between platforms on the same server.
-            if (_loadedServerNameInUi != server.ServerName)
+            finally
             {
-                CurrentServerAvailablePlatforms = serverPlatforms;
-                _loadedServerNameInUi = server.ServerName;
-            }
-
-            // 3. Hydrate the mapped tokens for the SPECIFIC row selected
-            // This happens every time because each platform has its own mapping
-            targetRow.MappedRommPlatforms.Clear();
-            foreach (var id in targetRow.StoredRommPlatformIds)
-            {
-                var match = serverPlatforms.FirstOrDefault(p => p.RommId == id);
-                if (match != null)
-                    targetRow.MappedRommPlatforms.Add(match);
+                IsBusy = false; // End "Wait" state
             }
         }
 
