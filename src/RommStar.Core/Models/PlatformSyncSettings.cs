@@ -13,7 +13,7 @@ namespace RommStar.Core.Models
         /// </summary>
         public string LaunchboxPlatformName { get; set; }
 
-        public RommServer RommServer { get; set; }
+        public Guid RommServerId { get; set; }
 
         public List<int> RommServerPlatforms { get; set; }
     }

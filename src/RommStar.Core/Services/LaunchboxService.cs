@@ -4,11 +4,20 @@ using System.IO;
 using System.Linq;
 using Unbroken.LaunchBox.Plugins;
 using RommStar.Core.Dtos;
+using RommStar.Core.Models;
+using System.Xml.Linq;
 
 namespace RommStar.Core.Services
 {
     public class LaunchboxService
     {
+        public LaunchboxSettings LaunchboxSettings { get; set; } = new LaunchboxSettings();
+
+        public LaunchboxService()
+        {
+            PopulateLaunchboxSettings();
+        }
+
         public List<LaunchboxPlatformDTO> GetPlatforms()
         {
             var livePlatforms = PluginHelper.DataManager.GetAllPlatforms();
@@ -23,6 +32,16 @@ namespace RommStar.Core.Services
             })
             .OrderBy(p => p.Name)
             .ToList();
+        }
+
+        private void PopulateLaunchboxSettings()
+        {
+            XDocument doc = XDocument.Load(Path.Combine(Constants.LaunchboxRootDir, "Data\\Settings.xml"));
+            var settings = doc.Root?.Element("Settings");
+            if (settings?.Element("PlatformIconPack")?.Value is string iconPack && !string.IsNullOrWhiteSpace(iconPack))
+            {
+                LaunchboxSettings.PlatformIconPack = iconPack;
+            }
         }
 
         //public string ResolvePlatformIconPath(string platformName)

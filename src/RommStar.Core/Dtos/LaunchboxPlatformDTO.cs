@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RommStar.Core.UI.ViewModels.DataItems;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,5 +15,10 @@ namespace RommStar.Core.Dtos
         public string SortTitle { get; set; }
         public string SortTitleOrTitle { get; set; }
         public string ScrapeAs { get; set; }
+
+        public LaunchboxPlatformItemVM ToLaunchboxPlatformItem()
+        {
+            return new LaunchboxPlatformItemVM() { LaunchboxPlatformName = Name };
+        }
     }
 }

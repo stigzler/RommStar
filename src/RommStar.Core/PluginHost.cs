@@ -63,9 +63,6 @@ namespace RommStar.Core
             _loggingService.Log("PluginHost initialized and services configured.");
             _loggingService.Log("Settings:");
             _loggingService.Log($"  LogLevel: {_settingsService.Settings.LoggingLevel.ToString()}");
-
-            // TESTS
-            var platfroms = PluginHelper.DataManager.GetAllPlatforms();
         }
 
         // The extracted method for assembly resolution, completely independent of plugin instantiation
