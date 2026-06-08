@@ -20,6 +20,14 @@ namespace RommStar.Core.UI.ViewModels
     public partial class PlatformsPageVM : ObservableObject, IRecipient<DeleteLaunchboxPlatformItemMessage>
     {
         private readonly LaunchboxService _launchboxService;
+        private readonly LoggingService _loggingService;
+
+        /// <summary>
+        /// ===== PERFORMANCE-CRITICAL: Centralized Cache =====
+        /// Central cache for all Romm server platforms. Key = RommServer.Id
+        /// </summary>
+        private readonly Dictionary<Guid, ObservableCollection<RommPlatformDTO>> _rommPlatformCache = new();
+
         private readonly RommService _rommService;
         private readonly SettingsService _settingsService;
 
@@ -31,24 +39,31 @@ namespace RommStar.Core.UI.ViewModels
         private ObservableCollection<RommServerItemVM>
             _rommServerItems = new ObservableCollection<RommServerItemVM>();
 
-        /// <summary>
-        /// Loaded from persisted settings.
-        /// </summary>
-        //[ObservableProperty]
-        //private ObservableCollection<RommServerItemVM>
-        //    _rommServers = new ObservableCollection<RommServerItemVM>();
-
-        //[ObservableProperty]
-        //private Dictionary<RommServer, List<RommPlatformDTO>>
-        //    _rommServerItemsCache = new Dictionary<RommServer, List<RommPlatformDTO>>();
-
         [ObservableProperty]
         private LaunchboxPlatformItemVM
             _selectedPlatform;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CurrentServerPlatforms))]
         private RommServerItemVM
             _selectedRommServer;
+
+        public ObservableCollection<RommPlatformDTO> CurrentServerPlatforms
+        {
+            get
+            {
+                if (SelectedRommServer == null) return new ObservableCollection<RommPlatformDTO>();
+
+                if (_rommPlatformCache.TryGetValue(SelectedRommServer.RommServer.Id, out var platforms))
+                {
+                    return platforms;
+                }
+
+                // Lazy load if not cached
+                //_ = LoadServerPlatformsAsync(SelectedRommServer);
+                return new ObservableCollection<RommPlatformDTO>();
+            }
+        }
 
         /// <summary>
         /// Parameterless constructor for the XAML Designer
@@ -56,7 +71,8 @@ namespace RommStar.Core.UI.ViewModels
         public PlatformsPageVM() : this(
             new SettingsService(new CryptoService()),
             new LaunchboxService(),
-            new RommService())
+            new RommService(),
+            new LoggingService())
         {
             // any test data
             if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject()))
@@ -65,11 +81,12 @@ namespace RommStar.Core.UI.ViewModels
             }
         }
 
-        public PlatformsPageVM(SettingsService settingsService, LaunchboxService launchboxService, RommService rommService)
+        public PlatformsPageVM(SettingsService settingsService, LaunchboxService launchboxService, RommService rommService, LoggingService loggingService)
         {
             _settingsService = settingsService;
             _launchboxService = launchboxService;
             _rommService = rommService;
+            _loggingService = loggingService;
 
             WeakReferenceMessenger.Default.Register<DeleteLaunchboxPlatformItemMessage>(this);
 
@@ -101,15 +118,6 @@ namespace RommStar.Core.UI.ViewModels
             DeleteLaunchboxPlatformItem(message.Value);
         }
 
-        //partial void OnSelectedPlatformChanged(LaunchboxPlatformItemVM launchboxPlatformItemVM)
-        //{
-        //    SelectedRommServer = GetRommServerItemByServerId(launchboxPlatformItemVM.AssignedServerItem.RommServer.Id);
-        //}
-        partial void OnSelectedPlatformChanged(LaunchboxPlatformItemVM value)
-        {
-            SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
-        }
-
         private void DeleteLaunchboxPlatformItem(LaunchboxPlatformItemVM launchboxPlatformItemVM)
         {
             LaunchboxPlatformItems.Remove(launchboxPlatformItemVM);
@@ -126,7 +134,8 @@ namespace RommStar.Core.UI.ViewModels
 
         private RommServerItemVM GetRommServerItemByServerId(Guid id)
         {
-            return RommServerItems.Where(rs => rs.RommServer.Id == id).FirstOrDefault();
+            return RommServerItems.FirstOrDefault(rs => rs.RommServer.Id == id);
+            //return RommServerItems.Where(rs => rs.RommServer.Id == id).FirstOrDefault();
         }
 
         private async void LoadLaunchboxPlatforms()
@@ -171,14 +180,14 @@ namespace RommStar.Core.UI.ViewModels
             {
                 if (!LaunchboxPlatformItems.Any(item => item.LaunchboxPlatformName == platformSyncSettings.LaunchboxPlatformName))
                 {
+                    var matchedServer = GetRommServerItemByServerId(platformSyncSettings.RommServerId);
+
                     LaunchboxPlatformItemVM newLaunchboxPlatformItemVM = new LaunchboxPlatformItemVM()
                     {
                         LaunchboxPlatformName = platformSyncSettings.LaunchboxPlatformName,
                         MatchedRommPlatforms = platformSyncSettings.RommServerPlatforms,
                         IsOrphaned = true,
-                        AssignedServerItem = new RommServerItemVM(GetRommServerItemByServerId(platformSyncSettings.RommServerId).RommServer)
-                        //AssignedServerItem.RommServer = GetRommServerItemByServerId(platformSyncSettings.RommServerId).RommServer,
-                        //AssignedServerItem.RommServer = null
+                        AssignedServerItem = matchedServer
                     };
                     LaunchboxPlatformItems.Add(newLaunchboxPlatformItemVM);
                 }
@@ -209,8 +218,119 @@ namespace RommStar.Core.UI.ViewModels
         {
             foreach (var rommServer in RommServerItems)
             {
-                await UpdateRommServerPlatformItems(rommServer);
+                await LoadServerPlatformsAsync(rommServer);
             }
+        }
+
+        /// <summary>
+        /// This also populates RommServerPLatformsDTOs
+        /// </summary>
+        /// <param name="rommServerItem"></param>
+        /// <param name="showMessage">false suppresses info bar (for silent running calls - pip color suffices)</param>
+        /// <param name="forceRefesh">forces update of RommPlatformDTOs. Otherwise follows cache system where initial load is canon of RommServer platforms</param>
+        /// <returns></returns>
+        private async Task LoadServerPlatformsAsync(RommServerItemVM rommServerItem, bool showMessage = false, bool forceRefesh = false)
+        {
+            if (rommServerItem == null) return;
+
+            // Return early if cached and not forcing refresh
+            if (!forceRefesh && _rommPlatformCache.ContainsKey(rommServerItem.RommServer.Id))
+            {
+                return;
+            }
+
+            RommApiResponse<List<RommPlatformDTO>> rommPlatformsQuery = await _rommService.GetRommPlatformsAsync(rommServerItem.RommServer);
+
+            if (!rommPlatformsQuery.IsSuccess)
+            {
+                StringBuilder sb = new StringBuilder($"Romm Server: {rommServerItem.RommServer.ServerName}\r\n" +
+                    $"Issue: {rommPlatformsQuery.FailureReason}\r\n");
+                if (rommPlatformsQuery.HttpResponse != null) sb.AppendLine(rommPlatformsQuery.HttpResponse.ToString());
+                if (rommPlatformsQuery.ExceptionMessage != null) sb.Append(rommPlatformsQuery.ExceptionMessage);
+
+                rommServerItem.InfoBar = PopulatedInfoBar("Romm Server Error", sb.ToString(), isOpen: showMessage, InfoBarSeverity.Error);
+
+                // Need to clear cache to withdraw any server platforms
+                if (_rommPlatformCache.ContainsKey(rommServerItem.RommServer.Id))
+                {
+                    _rommPlatformCache.Remove(rommServerItem.RommServer.Id);
+
+                    // ensure list is cleared in UI
+                    if (SelectedRommServer?.RommServer.Id == rommServerItem.RommServer.Id)
+                    {
+                        OnPropertyChanged(nameof(CurrentServerPlatforms));
+                    }
+                }
+
+                return;
+            }
+
+            // Store in cache
+            _rommPlatformCache[rommServerItem.RommServer.Id] = new ObservableCollection<RommPlatformDTO>((List<RommPlatformDTO>)rommPlatformsQuery.Data);
+
+            rommServerItem.InfoBar = PopulatedInfoBar("Success", $"{_rommPlatformCache[rommServerItem.RommServer.Id].Count} Romm Platforms retrieved successfully", isOpen: showMessage, InfoBarSeverity.Success);
+
+            // Notify UI if this was the currently selected server
+            if (SelectedRommServer?.RommServer.Id == rommServerItem.RommServer.Id)
+            {
+                OnPropertyChanged(nameof(CurrentServerPlatforms));
+            }
+        }
+
+        //partial void OnSelectedPlatformChanged(LaunchboxPlatformItemVM launchboxPlatformItemVM)
+        //{
+        //    SelectedRommServer = GetRommServerItemByServerId(launchboxPlatformItemVM.AssignedServerItem.RommServer.Id);
+        //}
+        partial void OnSelectedPlatformChanged(LaunchboxPlatformItemVM value)
+        {
+            //SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
+            sw.Stop();
+        }
+
+        private void PersistPlatformSyncSettings()
+        {
+            _settingsService.Settings.PlatformSyncSettings.Clear();
+            foreach (LaunchboxPlatformItemVM launchboxPlatformItem in LaunchboxPlatformItems)
+            {
+                PlatformSyncSettings platformSyncSettings = new PlatformSyncSettings()
+                {
+                    RommServerId = launchboxPlatformItem.AssignedServerItem.RommServer.Id,
+                    LaunchboxPlatformName = launchboxPlatformItem.LaunchboxPlatformName,
+                    RommServerPlatforms = launchboxPlatformItem.MatchedRommPlatforms
+                };
+                _settingsService.Settings.PlatformSyncSettings.Add(platformSyncSettings);
+            }
+            _settingsService.Save();
+        }
+
+        private InfoBar PopulatedInfoBar(string title, string message, bool isOpen = false,
+            InfoBarSeverity infoBarSeverity = InfoBarSeverity.Informational)
+        {
+            return new InfoBar()
+            {
+                Title = title,
+                Message = message,
+                IsOpen = isOpen,
+                Severity = infoBarSeverity
+            };
+        }
+
+        /// <summary>
+        /// Pre-load all server platforms on page load
+        /// </summary>
+        private async Task PreloadAllServerPlatformsAsync()
+        {
+            var loadTasks = RommServerItems.Select(server => LoadServerPlatformsAsync(server));
+            await Task.WhenAll(loadTasks);
+        }
+
+        [RelayCommand]
+        private async Task RefreshRommServerPlatforms(RommServerItemVM rommServer)
+        {
+            await LoadServerPlatformsAsync(rommServer, showMessage: true, forceRefesh: true);
         }
 
         [RelayCommand]
@@ -246,73 +366,6 @@ namespace RommStar.Core.UI.ViewModels
         private void Test()
         {
             SavePlatformSyncSettings();
-        }
-
-        [RelayCommand]
-        private async Task RefreshRommServerPlatforms(RommServerItemVM rommServer)
-        {
-            await UpdateRommServerPlatformItems(rommServer, showMessage: true, forceRefesh: true);
-        }
-
-        /// <summary>
-        /// This also populates RommServerPLatformsDTOs
-        /// </summary>
-        /// <param name="rommServerItem"></param>
-        /// <param name="showMessage">false suppresses info bar (for silent running calls - pip color suffices)</param>
-        /// <param name="forceRefesh">forces update of RommPlatformDTOs. Otherwise follows cache system where initial load is canon of RommServer platforms</param>
-        /// <returns></returns>
-        private async Task UpdateRommServerPlatformItems(RommServerItemVM rommServerItem, bool showMessage = false, bool forceRefesh = false)
-        {
-            if (rommServerItem == null) return;
-
-            if (forceRefesh || rommServerItem.ServerPlatformDTOs.Count == 0)
-            {
-                RommApiResponse<List<RommPlatformDTO>> rommPlatformsQuery = await _rommService.GetRommPlatformsAsync(rommServerItem.RommServer);
-
-                if (!rommPlatformsQuery.IsSuccess)
-                {
-                    StringBuilder sb = new StringBuilder($"Romm Server: {rommServerItem.RommServer.ServerName}\r\n" +
-                        $"Issue: {rommPlatformsQuery.FailureReason}\r\n");
-                    if (rommPlatformsQuery.HttpResponse != null) sb.AppendLine(rommPlatformsQuery.HttpResponse.ToString());
-                    if (rommPlatformsQuery.ExceptionMessage != null) sb.Append(rommPlatformsQuery.ExceptionMessage);
-
-                    rommServerItem.InfoBar = PopulatedInfoBar("Romm Server Error", sb.ToString(), isOpen: showMessage, InfoBarSeverity.Error);
-                    return;
-                }
-
-                rommServerItem.ServerPlatformDTOs = (List<RommPlatformDTO>)rommPlatformsQuery.Data;
-            }
-
-            // dropout: success
-            rommServerItem.InfoBar = PopulatedInfoBar("Success", "Romm Platforms retrieved successfully", isOpen: showMessage, InfoBarSeverity.Success);
-        }
-
-        private void PersistPlatformSyncSettings()
-        {
-            _settingsService.Settings.PlatformSyncSettings.Clear();
-            foreach (LaunchboxPlatformItemVM launchboxPlatformItem in LaunchboxPlatformItems)
-            {
-                PlatformSyncSettings platformSyncSettings = new PlatformSyncSettings()
-                {
-                    RommServerId = launchboxPlatformItem.AssignedServerItem.RommServer.Id,
-                    LaunchboxPlatformName = launchboxPlatformItem.LaunchboxPlatformName,
-                    RommServerPlatforms = launchboxPlatformItem.MatchedRommPlatforms
-                };
-                _settingsService.Settings.PlatformSyncSettings.Add(platformSyncSettings);
-            }
-            _settingsService.Save();
-        }
-
-        private InfoBar PopulatedInfoBar(string title, string message, bool isOpen = false,
-            InfoBarSeverity infoBarSeverity = InfoBarSeverity.Informational)
-        {
-            return new InfoBar()
-            {
-                Title = title,
-                Message = message,
-                IsOpen = isOpen,
-                Severity = infoBarSeverity
-            };
         }
     }
 }

@@ -18,10 +18,6 @@ namespace RommStar.Core.UI.ViewModels.DataModels
             _rommServer;
 
         [ObservableProperty]
-        private List<RommPlatformDTO>
-            _serverPlatformDTOs = new List<RommPlatformDTO>();
-
-        [ObservableProperty]
         private InfoBar
             _infoBar;
 
@@ -30,10 +26,9 @@ namespace RommStar.Core.UI.ViewModels.DataModels
             RommServer = rommServer;
         }
 
-        public RommServerItemVM(RommServer rommServer, List<RommPlatformDTO> serverPlatformDTOs, InfoBar infoBar)
+        public RommServerItemVM(RommServer rommServer, InfoBar infoBar)
         {
             RommServer = rommServer;
-            ServerPlatformDTOs = serverPlatformDTOs;
             InfoBar = infoBar;
         }
 

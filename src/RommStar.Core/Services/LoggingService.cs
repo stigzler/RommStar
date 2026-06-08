@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace RommStar.Core.Services
 {
-    internal class LoggingService
+    public class LoggingService
     {
         private readonly SettingsService _settingsService;
 
