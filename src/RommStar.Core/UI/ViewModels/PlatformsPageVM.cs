@@ -1,8 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using RommStar.Core.Dtos;
 using RommStar.Core.Models;
 using RommStar.Core.Services;
+using RommStar.Core.UI.Messages;
 using RommStar.Core.UI.ViewModels.DataItems;
 using System;
 using System.Collections.Generic;
@@ -18,7 +20,7 @@ using Unbroken.LaunchBox.Plugins;
 namespace RommStar.Core.UI.ViewModels
 {
     //todo: re/load server on page navigate to (in case user adds/deletes a server)
-    public partial class PlatformsPageVM : ObservableObject
+    public partial class PlatformsPageVM : ObservableObject, IRecipient<DeleteLaunchboxPlatformItemMessage>
     {
         private readonly SettingsService _settingsService;
         private readonly LaunchboxService _launchboxService;
@@ -48,6 +50,48 @@ namespace RommStar.Core.UI.ViewModels
             _settingsService = settingsService;
             _launchboxService = launchboxService;
             _rommService = rommService;
+
+            WeakReferenceMessenger.Default.Register<DeleteLaunchboxPlatformItemMessage>(this);
+        }
+
+        private void DeleteLaunchboxPlatformItem(LaunchboxPlatformItemVM launchboxPlatformItemVM)
+        {
+            LaunchboxPlatformItems.Remove(launchboxPlatformItemVM);
+            // Todo: Delete form settings
+            var launchboxSyncSettings = _settingsService.Settings.PlatformSyncSettings.Where(pss =>
+                pss.LaunchboxPlatformName == launchboxPlatformItemVM.LaunchboxPlatformName).FirstOrDefault();
+
+            if (launchboxSyncSettings != null)
+            {
+                _settingsService.Settings.PlatformSyncSettings.Remove(launchboxSyncSettings);
+                _settingsService.Save();
+            }
+        }
+
+        [RelayCommand]
+        private void Test()
+        {
+            SavePlatformSyncSettings();
+        }
+
+        /// <summary>
+        /// Translate LaunchboxPlatformItemsVms to PlatformsSyncSettings and persist data
+        /// </summary>
+        private void SavePlatformSyncSettings()
+        {
+            _settingsService.Settings.PlatformSyncSettings.Clear();
+            foreach (var launchboxPLatformItem in LaunchboxPlatformItems)
+            {
+                PlatformSyncSettings newPlatformSyncSettings = new PlatformSyncSettings()
+                {
+                    LaunchboxPlatformName = launchboxPLatformItem.LaunchboxPlatformName,
+                };
+                if (launchboxPLatformItem.AssignedServer != null) newPlatformSyncSettings.RommServerId = launchboxPLatformItem.AssignedServer.Id;
+                if (launchboxPLatformItem.MatchedRommPlatforms != null) newPlatformSyncSettings.RommServerPlatforms = launchboxPLatformItem.MatchedRommPlatforms;
+
+                _settingsService.Settings.PlatformSyncSettings.Add(newPlatformSyncSettings);
+            }
+            _settingsService.Save();
         }
 
         public void LoadPlatformsAndPersistedData()
@@ -70,11 +114,6 @@ namespace RommStar.Core.UI.ViewModels
             var dave = platfroms[1].GetAllPlatformFolders();
         }
 
-        [RelayCommand]
-        private async Task DeleteOrphanedMap()
-        {
-        }
-
         private async void LoadLaunchboxPlatforms()
         {
             // Get current LB platforms
@@ -89,9 +128,6 @@ namespace RommStar.Core.UI.ViewModels
                     LaunchboxPlatformName = liveLbPlatform.Name,
                     IconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
                     _launchboxService.LaunchboxSettings.PlatformIconPack, "Platforms", $"{liveLbPlatform.Name}.png"),
-                    IsOrphaned = true,
-
-                    //todo: icon
                 };
 
                 // Test persisted Platform Maps for existing map
@@ -101,7 +137,7 @@ namespace RommStar.Core.UI.ViewModels
                 if (matchedPersistedPlatform != null)
                 {
                     // There is a match. There is no guarantee that a persisted server is still registered in RommStar. Check and flag error if not.
-                    RommServer? matchedRommServer = RommServers.Where(rs => rs.Id == matchedPersistedPlatform.RommServerId).FirstOrDefault();
+                    RommServer? matchedRommServer = GetRommServerById(matchedPersistedPlatform.RommServerId);
 
                     if (matchedRommServer != null)
                     {
@@ -114,6 +150,32 @@ namespace RommStar.Core.UI.ViewModels
 
                 LaunchboxPlatformItems.Add(newLaunchboxPlatformItemVM);
             }
+
+            // now test for orphans in persisted PlatformSyncSettings (i.e. those with Lb PLatformName not in current LB collection
+            foreach (PlatformSyncSettings platformSyncSettings in _settingsService.Settings.PlatformSyncSettings)
+            {
+                if (!LaunchboxPlatformItems.Any(item => item.LaunchboxPlatformName == platformSyncSettings.LaunchboxPlatformName))
+                {
+                    LaunchboxPlatformItemVM newLaunchboxPlatformItemVM = new LaunchboxPlatformItemVM()
+                    {
+                        LaunchboxPlatformName = platformSyncSettings.LaunchboxPlatformName,
+                        MatchedRommPlatforms = platformSyncSettings.RommServerPlatforms,
+                        AssignedServer = GetRommServerById(platformSyncSettings.RommServerId),
+                        IsOrphaned = true
+                    };
+                    LaunchboxPlatformItems.Add(newLaunchboxPlatformItemVM);
+                }
+            }
+        }
+
+        private RommServer GetRommServerById(Guid id)
+        {
+            return RommServers.Where(rs => rs.Id == id).FirstOrDefault();
+        }
+
+        void IRecipient<DeleteLaunchboxPlatformItemMessage>.Receive(DeleteLaunchboxPlatformItemMessage message)
+        {
+            DeleteLaunchboxPlatformItem(message.Value);
         }
     }
 }

@@ -1,5 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using RommStar.Core.Models;
+using RommStar.Core.UI.Messages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,5 +36,11 @@ namespace RommStar.Core.UI.ViewModels.DataItems
         private List<String> _errors = new List<string>();
 
         public int MappedRommPlatformsCount => MatchedRommPlatforms.Count();
+
+        [RelayCommand]
+        private async Task DeleteOrphan()
+        {
+            WeakReferenceMessenger.Default.Send(new DeleteLaunchboxPlatformItemMessage(this));
+        }
     }
 }
