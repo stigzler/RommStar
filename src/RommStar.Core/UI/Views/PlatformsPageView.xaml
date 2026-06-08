@@ -5,7 +5,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:local="clr-namespace:RommStar.Core.UI.Views"
       xmlns:vms="clr-namespace:RommStar.Core.UI.ViewModels"
-      xmlns:vmsd="clr-namespace:RommStar.Core.UI.ViewModels.DataItems"
+      xmlns:vmsd="clr-namespace:RommStar.Core.UI.ViewModels.DataModels"
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
       xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
       xmlns:helpers="clr-namespace:RommStar.Core.UI.Helpers"
@@ -14,7 +14,7 @@
       d:DataContext="{d:DesignInstance Type=vms:PlatformsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="Platforms" Loaded="Page_Loaded">
+      Title="Platforms" IsVisibleChanged="Page_IsVisibleChanged">
 
     <Page.Resources>
         <ResourceDictionary>
@@ -28,12 +28,15 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
+        <!-- =============== TOP BUTTONS ===================== -->
+
         <Grid Grid.Row="0">
             <StackPanel Orientation="Horizontal">
                 <Button Content="Test" Command="{Binding TestCommand}" />
             </StackPanel>
         </Grid>
 
+        <!-- =============== MAIN CONTORLS ===================== -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*" MinWidth="250" />
@@ -41,7 +44,7 @@
                 <ColumnDefinition Width="2*" MinWidth="450" />
             </Grid.ColumnDefinitions>
 
-            <!-- Launchbox PLatforms Column -->
+            <!-- Launchbox Platforms Column -->
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -132,6 +135,114 @@
                         <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Refresh}" />
                     </Button>
                 </StackPanel>
+            </Grid>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Column="1"
+                          Width="6"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Stretch"
+                          Background="Transparent"
+                          ResizeBehavior="PreviousAndNext" />
+
+            <!-- Detail View -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Placeholder when no Platform Selected -->
+                <TextBlock Text="Select a LaunchBox platform."
+                           TextWrapping="Wrap"
+                           TextTrimming="WordEllipsis"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Opacity="0.6"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedPlatform}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- Main Details View -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedPlatform}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Heading -->
+                    <TextBlock Grid.Row="0" Text="Romm Platforms Map" Margin="0,0,0,10"
+                               Style="{DynamicResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" />
+
+                    <Border Grid.Row="1" Background="#20000000" CornerRadius="14" Padding="20">
+                        <StackPanel>
+
+                            <!-- Seledted Platform Name-->
+                            <StackPanel  Grid.Column="0" Orientation="Horizontal">
+                                <Image  Width="24" Height="24" Margin="0,0,12,0"
+                                      Source="{Binding SelectedPlatform.IconPath}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding SelectedPlatform.LaunchboxPlatformName}"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <!-- Server Selection -->
+                            <Grid Margin="0,0,0,20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Column="0" Grid.Row="1" Text="Target RomM Server:" VerticalAlignment="Center"
+                                           Margin="0,0,12,0" FontWeight="SemiBold" />
+
+                                <ComboBox x:Name="RommServerCombobox" Grid.Column="1" Grid.Row="1"  HorizontalAlignment="Stretch"
+                                          ItemsSource="{Binding RommServers}"
+                                          SelectedItem="{Binding SelectedPlatform.AssignedServer, Mode=TwoWay}"
+                                          DisplayMemberPath="ServerName"
+                                          ui:ControlHelper.PlaceholderText="Select target server context..." />
+
+                                <Button Grid.Column="2" Grid.Row="1"  Margin="8,0,0,0" ToolTip="Refresh RomM Server Platforms"
+                                        Command="{Binding UpdateRommServerPlatformsCommand}"
+                                        CommandParameter="{Binding SelectedItem, ElementName=RommServerCombobox}">
+                                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Refresh}" />
+                                </Button>
+                            </Grid>
+                            <ui:InfoBar IsClosable="True" IsIconVisible="True" Grid.ColumnSpan="3"
+                                            IsOpen="{Binding RommServerConnectionErrorShown, Mode=TwoWay}"
+                                            Severity="{Binding RommServerConnectionErrorSeverity}"
+                                            Title="{Binding RommServerConnectionErrorTitle}"
+                                            Message="{Binding RommServerConnectionErrorMessage}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </Grid>
         </Grid>
     </Grid>

@@ -17,7 +17,7 @@ namespace RommStar.Core.Services
     public class RommService
     {
         private readonly HttpClient _client;
-        private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(2);
 
         // Cached once — System.Text.Json keys its internal type metadata cache by options
         // instance identity. Creating a new instance on every call busts that cache and

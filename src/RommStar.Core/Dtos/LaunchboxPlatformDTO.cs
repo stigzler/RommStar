@@ -1,4 +1,4 @@
-﻿using RommStar.Core.UI.ViewModels.DataItems;
+﻿using RommStar.Core.UI.ViewModels.DataModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;

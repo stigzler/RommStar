@@ -19,9 +19,9 @@ namespace RommStar.Core.UI.Views
             DataContext = ViewModel;
         }
 
-        private void Page_Loaded(object sender, RoutedEventArgs e)
+        private async void Page_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            ViewModel.LoadPlatformsAndPersistedData();
+            await ViewModel.OnPageVisibilityChanged((bool)e.NewValue);
         }
     }
 }

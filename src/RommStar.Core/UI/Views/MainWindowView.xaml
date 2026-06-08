@@ -22,7 +22,7 @@
                 <ui:ThemeResources  AccentColor="#553e98" />
                 <ui:XamlControlsResources />
             </ResourceDictionary.MergedDictionaries>
-            <!--Your other resources here (if exists)-->
+            <!--other resources here (if exists)-->
         </ResourceDictionary>
     </Window.Resources>
 
