@@ -8,6 +8,7 @@ using RommStar.Core.Services;
 using RommStar.Core.Sync;
 using RommStar.Core.Temp;
 using RommStar.Core.UI.ViewModels;
+using RommStar.Core.UI.ViewModels.Pages;
 using RommStar.Core.UI.Views;
 using System;
 using System.IO;

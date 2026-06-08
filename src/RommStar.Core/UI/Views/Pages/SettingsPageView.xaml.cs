@@ -1,5 +1,5 @@
 ﻿using iNKORE.UI.WPF.Modern;
-using RommStar.Core.UI.ViewModels;
+using RommStar.Core.UI.ViewModels.Pages;
 using System;
 using System.Collections.Generic;
 using System.Linq;

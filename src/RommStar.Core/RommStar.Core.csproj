@@ -98,7 +98,7 @@
 
 	<ItemGroup>
 	  <Folder Include="UI\Behaviours\" />
-	  <Folder Include="UI\ViewModels\Pages\" />
+	  <Folder Include="UI\Primitives\" />
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

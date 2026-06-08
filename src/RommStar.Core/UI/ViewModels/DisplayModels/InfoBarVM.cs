@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace RommStar.Core.UI.ViewModels.DisplayModels
 {
-    internal partial class InfoBarVM : ObservableObject
+    public partial class InfoBarVM : ObservableObject
     {
         [ObservableProperty]
         private InfoBarSeverity

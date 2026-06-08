@@ -15,7 +15,7 @@ public partial class LaunchboxPlatformItemVM : ObservableObject
 {
     // Model related Observables
     [ObservableProperty]
-    private RommServer? _assignedServer;
+    private RommServerItemVM? _assignedServerItem;
 
     [ObservableProperty]
     private string _launchboxPlatformName = string.Empty;

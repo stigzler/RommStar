@@ -1,4 +1,5 @@
 ﻿using RommStar.Core.UI.ViewModels;
+using RommStar.Core.UI.ViewModels.Pages;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
