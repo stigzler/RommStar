@@ -19,6 +19,7 @@
     <Page.Resources>
         <ResourceDictionary>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <converters:InfoBarSeverityToHexColorConverter x:Key="InfoBarSeverityToHexColorConverter" />
         </ResourceDictionary>
     </Page.Resources>
 
@@ -53,13 +54,20 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
+                <!-- Header -->
                 <TextBlock Grid.Row="0" Text="Launchbox Platforms" Margin="0,0,0,10"
                            Style="{DynamicResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" />
 
-                <TextBox Grid.Row="1"
+                <!-- Search Box -->
+                <ui:AutoSuggestBox Grid.Row="1"
                          ui:ControlHelper.PlaceholderText="Search Platforms..."
                          Margin="0,0,8,12"
-                         HorizontalAlignment="Stretch" />
+                         HorizontalAlignment="Stretch" ItemsSource="{Binding LaunchboxPlatformItems}"
+                                   DisplayMemberPath="LaunchboxPlatformName" TextMemberPath="LaunchboxPlatformName">
+                    <ui:AutoSuggestBox.QueryIcon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Search}" />
+                    </ui:AutoSuggestBox.QueryIcon>
+                </ui:AutoSuggestBox>
 
                 <ListView Grid.Row="2"
                           Margin="0,0,8,0"
@@ -196,10 +204,11 @@
                     <TextBlock Grid.Row="0" Text="Romm Platforms Map" Margin="0,0,0,10"
                                Style="{DynamicResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" />
 
+                    <!-- Mapping Panel -->
                     <Border Grid.Row="1" Background="#20000000" CornerRadius="14" Padding="20">
                         <StackPanel>
 
-                            <!-- Selected Platform Name-->
+                            <!-- Selected Platform Name Text -->
                             <StackPanel  Grid.Column="0" Orientation="Horizontal">
                                 <Image  Width="24" Height="24" Margin="0,0,12,0"
                                       Source="{Binding SelectedPlatform.IconPath}" VerticalAlignment="Center" />
@@ -211,6 +220,7 @@
                             <Grid Margin="0,0,0,20">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
@@ -220,26 +230,45 @@
                                     <RowDefinition Height="auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Column="0" Grid.Row="1" Text="Target RomM Server:" VerticalAlignment="Center"
+                                <Ellipse Grid.Column="0" Grid.Row="1" Width="14" Height="14" StrokeThickness="1" Stroke="#a0000000"
+                                         Fill="{Binding SelectedPlatform.AssignedServerItem.InfoBar.Severity, Converter={StaticResource InfoBarSeverityToHexColorConverter}}"
+                                         VerticalAlignment="Center" Margin="0,0,10,0" />
+
+                                <TextBlock Grid.Column="1" Grid.Row="1" Text="Target RomM Server:" VerticalAlignment="Center"
                                            Margin="0,0,12,0" FontWeight="SemiBold" />
 
-                                <ComboBox x:Name="RommServerCombobox" Grid.Column="1" Grid.Row="1"  HorizontalAlignment="Stretch"
-                                          ItemsSource="{Binding RommServers}"
+                                <ComboBox x:Name="RommServerCombobox" Grid.Column="2" Grid.Row="1"  HorizontalAlignment="Stretch"
+                                          ItemsSource="{Binding RommServerItems}"
                                           SelectedItem="{Binding SelectedPlatform.AssignedServerItem, Mode=TwoWay}"
                                           DisplayMemberPath="RommServer.ServerName"
                                           ui:ControlHelper.PlaceholderText="Select target server context..." />
 
-                                <Button Grid.Column="2" Grid.Row="1"  Margin="8,0,0,0" ToolTip="Refresh RomM Server Platforms"
-                                        Command="{Binding UpdateRommServerPlatformsCommand}"
+                                <Button Grid.Column="3" Grid.Row="1"  Margin="8,0,0,0" ToolTip="Refresh RomM Server Platforms"
+                                        Command="{Binding RefreshRommServerPlatformsCommand}"
                                         CommandParameter="{Binding SelectedItem, ElementName=RommServerCombobox}">
                                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Refresh}" />
                                 </Button>
                             </Grid>
+                            <!-- Server Info Bar (Vis toggles) -->
                             <ui:InfoBar IsClosable="True" IsIconVisible="True" Grid.ColumnSpan="3"
                                             IsOpen="{Binding SelectedPlatform.AssignedServerItem.InfoBar.IsOpen, Mode=TwoWay}"
                                             Severity="{Binding SelectedPlatform.AssignedServerItem.InfoBar.Severity}"
                                             Title="{Binding SelectedPlatform.AssignedServerItem.InfoBar.Title}"
                                             Message="{Binding SelectedPlatform.AssignedServerItem.InfoBar.Message}" />
+
+                            <!-- Search Box -->
+                            <ComboBox ItemsSource="{Binding SelectedRommServer.ServerPlatformDTOs}"
+                                      DisplayMemberPath="RommName" Width="400"
+                                      VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.IsVirtualizing="True" />
+
+                            <!--<ui:AutoSuggestBox
+                                    ui:ControlHelper.PlaceholderText="Search Romm Platforms..."
+                                    HorizontalAlignment="Stretch" ItemsSource="{Binding SelectedRommServer.ServerPlatformDTOs}"
+                                  DisplayMemberPath="RommName" TextMemberPath="RommName">
+                                <ui:AutoSuggestBox.QueryIcon>
+                                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Search}" />
+                                </ui:AutoSuggestBox.QueryIcon>
+                            </ui:AutoSuggestBox>-->
                         </StackPanel>
                     </Border>
                 </Grid>
