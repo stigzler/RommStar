@@ -14,7 +14,11 @@
         Height="{Binding Source={x:Static properties:Settings.Default},Path=WindowSize.Height}"
         Width="{Binding Source={x:Static properties:Settings.Default},Path=WindowSize.Width}"
         WindowStartupLocation="CenterScreen"
-        Title="RommStar" Closing="Window_Closing">
+        Title="RommStar" Closing="Window_Closing"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
 
     <Window.Resources>
         <ResourceDictionary>

@@ -20,6 +20,8 @@
         <ResourceDictionary>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <converters:InfoBarSeverityToHexColorConverter x:Key="InfoBarSeverityToHexColorConverter" />
+            <converters:BytesToFormattedConverter x:Key="BytesToFormattedConverter" />
+            <!--<SolidColorBrush x:Key="ThemeTextBrush" Color="{DynamicResource TextFillColorPrimary}" />-->
         </ResourceDictionary>
     </Page.Resources>
 
@@ -108,15 +110,17 @@
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="Text" Value="{Binding MatchedRommPlatformCount, StringFormat='{}{0} Mapped'}" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                    <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"   />-->
+
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsOrphaned}" Value="True">
                                                             <Setter Property="Text" Value="Orphaned" />
-                                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                            <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"           />-->
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding IsOrphaned}" Value="False">
                                                             <Setter Property="Text" Value="{Binding MappedRommPlatformsCount}" />
-                                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                            <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"  />-->
+
                                                             <Setter Property="ToolTip" Value="Number of mapped Romm Platforms" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
@@ -166,7 +170,7 @@
                 <TextBlock Text="Select a LaunchBox platform."
                            TextWrapping="Wrap"
                            TextTrimming="WordEllipsis"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Opacity="0.6"
+                           Opacity="0.6"
                            HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -208,12 +212,13 @@
                     <Border Grid.Row="1" Background="#20000000" CornerRadius="14" Padding="20">
                         <StackPanel>
 
-                            <!-- Selected Platform Name Text -->
+                            <!-- Selected Platform Icon and Name Text -->
                             <StackPanel  Grid.Column="0" Orientation="Horizontal">
-                                <Image  Width="24" Height="24" Margin="0,0,12,0"
+                                <Image  Width="24" Height="24" Margin="0,4,12,0"
                                       Source="{Binding SelectedPlatform.IconPath}" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding SelectedPlatform.LaunchboxPlatformName}"
-                                       FontWeight="SemiBold" VerticalAlignment="Center" />
+                                       FontWeight="SemiBold" VerticalAlignment="Center"
+                                        Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" />
                             </StackPanel>
 
                             <!-- Server Selection -->
@@ -257,32 +262,70 @@
                                             Message="{Binding SelectedRommServer.InfoBar.Message}" />
 
                             <!-- Search Box -->
-                            <!--<ComboBox ItemsSource="{Binding CurrentServerPlatforms}"
-                                      DisplayMemberPath="RommName" Width="400"
-                                      VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.IsVirtualizing="True" />-->
-
                             <StackPanel>
 
-                                <ListView ItemsSource="{Binding CurrentServerPlatforms}"
+                                <!--Search TextBox-->
+
+                                <TextBox Text="{Binding PlatformSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                         ui:ControlHelper.PlaceholderText="Search Romm Platforms..."
+                                         Margin="0,0,0,8"
+                                         Width="400"
+                                         HorizontalAlignment="Left">
+                                    <!--<TextBox.Style>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                            <Setter Property="BorderBrush" Value="{DynamicResource TextControlBorderBrush}" />
+                                            <Setter Property="Padding" Value="8,6" />
+                                        </Style>
+                                    </TextBox.Style>-->
+                                </TextBox>
+
+                                <!--Results Count-->
+
+                                <TextBlock Margin="0,0,0,4" FontSize="11" Opacity="0.7">
+                                    <Run Text="{Binding FilteredServerPlatforms.Count, Mode=OneWay}" />
+                                    <Run Text="platforms" />
+                                </TextBlock>
+
+                                <!--Filtered ListView-->
+
+                                <ListView ItemsSource="{Binding FilteredServerPlatforms}"
+                                          SelectedItem="{Binding SelectedRommPlatform}"
                                           MaxHeight="300"
                                           VirtualizingPanel.IsVirtualizing="True"
                                           VirtualizingPanel.VirtualizationMode="Recycling">
                                     <ListView.Resources>
-                                        <!-- Use iNKORE Brush resources directly -->
                                         <SolidColorBrush x:Key="ListViewItemBackground" Color="Transparent" />
                                         <CornerRadius x:Key="ListViewItemCornerRadius">4</CornerRadius>
                                         <sys:Boolean xmlns:sys="clr-namespace:System;assembly=mscorlib" x:Key="UseSystemFocusVisuals">True</sys:Boolean>
                                     </ListView.Resources>
                                     <ListView.ItemContainerStyle>
                                         <Style TargetType="ListViewItem">
-                                            <Setter Property="Foreground" Value="{StaticResource TextFillColorPrimaryBrush}" />
+
+                                            <!--<Setter Property="Foreground" Value="{StaticResource ThemeTextBrush}" />-->
                                             <Setter Property="Background" Value="{StaticResource ListViewItemBackground}" />
+
                                             <Setter Property="Padding" Value="8,4" />
+                                            <Setter Property="Margin" Value="0,0,20,0" />
                                         </Style>
                                     </ListView.ItemContainerStyle>
                                     <ListView.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding RommName}" />
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="auto" />
+                                                    <RowDefinition Height="auto" />
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Grid.Row="0" Text="{Binding RommName}" />
+                                                <TextBlock Grid.Row="1" FontSize="11" Opacity="0.6">
+
+                                                        <Run Text="{Binding RomCount}" />
+                                                        <Run Text="roms" />
+                                                        <Run Text="(" />
+                                                        <Run Text="{Binding Slug}" />
+                                                        <Run Text=") -" />
+                                                        <Run Text="{Binding AllRomsFileSizeBytes, Converter={StaticResource BytesToFormattedConverter}}" />
+                                                </TextBlock>
+                                            </Grid>
                                         </DataTemplate>
                                     </ListView.ItemTemplate>
                                 </ListView>
@@ -290,7 +333,7 @@
 
                             <!--<ui:AutoSuggestBox
                                     ui:ControlHelper.PlaceholderText="Search Romm Platforms..."
-                                    HorizontalAlignment="Stretch" ItemsSource="{Binding SelectedRommServer.ServerPlatformDTOs}"
+                                    HorizontalAlignment="Stretch" ItemsSource="{Binding CurrentServerPlatforms}"
                                   DisplayMemberPath="RommName" TextMemberPath="RommName">
                                 <ui:AutoSuggestBox.QueryIcon>
                                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Search}" />

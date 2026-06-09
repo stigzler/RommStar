@@ -44,9 +44,16 @@ namespace RommStar.Core.UI.ViewModels
             _selectedPlatform;
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CurrentServerPlatforms))]
+        [NotifyPropertyChangedFor(nameof(CurrentServerPlatforms), nameof(FilteredServerPlatforms))]
         private RommServerItemVM
             _selectedRommServer;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(FilteredServerPlatforms))]
+        private string _platformSearchText = string.Empty;
+
+        [ObservableProperty]
+        private RommPlatformDTO? _selectedRommPlatform;
 
         public ObservableCollection<RommPlatformDTO> CurrentServerPlatforms
         {
@@ -60,8 +67,31 @@ namespace RommStar.Core.UI.ViewModels
                 }
 
                 // Lazy load if not cached
-                //_ = LoadServerPlatformsAsync(SelectedRommServer);
+                _ = LoadServerPlatformsAsync(SelectedRommServer);
                 return new ObservableCollection<RommPlatformDTO>();
+            }
+        }
+
+        /// <summary>
+        /// Filtered list of platforms based on search text.
+        /// Only renders matching items for better performance.
+        /// </summary>
+        public List<RommPlatformDTO> FilteredServerPlatforms
+        {
+            get
+            {
+                var allPlatforms = CurrentServerPlatforms;
+
+                if (allPlatforms == null || allPlatforms.Count == 0)
+                    return new List<RommPlatformDTO>();
+
+                if (string.IsNullOrWhiteSpace(PlatformSearchText))
+                    return allPlatforms.ToList();
+
+                return allPlatforms
+                    .Where(p => p.RommName != null &&
+                                p.RommName.Contains(PlatformSearchText, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
             }
         }
 
@@ -261,7 +291,6 @@ namespace RommStar.Core.UI.ViewModels
                         OnPropertyChanged(nameof(CurrentServerPlatforms));
                     }
                 }
-
                 return;
             }
 
@@ -285,9 +314,7 @@ namespace RommStar.Core.UI.ViewModels
         {
             //SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
 
-            var sw = System.Diagnostics.Stopwatch.StartNew();
             SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
-            sw.Stop();
         }
 
         private void PersistPlatformSyncSettings()
