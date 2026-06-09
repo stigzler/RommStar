@@ -1,24 +1,22 @@
-﻿using iNKORE.UI.WPF.Modern;
-using iNKORE.UI.WPF.Modern.Controls;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Primitives;
-using RommStar.Core.Properties;
 using RommStar.Core.Services;
 using RommStar.Core.Sync;
-using RommStar.Core.Temp;
-using RommStar.Core.UI.ViewModels;
 using RommStar.Core.UI.ViewModels.Pages;
+using RommStar.Core.UI.ViewModels.Windows;
 using RommStar.Core.UI.Views;
-using System;
+using RommStar.Core.UI.Views.Windows;
 using System.IO;
 using System.Reflection;
 using System.Windows;
-using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core
 {
+    /// <summary>
+    /// Note: Messy atm with INkore stuff it's a pain and poor support, so stuff kept in as ongoign fight!
+    /// </summary>
     internal class PluginHost
     {
         private static readonly object _padlock = new object();
@@ -28,6 +26,8 @@ namespace RommStar.Core
         private readonly SettingsService _settingsService;
 
         private readonly IServiceProvider _serviceProvider;
+
+        private MainWindowView _mainWindowView;
 
         internal static PluginHost Instance
         {
@@ -91,6 +91,25 @@ namespace RommStar.Core
             return null;
         }
 
+        private void EnsureInkoreResourcesLoaded()
+        {
+            var app = Application.Current;
+            if (app == null) return;
+
+            // Avoid duplicates
+            bool alreadyLoaded = app.Resources.MergedDictionaries
+                .OfType<iNKORE.UI.WPF.Modern.ThemeResources>()
+                .Any();
+
+            if (alreadyLoaded) return;
+
+            // Add inkore dictionaries to the application resources so templates can always find them.
+            app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.ThemeResources());
+            app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.Controls.XamlControlsResources());
+            //app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.ColorPaletteResources());
+            //app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.ResourceDictionaryEx());
+        }
+
         private static void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<LoggingService>();
@@ -129,12 +148,14 @@ namespace RommStar.Core
                 )
             );
 
-            services.AddSingleton<SettingsPageView>();
-            services.AddSingleton<HomePageView>();
-            services.AddSingleton<JobsPageView>();
+            //services.AddSingleton<MainWindowView>();
+
+            //services.AddSingleton<SettingsPageView>();
+            //services.AddSingleton<HomePageView>();
+            //services.AddSingleton<JobsPageView>();
         }
 
-        internal void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
+        internal async void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
         {
             switch (menuItem)
             {
@@ -144,7 +165,7 @@ namespace RommStar.Core
 
                 case LaunchboxMenuItem.ToolsMenuRommStar:
                     _loggingService.Log("Tools>RommStar selected.");
-                    LaunchAdminWindow();
+                    await LaunchAdminWindow();
                     break;
             }
         }
@@ -160,9 +181,15 @@ namespace RommStar.Core
             }
         }
 
-        private void LaunchAdminWindow()
+        private bool _mainWindowInitialised = false;
+
+        private async Task LaunchAdminWindow()
         {
+            // Ensure the Inkore resources are loaded
+            //EnsureInkoreResourcesLoaded();
+
             var adminWindow = _serviceProvider.GetRequiredService<MainWindowView>();
+
             adminWindow.Show();
         }
     }

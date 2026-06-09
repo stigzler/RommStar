@@ -5,7 +5,7 @@ using RommStar.Core.Models;
 using RommStar.Core.Services;
 using System.Collections.ObjectModel;
 
-namespace RommStar.Core.UI.ViewModels
+namespace RommStar.Core.UI.ViewModels.Pages
 {
     public partial class ServersPageVM : ObservableObject
     {
@@ -15,11 +15,8 @@ namespace RommStar.Core.UI.ViewModels
         // The UI binds strictly to this display wrapper collection
         public ObservableCollection<ServerDisplayItemVM> DisplayServers { get; } = new();
 
-        public ServersPageVM()
+        public ServersPageVM() : this(new RommService(), new SettingsService(new CryptoService()))
         {
-            _rommService = new RommService();
-            _settingsService = new SettingsService(new CryptoService());
-            DisplayServers.Add(new ServerDisplayItemVM(new RommServer()));
         }
 
         public ServersPageVM(RommService rommService, SettingsService settingsService)

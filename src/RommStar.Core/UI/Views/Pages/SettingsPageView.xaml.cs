@@ -15,14 +15,14 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace RommStar.Core.UI.Views
+namespace RommStar.Core.UI.Views.Pages
 {
     /// <summary>
     /// Interaction logic for SettingsPageView.xaml
     /// </summary>
     ///
 
-    public partial class SettingsPageView : Page
+    public partial class SettingsPageView : iNKORE.UI.WPF.Modern.Controls.Page
     {
         private SettingsPageVM ViewModel;
 
@@ -31,14 +31,6 @@ namespace RommStar.Core.UI.Views
             InitializeComponent();
             ViewModel = viewModel;
             DataContext = ViewModel;
-        }
-
-        private void ToggleSwitch_Toggled(object sender, RoutedEventArgs e)
-        {
-            if (DarkModeToggle.IsOn)
-                ThemeManager.Current.ApplicationTheme = ApplicationTheme.Light;
-            else
-                ThemeManager.Current.ApplicationTheme = ApplicationTheme.Dark;
         }
     }
 }

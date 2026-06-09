@@ -1,15 +1,16 @@
 ﻿using iNKORE.UI.WPF.Modern.Controls;
 using RommStar.Core.Dtos;
 using RommStar.Core.UI.ViewModels;
+using RommStar.Core.UI.ViewModels.Pages;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace RommStar.Core.UI.Views
+namespace RommStar.Core.UI.Views.Pages
 {
     /// <summary>
     /// Interaction logic for PlatformsPageView.xaml
     /// </summary>
-    public partial class PlatformsPageView : System.Windows.Controls.Page
+    public partial class PlatformsPageView : iNKORE.UI.WPF.Modern.Controls.Page
     {
         private PlatformsPageVM ViewModel;
 

@@ -14,20 +14,19 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace RommStar.Core.UI.Views
-{
-    /// <summary>
-    /// Interaction logic for HomePageView.xaml
-    /// </summary>
-    public partial class HomePageView : Page
-    {
-        private HomePageVM ViewModel;
+namespace RommStar.Core.UI.Views.Pages;
 
-        public HomePageView(HomePageVM viewModel)
-        {
-            InitializeComponent();
-            ViewModel = viewModel;
-            DataContext = ViewModel;
-        }
+/// <summary>
+/// Interaction logic for HomePageView.xaml
+/// </summary>
+public partial class HomePageView : Page
+{
+    private HomePageVM ViewModel;
+
+    public HomePageView(HomePageVM viewModel)
+    {
+        InitializeComponent();
+        ViewModel = viewModel;
+        DataContext = ViewModel;
     }
 }

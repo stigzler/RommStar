@@ -1,4 +1,5 @@
 ﻿using RommStar.Core.UI.ViewModels;
+using RommStar.Core.UI.ViewModels.Pages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace RommStar.Core.UI.Views
+namespace RommStar.Core.UI.Views.Pages
 {
     /// <summary>
     /// Interaction logic for JobsPageView.xaml

@@ -1,4 +1,4 @@
-﻿<Page x:Class="RommStar.Core.UI.Views.SettingsPageView"
+﻿<ui:Page x:Class="RommStar.Core.UI.Views.Pages.SettingsPageView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -8,17 +8,35 @@
       xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
       xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels"
       mc:Ignorable="d"
-      d:DataContext="{d:DesignInstance Type=vm:SettingsPageVM, IsDesignTimeCreatable=True}"
+      d:DataContext="{d:DesignInstance Type=vm:Pages.SettingsPageVM, IsDesignTimeCreatable=True}"
       d:DesignHeight="450" d:DesignWidth="800" d:Background="#202020" d:Foreground="Gainsboro"
       Title="Settings">
 
+    <ui:Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:XamlControlsResources />
+                <ui:ThemeResources AccentColor="#553e98" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </ui:Page.Resources>
+
     <TabControl ui:TabControlHelper.IsAddTabButtonVisible="False">
 
-        <TabItem Header="Romm" ui:TabItemHelper.IsClosable="False">
+        <TabItem Header="Sync Settings" ui:TabItemHelper.IsClosable="False">
             <ui:TabItemHelper.Icon>
-                <Image Source="/RommStar.Core;component/Resources/rommIcon64px.png" />
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" Margin="5,2,0,0" />
             </ui:TabItemHelper.Icon>
-            <TextBlock Text="Content 1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Grid Margin="10">
+                <StackPanel>
+                    <ui:SettingsCard Header="Download Romm only." Description="Download only the Romm files. Do not update the launchbox database, metadata or media. Use this if you have automatic imports anabled for this system">
+                        <ui:SettingsCard.HeaderIcon>
+                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" Margin="5,2,0,0" />
+                        </ui:SettingsCard.HeaderIcon>
+                        <ui:ToggleSwitch />
+                    </ui:SettingsCard>
+                </StackPanel>
+            </Grid>
         </TabItem>
 
         <!-- APPLICATION SETTINGS -->
@@ -26,13 +44,20 @@
             <ui:TabItemHelper.Icon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.AppGeneric_20_Regular}" />
             </ui:TabItemHelper.Icon>
-            <StackPanel>
-                <ui:ToggleSwitch x:Name="DarkModeToggle" Header="Dark Mode" Margin="0,0,0,12" Toggled="ToggleSwitch_Toggled" />
-            </StackPanel>
+            <Grid Margin="10">
+                <StackPanel>
+                    <ui:SettingsCard Header="Dark Theme">
+                        <ui:SettingsCard.HeaderIcon>
+                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Eye_20_Regular}" Margin="5,2,0,0" />
+                        </ui:SettingsCard.HeaderIcon>
+                        <ui:ToggleSwitch IsOn="{Binding IsDarkTheme, Mode=TwoWay}" />
+                    </ui:SettingsCard>
+                </StackPanel>
+            </Grid>
         </TabItem>
 
         <TabItem Header="TabItem 3">
             <TextBlock Text="Content 3" HorizontalAlignment="Center" VerticalAlignment="Center" />
         </TabItem>
     </TabControl>
-</Page>
+</ui:Page>

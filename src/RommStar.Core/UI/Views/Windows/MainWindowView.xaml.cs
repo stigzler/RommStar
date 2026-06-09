@@ -1,10 +1,12 @@
 ﻿using RommStar.Core.UI.ViewModels;
 using RommStar.Core.UI.ViewModels.Pages;
+using RommStar.Core.UI.ViewModels.Windows;
+using RommStar.Core.UI.Views.Pages;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace RommStar.Core.UI.Views
+namespace RommStar.Core.UI.Views.Windows
 {
     /// <summary>
     /// Interaction logic for MainWindowView.xaml

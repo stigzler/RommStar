@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RommStar.Core.UI.ViewModels
+namespace RommStar.Core.UI.ViewModels.Windows
 {
     public partial class MainWindowVM : ObservableObject
     {

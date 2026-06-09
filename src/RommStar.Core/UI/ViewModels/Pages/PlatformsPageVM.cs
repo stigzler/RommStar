@@ -15,7 +15,7 @@ using System.IO;
 using System.Text;
 using Unbroken.LaunchBox.Plugins;
 
-namespace RommStar.Core.UI.ViewModels
+namespace RommStar.Core.UI.ViewModels.Pages
 {
     //todo: re/load server on page navigate to (in case user adds/deletes a server)
     public partial class PlatformsPageVM : ObservableObject, IRecipient<DeleteLaunchboxPlatformItemMessage>
