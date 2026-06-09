@@ -48,6 +48,11 @@ public partial class LaunchboxPlatformItemVM : ObservableObject
         LaunchboxPlatformName = name;
     }
 
+    public void RefreshIcon()
+    {
+        OnPropertyChanged(nameof(IconPath));
+    }
+
     [RelayCommand]
     private async Task DeleteOrphan()
     {

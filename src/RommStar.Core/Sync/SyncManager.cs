@@ -30,7 +30,9 @@ namespace RommStar.Core.Sync
 
         private readonly HttpClient _client;
 
-        // Channel pipelines handling FIFO operations natively across background threads
+        /// <summary>
+        /// Channel pipelines handling FIFO operations natively across background threads
+        /// </summary>
         private readonly Channel<PlatformSyncTask> _platformQueue = Channel.CreateUnbounded<PlatformSyncTask>();
 
         private readonly Channel<DownloadJob> _fileDownloadQueue = Channel.CreateUnbounded<DownloadJob>();
@@ -38,7 +40,9 @@ namespace RommStar.Core.Sync
         public ObservableCollection<PlatformSyncJob> ActiveSyncJobs { get; } = new();
         public RommServer ActiveServer { get; set; }
 
-        // Media Profiles configuration sets
+        /// <summary>
+        /// Media Profiles configuration sets
+        /// </summary>
         public MediaSelectionProfile CatalogProfile { get; set; } = new() { BoxFront = true, Screenshots = true };
 
         public MediaSelectionProfile InstallProfile { get; set; } = new() { BoxFront = true, Box3D = true, Videos = true, Manuals = true, Music = true };
@@ -139,7 +143,7 @@ namespace RommStar.Core.Sync
                     platformTask.UiCard.Status = SyncStatus.SyncingFiles;
                     var chosenProfile = platformTask.DownloadRomFiles ? InstallProfile : CatalogProfile;
 
-                    // STEP 2: Process local LaunchBox Database mapping & calculate files payload
+                    // STEP 2A: Process local LaunchBox Database mapping & calculate files payload
                     foreach (var rom in roms)
                     {
                         if (platformTask.Cts.Token.IsCancellationRequested) break;
@@ -147,7 +151,7 @@ namespace RommStar.Core.Sync
                         // Zero code-behind execution: Inject record directly into Local Database layer
                         var lbGameMock = SyncWithLaunchBoxDatabase(rom, platformTask.LaunchBoxPlatformName);
 
-                        // Schedule ROM file extraction if explicitly configured
+                        // STEP 2B:  Schedule ROM file extraction if explicitly configured
                         if (platformTask.DownloadRomFiles)
                         {
                             EnqueueFileDownload(new DownloadJob
@@ -164,7 +168,7 @@ namespace RommStar.Core.Sync
                             });
                         }
 
-                        // Schedule individual media files by cross-checking profile toggles
+                        // STEP 2C: Schedule individual media files by cross-checking profile toggles
                         ScheduleMediaDownloads(rom, platformTask, chosenProfile, currentSnapshot);
                     }
 

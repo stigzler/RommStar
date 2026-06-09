@@ -44,14 +44,37 @@ namespace RommStar.Core.Services
             }
         }
 
-        //public string ResolvePlatformIconPath(string platformName)
-        //{
-        //    string imageFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Platforms", platformName, "Clear Logo");
-        //    if (!Directory.Exists(imageFolder)) return string.Empty;
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="platformName">Name in launcbox DB. Not: ScrapeAs, SortTitle etc.</param>
+        /// <returns>Nothing if successful. Error message otherwise</returns>
+        public string SaveNewPlatformIcon(string source, string platformName, bool overwrite = false)
+        {
+            string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
+                LaunchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
 
-        //    return Directory.EnumerateFiles(imageFolder)
-        //        .FirstOrDefault(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-        //                             f.EndsWith(".ico", StringComparison.OrdinalIgnoreCase)) ?? string.Empty;
-        //}
+            if (File.Exists(votiIconPath) && overwrite == false)
+            {
+                return "Platform icon already exists.";
+            }
+            try
+            {
+                File.Copy(source, votiIconPath, overwrite);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                return "Failed to save platform icon:" + ex.Message;
+            }
+        }
+
+        public string GetPlatformIconPath(string platformName)
+        {
+            string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
+                LaunchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
+            return votiIconPath;
+        }
     }
 }

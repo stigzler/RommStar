@@ -2,6 +2,7 @@
 using RommStar.Core.Dtos;
 using RommStar.Core.UI.ViewModels;
 using RommStar.Core.UI.ViewModels.Pages;
+using RommStar.Core.UI.Views.Dialogs;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -17,6 +18,7 @@ namespace RommStar.Core.UI.Views.Pages
         public PlatformsPageView(PlatformsPageVM platformsPageVM)
         {
             InitializeComponent();
+
             ViewModel = platformsPageVM;
             DataContext = ViewModel;
         }
@@ -34,6 +36,36 @@ namespace RommStar.Core.UI.Views.Pages
         private void RommPlatformSearch_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
         {
             if (String.IsNullOrEmpty(RommPlatformSearch.Text)) ViewModel.PlatformSearchText = "";
+        }
+
+        private void PlatformsPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is PlatformsPageVM vm)
+            {
+                // Hook the event handler to intercept dialog open requests
+                vm.RequestAddPlatformName += OnRequestAddPlatformNameAsync;
+            }
+        }
+
+        private async Task<string> OnRequestAddPlatformNameAsync()
+        {
+            // Instantiate your custom ContentDialog object
+            var dialog = new AddPlatformDialogView();
+
+            var cunt = new ContentDialog();
+
+            // iNKORE's built-in engine overlays this on top of the Window automatically
+            ContentDialogResult result = await dialog.ShowAsync();
+
+            // If the user clicked the Primary Action ("Yes" / "Save")
+            if (result == ContentDialogResult.Primary)
+            {
+                // Return the text typed into the custom dialog's TextBox
+                return "dave";
+            }
+
+            // Return empty if they closed or canceled
+            return string.Empty;
         }
     }
 }

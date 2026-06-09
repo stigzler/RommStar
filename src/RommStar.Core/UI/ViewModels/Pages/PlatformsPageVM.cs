@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using iNKORE.UI.WPF.Modern.Controls;
+using Microsoft.Win32;
 using RommStar.Core.Dtos;
 using RommStar.Core.Models;
 using RommStar.Core.Services;
@@ -31,6 +32,9 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
         private readonly RommService _rommService;
         private readonly SettingsService _settingsService;
+
+        [ObservableProperty]
+        private bool _addLaunchboxPlatformDialogOpen = false;
 
         [ObservableProperty]
         private ObservableCollection<LaunchboxPlatformItemVM>
@@ -169,6 +173,51 @@ namespace RommStar.Core.UI.ViewModels.Pages
             //return RommServerItems.Where(rs => rs.RommServer.Id == id).FirstOrDefault();
         }
 
+        [RelayCommand]
+        private async Task UpdatePlatformIcon()
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog()
+            {
+                Title = "Select a new platform icon",
+                Filter = "Image files (*.png)|*.png"
+            };
+
+            if (openFileDialog.ShowDialog() == false) return;
+
+            var result = _launchboxService.SaveNewPlatformIcon(openFileDialog.FileName, SelectedPlatform.LaunchboxPlatformName, true);
+
+            if (result != null)
+            {
+            }
+            else
+            {
+                SelectedPlatform.IconPath = _launchboxService.GetPlatformIconPath(SelectedPlatform.LaunchboxPlatformName);
+                OnPropertyChanged(nameof(SelectedPlatform));
+                OnPropertyChanged(nameof(LaunchboxPlatformItems));
+                SelectedPlatform.RefreshIcon();
+            }
+        }
+
+        // This event communicates with the View layer asynchronously
+        public event Func<Task<string>> RequestAddPlatformName;
+
+        [RelayCommand]
+        private async Task AddNewLaunchboxPlatform()
+        {
+            if (RequestAddPlatformName != null)
+            {
+                // Fire the event and await the text input from the dialog
+                string chosenPlatform = await RequestAddPlatformName.Invoke();
+
+                // If the user cancelled or left it blank, do nothing
+                if (string.IsNullOrWhiteSpace(chosenPlatform))
+                    return;
+
+                // Success! Proceed with your platform addition logic here
+                System.Diagnostics.Debug.WriteLine($"New platform to save: {chosenPlatform}");
+            }
+        }
+
         private async void LoadLaunchboxPlatforms()
         {
             // Get current LB platforms
@@ -180,8 +229,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             {
                 LaunchboxPlatformItemVM newLaunchboxPlatformItemVM = new LaunchboxPlatformItemVM(liveLbPlatform.Name);
 
-                string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
-                    _launchboxService.LaunchboxSettings.PlatformIconPack, "Platforms", $"{liveLbPlatform.Name}.png");
+                string votiIconPath = _launchboxService.GetPlatformIconPath(liveLbPlatform.Name);
 
                 if (File.Exists(votiIconPath))
                 {
@@ -223,6 +271,14 @@ namespace RommStar.Core.UI.ViewModels.Pages
                         IsOrphaned = true,
                         AssignedServerItem = matchedServer
                     };
+
+                    string votiIconPath = _launchboxService.GetPlatformIconPath(platformSyncSettings.LaunchboxPlatformName);
+                    if (File.Exists(votiIconPath))
+                    {
+                        newLaunchboxPlatformItemVM.IconPath = votiIconPath;
+                    }
+                    ;
+
                     LaunchboxPlatformItems.Add(newLaunchboxPlatformItemVM);
                 }
             }
