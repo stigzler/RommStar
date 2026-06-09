@@ -18,7 +18,7 @@ namespace RommStar.Core.Dtos
 
         public LaunchboxPlatformItemVM ToLaunchboxPlatformItem()
         {
-            return new LaunchboxPlatformItemVM() { LaunchboxPlatformName = Name };
+            return new LaunchboxPlatformItemVM(Name);
         }
     }
 }

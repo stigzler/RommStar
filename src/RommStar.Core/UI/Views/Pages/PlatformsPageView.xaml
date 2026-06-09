@@ -29,6 +29,7 @@
             <converters:BytesToFormattedConverter x:Key="BytesToFormattedConverter" />
             <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
             <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
+            <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter" />
 
             <!--<SolidColorBrush x:Key="ThemeTextBrush" Color="{DynamicResource TextFillColorPrimary}" />-->
         </ResourceDictionary>
@@ -96,7 +97,7 @@
                                     </Grid.ColumnDefinitions>
 
                                     <Image Grid.Column="0" Width="24" Height="24" Margin="0,0,12,0"
-                                       Source="{Binding IconPath}" />
+                                       Source="{Binding IconPath, Converter={StaticResource StringToImageSourceConverter}}" />
 
                                     <TextBlock Grid.Column="1"
                                            Text="{Binding LaunchboxPlatformName}"

@@ -39,6 +39,15 @@ public partial class LaunchboxPlatformItemVM : ObservableObject
 
     public int MappedRommPlatformsCount => MatchedRommPlatforms.Count();
 
+    public LaunchboxPlatformItemVM()
+    {
+    }
+
+    public LaunchboxPlatformItemVM(string name)
+    {
+        LaunchboxPlatformName = name;
+    }
+
     [RelayCommand]
     private async Task DeleteOrphan()
     {

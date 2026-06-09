@@ -14,7 +14,14 @@
       Title="RomM Servers">
 
     <Page.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:XamlControlsResources />
+                <ui:ThemeResources AccentColor="#553e98" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        </ResourceDictionary>
     </Page.Resources>
 
     <Grid Margin="24">
