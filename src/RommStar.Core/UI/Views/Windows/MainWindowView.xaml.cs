@@ -79,7 +79,7 @@ namespace RommStar.Core.UI.Views
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            NavigationView_Root.SelectedItem = NavigationViewItem_Home;
+            NavigationView_Root.SelectedItem = NavigationViewItem_Platforms;
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

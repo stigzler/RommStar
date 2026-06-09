@@ -9,6 +9,7 @@ using RommStar.Core.UI.Messages;
 using RommStar.Core.UI.ViewModels.DataModels;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 
 using System.Text;
@@ -86,7 +87,7 @@ namespace RommStar.Core.UI.ViewModels
                     return new List<RommPlatformDTO>();
 
                 if (string.IsNullOrWhiteSpace(PlatformSearchText))
-                    return allPlatforms.ToList();
+                    return new List<RommPlatformDTO>();//allPlatforms.ToList();
 
                 return allPlatforms
                     .Where(p => p.RommName != null &&
@@ -198,7 +199,7 @@ namespace RommStar.Core.UI.ViewModels
                         newLaunchboxPlatformItemVM.AssignedServerItem = matchedRommServerItem;
 
                         // Assign the previously matched Romm PlatformIds only if server still in RommStar setup (no point if not)
-                        newLaunchboxPlatformItemVM.MatchedRommPlatforms = matchedPersistedPlatform.RommServerPlatforms;
+                        newLaunchboxPlatformItemVM.MatchedRommPlatforms = new ObservableCollection<RommPlatformDTO>(matchedPersistedPlatform.RommServerPlatforms);
                     }
                 }
 
@@ -215,7 +216,7 @@ namespace RommStar.Core.UI.ViewModels
                     LaunchboxPlatformItemVM newLaunchboxPlatformItemVM = new LaunchboxPlatformItemVM()
                     {
                         LaunchboxPlatformName = platformSyncSettings.LaunchboxPlatformName,
-                        MatchedRommPlatforms = platformSyncSettings.RommServerPlatforms,
+                        MatchedRommPlatforms = new ObservableCollection<RommPlatformDTO>(platformSyncSettings.RommServerPlatforms),
                         IsOrphaned = true,
                         AssignedServerItem = matchedServer
                     };
@@ -242,6 +243,10 @@ namespace RommStar.Core.UI.ViewModels
                     RommServerItems.Add(new RommServerItemVM(rommServer));
                 }
             }
+        }
+
+        partial void OnPlatformSearchTextChanged(string value)
+        {
         }
 
         private async Task LoadRommServersPlatformDTOs()
@@ -312,9 +317,42 @@ namespace RommStar.Core.UI.ViewModels
         //}
         partial void OnSelectedPlatformChanged(LaunchboxPlatformItemVM value)
         {
+            if (value == null) return;
             //SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
 
             SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
+        }
+
+        partial void OnSelectedRommPlatformChanged(RommPlatformDTO? value)
+        {
+            if (value == null) return;
+
+            // Adds Romm Platform to the Lauchbox PLatform Map if not already mapped.
+            if (SelectedPlatform != null && !SelectedPlatform.MatchedRommPlatforms.Any(rpd => rpd.RommId == value.RommId))
+            {
+                SelectedPlatform.MatchedRommPlatforms.Add(value);
+                OnPropertyChanged(nameof(SelectedPlatform));
+            }
+        }
+
+        partial void OnSelectedRommServerChanged(RommServerItemVM newValue)
+        {
+            if (SelectedPlatform.AssignedServerItem.RommServer.Id != newValue.RommServer.Id)
+            {
+                SelectedPlatform.MatchedRommPlatforms.Clear();
+            }
+        }
+
+        [RelayCommand]
+        private async Task RemoveRommPlatformFromMap(RommPlatformDTO? rommPlatformId)
+        {
+            if (SelectedPlatform.MatchedRommPlatforms.Contains(rommPlatformId))
+                SelectedPlatform.MatchedRommPlatforms.Remove(rommPlatformId);
+
+            if (SelectedRommPlatform?.RommId == rommPlatformId.RommId)
+            {
+                SelectedRommPlatform = null;
+            }
         }
 
         private void PersistPlatformSyncSettings()
@@ -326,7 +364,7 @@ namespace RommStar.Core.UI.ViewModels
                 {
                     RommServerId = launchboxPlatformItem.AssignedServerItem.RommServer.Id,
                     LaunchboxPlatformName = launchboxPlatformItem.LaunchboxPlatformName,
-                    RommServerPlatforms = launchboxPlatformItem.MatchedRommPlatforms
+                    RommServerPlatforms = launchboxPlatformItem.MatchedRommPlatforms.ToList()
                 };
                 _settingsService.Settings.PlatformSyncSettings.Add(platformSyncSettings);
             }
@@ -382,7 +420,7 @@ namespace RommStar.Core.UI.ViewModels
                     LaunchboxPlatformName = launchboxPLatformItem.LaunchboxPlatformName,
                 };
                 if (launchboxPLatformItem.AssignedServerItem != null) newPlatformSyncSettings.RommServerId = launchboxPLatformItem.AssignedServerItem.RommServer.Id;
-                if (launchboxPLatformItem.MatchedRommPlatforms != null) newPlatformSyncSettings.RommServerPlatforms = launchboxPLatformItem.MatchedRommPlatforms;
+                if (launchboxPLatformItem.MatchedRommPlatforms != null) newPlatformSyncSettings.RommServerPlatforms = launchboxPLatformItem.MatchedRommPlatforms.ToList();
 
                 _settingsService.Settings.PlatformSyncSettings.Add(newPlatformSyncSettings);
             }

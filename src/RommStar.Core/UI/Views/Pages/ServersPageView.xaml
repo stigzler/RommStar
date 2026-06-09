@@ -26,7 +26,7 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
             <Button Content="Add Server" Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
                     Command="{Binding AddNewServerCommand}"
-                     BorderBrush="#80000000" BorderThickness="1" />
+                     BorderBrush="#80000000" BorderThickness="1" Padding="16,8" />
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -36,7 +36,7 @@
                         <Border Margin="0,0,20,10" Background="#40000000" CornerRadius="14" BorderBrush="#80000000" BorderThickness="1">
                             <StackPanel>
 
-                                <Border Padding="16,12">
+                                <Border  Padding="16,12">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />

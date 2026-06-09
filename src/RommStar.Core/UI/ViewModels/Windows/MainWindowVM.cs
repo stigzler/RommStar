@@ -22,7 +22,7 @@ namespace RommStar.Core.UI.ViewModels
         {
             _settingsService = settingsService;
 
-            isDarkMode = _settingsService.Settings.DarkModeEnabled;
+            IsDarkMode = _settingsService.Settings.DarkModeEnabled;
         }
 
         partial void OnIsDarkModeChanged(bool value)

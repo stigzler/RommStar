@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RommStar.Core.Dtos;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +16,9 @@ namespace RommStar.Core.Models
 
         public Guid RommServerId { get; set; }
 
-        public List<int> RommServerPlatforms { get; set; }
+        /// <summary>
+        /// Bit hacky but meh
+        /// </summary>
+        public List<RommPlatformDTO> RommServerPlatforms { get; set; }
     }
 }

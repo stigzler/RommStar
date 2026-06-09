@@ -13,12 +13,14 @@
         Icon="/RommStar.Core;component/Resources/rommIcon64px.ico"
         Height="{Binding Source={x:Static properties:Settings.Default},Path=WindowSize.Height}"
         Width="{Binding Source={x:Static properties:Settings.Default},Path=WindowSize.Width}"
+        MinWidth="1200" MinHeight="800"
         WindowStartupLocation="CenterScreen"
         Title="RommStar" Closing="Window_Closing"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True"
-        SnapsToDevicePixels="True">
+        SnapsToDevicePixels="True"
+        Loaded="Window_Loaded">
 
     <Window.Resources>
         <ResourceDictionary>
@@ -39,10 +41,9 @@
         </ui:NavigationView.Resources>
 
         <ui:NavigationView.MenuItems>
-
-            <ui:NavigationViewItem Content="Home" x:Name="NavigationViewItem_Home">
+            <ui:NavigationViewItem Content="Platforms" x:Name="NavigationViewItem_Platforms">
                 <ui:NavigationViewItem.Icon>
-                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Home}" />
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
@@ -52,18 +53,19 @@
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem Content="Platforms" x:Name="NavigationViewItem_Platforms">
-                <ui:NavigationViewItem.Icon>
-                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}" />
-                </ui:NavigationViewItem.Icon>
-            </ui:NavigationViewItem>
-
             <ui:NavigationViewItem Content="Sync Jobs" x:Name="NavigationViewItem_Jobs">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Home" x:Name="NavigationViewItem_Home">
+                <ui:NavigationViewItem.Icon>
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Home}" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
         </ui:NavigationView.MenuItems>
+
         <ui:NavigationView.FooterMenuItems>
 
             <ui:NavigationViewItem Content="Settings" x:Name="NavigationViewItem_Settings">

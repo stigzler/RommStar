@@ -14,18 +14,27 @@
       d:DataContext="{d:DesignInstance Type=vms:PlatformsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="Platforms" IsVisibleChanged="Page_IsVisibleChanged">
+      Title="Platforms" IsVisibleChanged="Page_IsVisibleChanged"
+      x:Name="PlatformsPage">
 
     <Page.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:XamlControlsResources />
+                <ui:ThemeResources AccentColor="#553e98" />
+            </ResourceDictionary.MergedDictionaries>
+
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <converters:InfoBarSeverityToHexColorConverter x:Key="InfoBarSeverityToHexColorConverter" />
             <converters:BytesToFormattedConverter x:Key="BytesToFormattedConverter" />
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
+
             <!--<SolidColorBrush x:Key="ThemeTextBrush" Color="{DynamicResource TextFillColorPrimary}" />-->
         </ResourceDictionary>
     </Page.Resources>
 
-    <Grid>
+    <Grid Margin="10,0,10,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
@@ -33,7 +42,7 @@
 
         <!-- =============== TOP BUTTONS ===================== -->
 
-        <Grid Grid.Row="0">
+        <Grid Grid.Row="0" Visibility="Collapsed">
             <StackPanel Orientation="Horizontal">
                 <Button Content="Test" Command="{Binding TestCommand}" />
             </StackPanel>
@@ -42,13 +51,13 @@
         <!-- =============== MAIN CONTORLS ===================== -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*" MinWidth="250" />
+                <ColumnDefinition Width="1*" MinWidth="280" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="2*" MinWidth="450" />
             </Grid.ColumnDefinitions>
 
-            <!-- Launchbox Platforms Column -->
-            <Grid Grid.Column="0">
+            <!-- ========== LAUNCHBOX PLATFORMS MAP PANEL =============== -->
+            <Grid Grid.Column="0" Margin="10,0,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -71,85 +80,114 @@
                     </ui:AutoSuggestBox.QueryIcon>
                 </ui:AutoSuggestBox>
 
-                <ListView Grid.Row="2"
-                          Margin="0,0,8,0"
+                <Border Grid.Row="2" Background="#20000000" Margin="0,0,8,10" CornerRadius="14">
+                    <ListView
+
                           ItemsSource="{Binding LaunchboxPlatformItems}"
                           SelectedItem="{Binding SelectedPlatform, Mode=TwoWay}"
                           SelectionMode="Single">
-                    <ListView.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vmsd:LaunchboxPlatformItemVM}">
-                            <Grid Margin="4,6">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                        <ListView.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vmsd:LaunchboxPlatformItemVM}">
+                                <Grid Margin="4,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                                <Image Grid.Column="0" Width="24" Height="24" Margin="0,0,12,0"
+                                    <Image Grid.Column="0" Width="24" Height="24" Margin="0,0,12,0"
                                        Source="{Binding IconPath}" />
 
-                                <TextBlock Grid.Column="1"
+                                    <TextBlock Grid.Column="1"
                                            Text="{Binding LaunchboxPlatformName}"
                                            VerticalAlignment="Center"
                                            FontSize="14" Margin="0,0,10,0" />
 
-                                <Border Grid.Column="2" CornerRadius="4" Padding="6,2" VerticalAlignment="Center"
+                                    <Border Grid.Column="2" CornerRadius="4" Padding="6,2" VerticalAlignment="Center"
                                     ToolTip="This Platform no longer exists in Launchbox">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="#40808080" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsOrphaned}" Value="True">
-                                                    <Setter Property="Background" Value="#40FF4D4D" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock FontSize="11" FontWeight="SemiBold" Opacity="0.6" Margin="0,0,0,0">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="{Binding MatchedRommPlatformCount, StringFormat='{}{0} Mapped'}" />
-                                                    <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"   />-->
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#40808080" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsOrphaned}" Value="True">
+                                                        <Setter Property="Background" Value="#40FF4D4D" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock FontSize="11" FontWeight="SemiBold" Opacity="0.6" Margin="0,0,0,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="{Binding MatchedRommPlatforms.Count, StringFormat='{}{0} Mapped'}" />
+                                                        <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"   />-->
 
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsOrphaned}" Value="True">
-                                                            <Setter Property="Text" Value="Orphaned" />
-                                                            <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"           />-->
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IsOrphaned}" Value="False">
-                                                            <Setter Property="Text" Value="{Binding MappedRommPlatformsCount}" />
-                                                            <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"  />-->
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsOrphaned}" Value="True">
+                                                                <Setter Property="Text" Value="Orphaned" />
+                                                                <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"           />-->
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsOrphaned}" Value="False">
+                                                                <Setter Property="Text" Value="{Binding MatchedRommPlatforms.Count}" />
+                                                                <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"  />-->
 
-                                                            <Setter Property="ToolTip" Value="Number of mapped Romm Platforms" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                        <Button Padding="5,1,5,0" Background="Transparent" BorderThickness="0" ToolTip="Delete Map"
+                                                                <Setter Property="ToolTip" Value="Number of mapped Romm Platforms" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <Button Padding="5,1,5,0" Background="Transparent" BorderThickness="0" ToolTip="Delete Map"
                                             Command="{Binding DeleteOrphanCommand}" Visibility="{Binding IsOrphaned, Converter={StaticResource BoolToVisibilityConverter}}">
-                                            <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Delete}" FontSize="12" />
-                                        </Button>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
-                <StackPanel Orientation="Horizontal" Grid.Row="3" FlowDirection="RightToLeft">
+                                                <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Delete}" FontSize="12" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Border>
+
+                <!-- Bottom Buttons -->
+                <StackPanel Grid.Row="3"  Orientation="Horizontal" FlowDirection="RightToLeft" Margin="0,0,10,10">
                     <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
-                            Content="Sync All Platforms"
-                            Padding="16,8" Margin="0,0,10,0" />
-                    <Button Padding="16,8"
-                            ToolTip="Refresh LaunchBox Platforms Catalog"
+                            ToolTip="Syncs all Launchbox Platforms with Target Romm Server"
+                            Padding="16,8" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Sync All" />
+                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" Margin="5,2,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <Button Padding="16,8" Margin="0,0,10,0"
+                            ToolTip="Refresh LaunchBox Platforms List"
                             Command="{Binding ReloadLaunchboxPlatformsCommand}">
                         <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Refresh}" />
                     </Button>
+                    <ui:DropDownButton AutomationProperties.Name="Add" Padding="16,8" FlowDirection="LeftToRight">
+                        <ui:DropDownButton.Content>
+                            <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Edit}" />
+                        </ui:DropDownButton.Content>
+                        <ui:DropDownButton.Flyout>
+                            <ui:MenuFlyout Placement="TopEdgeAlignedLeft">
+                                <MenuItem Header="Add New Launchbox Platform">
+                                    <MenuItem.Icon>
+                                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="Change Platform Icon" IsEnabled="{Binding SelectedPlatform, Converter={StaticResource NullToBoolConverter}}">
+                                    <MenuItem.Icon>
+                                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Image_20_Regular}" />
+                                    </MenuItem.Icon>
+                                </MenuItem>
+                            </ui:MenuFlyout>
+                        </ui:DropDownButton.Flyout>
+                    </ui:DropDownButton>
                 </StackPanel>
             </Grid>
 
-            <!-- Splitter -->
+            <!-- ========== SPLITTER =============== -->
+
             <GridSplitter Grid.Column="1"
                           Width="6"
                           HorizontalAlignment="Center"
@@ -157,17 +195,16 @@
                           Background="Transparent"
                           ResizeBehavior="PreviousAndNext" />
 
-            <!-- Detail View -->
+            <!-- ========== ROMM PLATFORMS MAP PANEL =============== -->
+
             <Grid Grid.Column="2">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="auto" />
                 </Grid.RowDefinitions>
 
                 <!-- Placeholder when no Platform Selected -->
-                <TextBlock Text="Select a LaunchBox platform."
+                <TextBlock Grid.Row="0" Text="Select a LaunchBox platform to edit it."
                            TextWrapping="Wrap"
                            TextTrimming="WordEllipsis"
                            Opacity="0.6"
@@ -184,8 +221,7 @@
                     </TextBlock.Style>
                 </TextBlock>
 
-                <!-- Main Details View -->
-                <Grid>
+                <Grid Grid.Row="0">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Visible" />
@@ -200,29 +236,34 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <!-- Heading -->
-                    <TextBlock Grid.Row="0" Text="Romm Platforms Map" Margin="0,0,0,10"
+                    <TextBlock Grid.Row="0" Text="RomM Platforms Map" Margin="0,0,0,10"
                                Style="{DynamicResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" />
 
                     <!-- Mapping Panel -->
-                    <Border Grid.Row="1" Background="#20000000" CornerRadius="14" Padding="20">
-                        <StackPanel>
+                    <Border Grid.Row="1" Background="#20000000" CornerRadius="14" Padding="15" Margin="0,0,10,10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
 
                             <!-- Selected Platform Icon and Name Text -->
-                            <StackPanel  Grid.Column="0" Orientation="Horizontal">
-                                <Image  Width="24" Height="24" Margin="0,4,12,0"
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Stretch">
+                                <Image Height="32" Width="32" Margin="0,0,10,0"
                                       Source="{Binding SelectedPlatform.IconPath}" VerticalAlignment="Center" />
                                 <TextBlock Text="{Binding SelectedPlatform.LaunchboxPlatformName}"
                                        FontWeight="SemiBold" VerticalAlignment="Center"
-                                        Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" />
+                                        Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}"
+                                           Padding="0,0,0,5" />
                             </StackPanel>
 
                             <!-- Server Selection -->
-                            <Grid Margin="0,0,0,20">
+                            <Grid Grid.Row="1" Margin="0,10,0,10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
@@ -243,7 +284,7 @@
                                            Margin="0,0,12,0" FontWeight="SemiBold" />
 
                                 <ComboBox x:Name="RommServerCombobox" Grid.Column="2" Grid.Row="1"  HorizontalAlignment="Stretch"
-                                          ItemsSource="{Binding RommServerItems}"
+                                          ItemsSource="{Binding RommServerItems}" FontWeight="Bold"
                                           SelectedItem="{Binding SelectedRommServer}"
                                           DisplayMemberPath="RommServer.ServerName"
                                           ui:ControlHelper.PlaceholderText="Select target server context..." />
@@ -255,68 +296,75 @@
                                 </Button>
                             </Grid>
                             <!-- Server Info Bar (Vis toggles) -->
-                            <ui:InfoBar IsClosable="True" IsIconVisible="True" Grid.ColumnSpan="3"
+                            <ui:InfoBar Grid.Row="2"
+                                IsClosable="True" IsIconVisible="True" Grid.ColumnSpan="3"
                                             IsOpen="{Binding SelectedRommServer.InfoBar.IsOpen, Mode=TwoWay}"
                                             Severity="{Binding SelectedRommServer.InfoBar.Severity}"
                                             Title="{Binding SelectedRommServer.InfoBar.Title}"
                                             Message="{Binding SelectedRommServer.InfoBar.Message}" />
 
-                            <!-- Search Box -->
-                            <StackPanel>
+                            <!-- Platform Picker -->
+                            <Grid Grid.Row="3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
 
-                                <!--Search TextBox-->
+                                <!-- PLatform Search list and search box-->
+                                <Grid Grid.Column="0" Margin="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="auto" />
+                                        <RowDefinition Height="auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
 
-                                <TextBox Text="{Binding PlatformSearchText, UpdateSourceTrigger=PropertyChanged}"
-                                         ui:ControlHelper.PlaceholderText="Search Romm Platforms..."
-                                         Margin="0,0,0,8"
-                                         Width="400"
-                                         HorizontalAlignment="Left">
-                                    <!--<TextBox.Style>
-                                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                                            <Setter Property="BorderBrush" Value="{DynamicResource TextControlBorderBrush}" />
-                                            <Setter Property="Padding" Value="8,6" />
-                                        </Style>
-                                    </TextBox.Style>-->
-                                </TextBox>
+                                    <!--Search TextBox-->
+                                    <!-- Note: Query Action in code behind due to inkore design (QuerySubmitted != a Command) -->
+                                    <ui:AutoSuggestBox Grid.Row="0" x:Name="RommPlatformSearch"  HorizontalAlignment="Stretch"
+                                                        QuerySubmitted="RommPlatformSearch_QuerySubmitted" Margin="0,0,15,0"
+                                                       PlaceholderText="Search RomM Platforms..." TextChanged="RommPlatformSearch_TextChanged">
+                                        <ui:AutoSuggestBox.QueryIcon>
+                                            <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Search}" />
+                                        </ui:AutoSuggestBox.QueryIcon>
+                                    </ui:AutoSuggestBox>
 
-                                <!--Results Count-->
+                                    <!--Results Count-->
 
-                                <TextBlock Margin="0,0,0,4" FontSize="11" Opacity="0.7">
-                                    <Run Text="{Binding FilteredServerPlatforms.Count, Mode=OneWay}" />
-                                    <Run Text="platforms" />
-                                </TextBlock>
+                                    <TextBlock Grid.Row="1" Margin="5,5,0,0" FontSize="11" Opacity="0.7">
+                                            <Run Text="{Binding FilteredServerPlatforms.Count, Mode=OneWay}" />
+                                            <Run Text="/" />
+                                            <Run Text="{Binding CurrentServerPlatforms.Count, Mode=OneWay}" />
+                                            <Run Text=" platforms" />
+                                    </TextBlock>
 
-                                <!--Filtered ListView-->
+                                    <!--Filtered ListView-->
 
-                                <ListView ItemsSource="{Binding FilteredServerPlatforms}"
+                                    <ListView Grid.Row="2" ItemsSource="{Binding FilteredServerPlatforms}"
                                           SelectedItem="{Binding SelectedRommPlatform}"
-                                          MaxHeight="300"
                                           VirtualizingPanel.IsVirtualizing="True"
-                                          VirtualizingPanel.VirtualizationMode="Recycling">
-                                    <ListView.Resources>
-                                        <SolidColorBrush x:Key="ListViewItemBackground" Color="Transparent" />
-                                        <CornerRadius x:Key="ListViewItemCornerRadius">4</CornerRadius>
-                                        <sys:Boolean xmlns:sys="clr-namespace:System;assembly=mscorlib" x:Key="UseSystemFocusVisuals">True</sys:Boolean>
-                                    </ListView.Resources>
-                                    <ListView.ItemContainerStyle>
-                                        <Style TargetType="ListViewItem">
-
-                                            <!--<Setter Property="Foreground" Value="{StaticResource ThemeTextBrush}" />-->
-                                            <Setter Property="Background" Value="{StaticResource ListViewItemBackground}" />
-
-                                            <Setter Property="Padding" Value="8,4" />
-                                            <Setter Property="Margin" Value="0,0,20,0" />
-                                        </Style>
-                                    </ListView.ItemContainerStyle>
-                                    <ListView.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="auto" />
-                                                    <RowDefinition Height="auto" />
-                                                </Grid.RowDefinitions>
-                                                <TextBlock Grid.Row="0" Text="{Binding RommName}" />
-                                                <TextBlock Grid.Row="1" FontSize="11" Opacity="0.6">
+                                          VirtualizingPanel.VirtualizationMode="Recycling"
+                                              Margin="0,10,0,0">
+                                        <ListView.Resources>
+                                            <SolidColorBrush x:Key="ListViewItemBackground" Color="Transparent" />
+                                            <CornerRadius x:Key="ListViewItemCornerRadius">4</CornerRadius>
+                                            <sys:Boolean xmlns:sys="clr-namespace:System;assembly=mscorlib" x:Key="UseSystemFocusVisuals">True</sys:Boolean>
+                                        </ListView.Resources>
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="Background" Value="{StaticResource ListViewItemBackground}" />
+                                                <Setter Property="Padding" Value="8,4" />
+                                                <Setter Property="Margin" Value="0,0,20,0" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="auto" />
+                                                        <RowDefinition Height="auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <TextBlock Grid.Row="0" Text="{Binding RommName}" />
+                                                    <TextBlock Grid.Row="1" FontSize="11" Opacity="0.6">
 
                                                         <Run Text="{Binding RomCount}" />
                                                         <Run Text="roms" />
@@ -324,24 +372,70 @@
                                                         <Run Text="{Binding Slug}" />
                                                         <Run Text=") -" />
                                                         <Run Text="{Binding AllRomsFileSizeBytes, Converter={StaticResource BytesToFormattedConverter}}" />
-                                                </TextBlock>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ListView.ItemTemplate>
-                                </ListView>
-                            </StackPanel>
+                                                    </TextBlock>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </Grid>
 
-                            <!--<ui:AutoSuggestBox
-                                    ui:ControlHelper.PlaceholderText="Search Romm Platforms..."
-                                    HorizontalAlignment="Stretch" ItemsSource="{Binding CurrentServerPlatforms}"
-                                  DisplayMemberPath="RommName" TextMemberPath="RommName">
-                                <ui:AutoSuggestBox.QueryIcon>
-                                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Search}" />
-                                </ui:AutoSuggestBox.QueryIcon>
-                            </ui:AutoSuggestBox>-->
-                        </StackPanel>
+                                <!-- Mapped Romm Platforms Capsule Tokens -->
+                                <Grid Grid.Column="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Orientation="Vertical">
+                                        <TextBlock Grid.Row="0" Text="Matched RomM Platforms"
+                                       FontWeight="SemiBold" VerticalAlignment="Center"
+                                        Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}"
+                                               Margin="0,5,0,0" />
+                                        <TextBlock Text="These RomM platform/s will be synced with this Launchbox Platform."
+                                                   TextWrapping="Wrap" Opacity="0.6" />
+                                    </StackPanel>
+
+                                    <ItemsControl Grid.Row="1" ItemsSource="{Binding SelectedPlatform.MatchedRommPlatforms}"
+                                                  Margin="0,20,0,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Stretch" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type dtos:RommPlatformDTO}">
+                                                <Border Background="#40808080" BorderBrush="#80000000" BorderThickness="1"
+                                                CornerRadius="14" Padding="10,4" Margin="0,0,8,8">
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding RommName}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                        <!-- x:Name not needed here; DataContext carries the DTO via button.DataContext -->
+                                                        <Button Content="✕"
+                                                                Command="{Binding DataContext.RemoveRommPlatformFromMapCommand, ElementName=PlatformsPage}"
+                                                                CommandParameter="{Binding .}"
+                                                        Padding="0" Width="16" Height="16"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        FontSize="10" VerticalAlignment="Center" Opacity="0.6" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Grid>
+                        </Grid>
                     </Border>
                 </Grid>
+
+                <StackPanel Grid.Row="1"  Orientation="Horizontal" FlowDirection="RightToLeft" Margin="0,0,10,10">
+                    <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
+                         ToolTip="Syncs this Launchbox Platform with the Target Romm Server"
+                         Padding="16,8" Margin="0,0,10,0"
+                            Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Sync Platform" />
+                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SwipeDown_20_Regular}" Margin="5,2,0,0" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
             </Grid>
         </Grid>
     </Grid>
