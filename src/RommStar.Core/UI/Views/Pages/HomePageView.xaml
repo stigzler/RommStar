@@ -7,6 +7,10 @@
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
+      TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextRenderingMode="ClearType"
+      UseLayoutRounding="True"
+      SnapsToDevicePixels="True"
       Title="Home">
 
     <Grid>

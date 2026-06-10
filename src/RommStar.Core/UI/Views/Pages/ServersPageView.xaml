@@ -11,6 +11,10 @@
       d:DataContext="{d:DesignInstance Type=vms:Pages.ServersPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
+      TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextRenderingMode="ClearType"
+      UseLayoutRounding="True"
+      SnapsToDevicePixels="True"
       Title="RomM Servers">
 
     <Page.Resources>
@@ -31,9 +35,14 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
-            <Button Content="Add Server" Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
-                    Command="{Binding AddNewServerCommand}"
-                     BorderBrush="#80000000" BorderThickness="1" Padding="16,8" />
+            <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
+                    Command="{Binding AddNewServerCommand}" FontWeight="DemiBold"
+                     BorderBrush="#80000000" BorderThickness="1" Padding="16,8">
+                <StackPanel Orientation="Horizontal">
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Add_20_Regular}" Margin="0,2,5,0" />
+                    <TextBlock Text="Add Server" />
+                </StackPanel>
+            </Button>
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

@@ -3,7 +3,7 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:local="clr-namespace:RommStar.Core.UI.Views"
+      xmlns:local="clr-namespace:RommStar.Core.UI.Views.Pages"
       xmlns:vms="clr-namespace:RommStar.Core.UI.ViewModels"
       xmlns:vmsd="clr-namespace:RommStar.Core.UI.ViewModels.DataModels"
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
@@ -15,6 +15,10 @@
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Platforms" IsVisibleChanged="Page_IsVisibleChanged" DataContextChanged="PlatformsPage_DataContextChanged"
+      TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextRenderingMode="ClearType"
+      UseLayoutRounding="True"
+      SnapsToDevicePixels="True"
       x:Name="PlatformsPage">
 
     <ui:Page.Resources>
@@ -22,6 +26,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ui:XamlControlsResources />
                 <ui:ThemeResources AccentColor="#553e98" />
+
                 <!--<ui:ColorPaletteResources />
                 <ui:ResourceDictionaryEx />-->
             </ResourceDictionary.MergedDictionaries>
@@ -75,18 +80,17 @@
                 <!-- Search Box -->
                 <ui:AutoSuggestBox Grid.Row="1"
                          ui:ControlHelper.PlaceholderText="Search Platforms..."
-                         Margin="0,0,8,12"
-                         HorizontalAlignment="Stretch" ItemsSource="{Binding LaunchboxPlatformItems}"
-                                   DisplayMemberPath="LaunchboxPlatformName" TextMemberPath="LaunchboxPlatformName">
-                    <ui:AutoSuggestBox.QueryIcon>
+                         Margin="0,0,8,12" Text="{Binding LaunchboxPlatformSearchText, Mode=TwoWay}"
+                         HorizontalAlignment="Stretch">
+                    <!--<ui:AutoSuggestBox.QueryIcon>
                         <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Search}" />
-                    </ui:AutoSuggestBox.QueryIcon>
+                    </ui:AutoSuggestBox.QueryIcon>-->
                 </ui:AutoSuggestBox>
 
                 <Border Grid.Row="2" Background="#20000000" Margin="0,0,8,10" CornerRadius="14">
                     <ListView
 
-                          ItemsSource="{Binding LaunchboxPlatformItems}"
+                          ItemsSource="{Binding FilteredLaunchboxPlatforms}"
                           SelectedItem="{Binding SelectedPlatform, Mode=TwoWay}"
                           SelectionMode="Single">
                         <ListView.ItemTemplate>
@@ -99,7 +103,10 @@
                                     </Grid.ColumnDefinitions>
 
                                     <Image Grid.Column="0" Width="24" Height="24" Margin="0,0,12,0"
-                                       Source="{Binding IconPath, Mode=TwoWay, Converter={StaticResource StringToImageSourceConverter}}" />
+                                           RenderOptions.BitmapScalingMode="NearestNeighbor"
+                                           Source="{Binding IconPath, Mode=TwoWay,
+                                            Converter={StaticResource StringToImageSourceConverter},
+                                            ConverterParameter=24}" />
 
                                     <TextBlock Grid.Column="1"
                                            Text="{Binding LaunchboxPlatformName}"
@@ -123,17 +130,13 @@
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Text" Value="{Binding MatchedRommPlatforms.Count, StringFormat='{}{0} Mapped'}" />
-                                                        <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"   />-->
 
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsOrphaned}" Value="True">
                                                                 <Setter Property="Text" Value="Orphaned" />
-                                                                <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"           />-->
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding IsOrphaned}" Value="False">
                                                                 <Setter Property="Text" Value="{Binding MatchedRommPlatforms.Count}" />
-                                                                <!--<Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"  />-->
-
                                                                 <Setter Property="ToolTip" Value="Number of mapped Romm Platforms" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -152,41 +155,61 @@
                     </ListView>
                 </Border>
 
-                <!-- Bottom Buttons -->
-                <StackPanel Grid.Row="3"  Orientation="Horizontal" FlowDirection="RightToLeft" Margin="0,0,10,10">
-                    <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
+                <!-- Bottom Launchbox Buttons -->
+                <StackPanel Grid.Row="3">
+                    <ui:InfoBar IsClosable="True" IsIconVisible="True" Margin="0,0,10,10" CornerRadius="6"
+                                            IsOpen="{Binding LaunchboxPlatformsInfoBar.IsOpen, Mode=TwoWay}"
+                                            Severity="{Binding LaunchboxPlatformsInfoBar.Severity}"
+                                            Title="{Binding LaunchboxPlatformsInfoBar.Title}"
+                                            Message="{Binding LaunchboxPlatformsInfoBar.Message}" />
+
+                    <StackPanel  Orientation="Horizontal" FlowDirection="RightToLeft" Margin="0,0,10,10">
+                        <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
                             ToolTip="Syncs all Launchbox Platforms with Target Romm Server"
-                            Padding="16,8" Margin="0,0,10,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Sync All" />
-                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" Margin="5,2,0,0" />
-                        </StackPanel>
-                    </Button>
-                    <Button Padding="16,8" Margin="0,0,10,0"
+                            Padding="16,8" Margin="0,0,10,0" FontWeight="DemiBold">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Sync All" />
+                                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" Margin="5,2,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <Button Padding="16,8" Margin="0,0,10,0"
                             ToolTip="Refresh LaunchBox Platforms List"
                             Command="{Binding ReloadLaunchboxPlatformsCommand}">
-                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Refresh}" />
-                    </Button>
-                    <ui:DropDownButton AutomationProperties.Name="Add" Padding="16,8" FlowDirection="LeftToRight">
-                        <ui:DropDownButton.Content>
-                            <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Edit}" />
-                        </ui:DropDownButton.Content>
-                        <ui:DropDownButton.Flyout>
-                            <ui:MenuFlyout Placement="TopEdgeAlignedLeft">
-                                <MenuItem Header="Add New Launchbox Platform" Command="{Binding AddNewLaunchboxPlatformCommand}">
-                                    <MenuItem.Icon>
-                                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}" />
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                                <MenuItem Header="Change Platform Icon" IsEnabled="{Binding SelectedPlatform, Converter={StaticResource NullToBoolConverter}}"
+                            <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Refresh}" />
+                        </Button>
+                        <ui:DropDownButton AutomationProperties.Name="Add" Padding="16,8" FlowDirection="LeftToRight">
+                            <ui:DropDownButton.Content>
+                                <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Edit}" />
+                            </ui:DropDownButton.Content>
+                            <ui:DropDownButton.Flyout>
+                                <ui:MenuFlyout Placement="TopEdgeAlignedLeft">
+
+                                    <!-- Add New Launchbox PLatform -->
+                                    <MenuItem Header="Add New Launchbox Platform" Command="{Binding AddNewLaunchboxPlatformCommand}">
+                                        <MenuItem.Icon>
+                                            <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                    <!-- Chnage PLatform Icon -->
+                                    <MenuItem Header="Change Platform Icon" IsEnabled="{Binding SelectedPlatform, Converter={StaticResource NullToBoolConverter}}"
                                           Command="{Binding UpdatePlatformIconCommand}">
-                                    <MenuItem.Icon>
-                                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Image_20_Regular}" />
-                                    </MenuItem.Icon>
-                                </MenuItem>
-                            </ui:MenuFlyout>
-                        </ui:DropDownButton.Flyout>
-                    </ui:DropDownButton>
+                                        <MenuItem.Icon>
+                                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Image_20_Regular}" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+
+                                    <!-- Delete Launchbox PLatform -->
+                                    <MenuItem Header="Delete Launchbox Platform" IsEnabled="{Binding SelectedPlatform, Converter={StaticResource NullToBoolConverter}}"
+                                              Command="{Binding DeleteSelectedLaunchboxPlatformCommand}">
+                                        <MenuItem.Icon>
+                                            <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Delete}" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </ui:MenuFlyout>
+                            </ui:DropDownButton.Flyout>
+                        </ui:DropDownButton>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
 
@@ -259,8 +282,12 @@
                             <!-- Selected Platform Icon and Name Text -->
                             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Stretch">
 
-                                <Image Height="32" Width="32" Margin="0,0,10,0"
-                                      Source="{Binding SelectedPlatform.IconPath, Mode=TwoWay, Converter={StaticResource StringToImageSourceConverter}}"
+                                <Image Width="32"  Height="32"  Margin="0,0,10,0"
+                                       Source="{Binding SelectedPlatform.IconPath, Mode=TwoWay,
+                                                Converter={StaticResource StringToImageSourceConverter},
+                                                ConverterParameter=32}"
+                                       Visibility="{Binding SelectedPlatform.IconPath, Converter={StaticResource NullToVisibilityConverter}}"
+                                       RenderOptions.BitmapScalingMode="NearestNeighbor"
                                        VerticalAlignment="Center" />
 
                                 <TextBlock Text="{Binding SelectedPlatform.LaunchboxPlatformName}"
@@ -410,7 +437,7 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type dtos:RommPlatformDTO}">
-                                                <Border Background="#40808080" BorderBrush="#80000000" BorderThickness="1"
+                                                <Border Background="{DynamicResource {x:Static ui:ThemeKeys.SystemControlBackgroundAccentBrushKey}}" BorderBrush="#80000000" BorderThickness="1"
                                                 CornerRadius="14" Padding="10,4" Margin="0,0,8,8">
                                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding RommName}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -435,7 +462,7 @@
                 <StackPanel Grid.Row="1"  Orientation="Horizontal" FlowDirection="RightToLeft" Margin="0,0,10,10">
                     <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
                          ToolTip="Syncs this Launchbox Platform with the Target Romm Server"
-                         Padding="16,8" Margin="0,0,10,0"
+                         Padding="16,8" Margin="0,0,10,0" FontWeight="DemiBold"
                             Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Sync Platform" />

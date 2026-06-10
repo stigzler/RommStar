@@ -6,6 +6,7 @@ using Unbroken.LaunchBox.Plugins;
 using RommStar.Core.Dtos;
 using RommStar.Core.Models;
 using System.Xml.Linq;
+using System.Windows.Media.Media3D;
 
 namespace RommStar.Core.Services
 {
@@ -44,6 +45,12 @@ namespace RommStar.Core.Services
             }
         }
 
+        public void CreateNewPlatform(string platformName)
+        {
+            var newPlatform = PluginHelper.DataManager.AddNewPlatform(platformName);
+            PluginHelper.DataManager.Save();
+        }
+
         /// <summary>
         ///
         /// </summary>
@@ -75,6 +82,24 @@ namespace RommStar.Core.Services
             string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
                 LaunchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
             return votiIconPath;
+        }
+
+        internal async Task<bool> DeletePlatform(string launchboxPlatformName)
+        {
+            try
+            {
+                var platform = PluginHelper.DataManager.GetPlatformByName(launchboxPlatformName);
+                if (platform == null) return false;
+
+                bool success = PluginHelper.DataManager.TryRemovePlatform(platform);
+                if (success) PluginHelper.DataManager.Save();
+
+                return success;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
     }
 }

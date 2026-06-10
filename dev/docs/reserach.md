@@ -1,6 +1,65 @@
 ﻿# Research
 
-## Plugin Api
+## iNKORE + UI
+
+### Window rendering
+
+Make sure you put this at the top of each page:100:
+
+```xml
+<page
+      TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextRenderingMode="ClearType"
+      UseLayoutRounding="True"
+      SnapsToDevicePixels="True"
+/>
+```
+
+### Images
+
+Use this in the xaml:
+
+```xml
+<Image Height="32" Width="32" Margin="0,0,10,0"
+     Source="{Binding SelectedPlatform.IconPath, Mode=TwoWay,
+              Converter={StaticResource StringToImageSourceConverter},              Converter={StaticResource StringToImageSourceConverter},              Converter={StaticResource StringToImageSourceConverter},
+              ConverterParameter=32}"              ConverterParameter=32}"              ConverterParameter=32}"
+     RenderOptions.BitmapScalingMode="NearestNeighbor"
+     VerticalAlignment="Center" /> 
+```
+
+**Converter parameter**: is the rough target width the image will be. This helps with memory management.
+
+**BitmapScalingMode:**
+
+NearestNeighbor: For For Pixel Art / Small Icons. This stops WPF from blending pixels together and forces it to maintain perfectly sharp, crisp borders.
+
+HighQuality: For larger items such as photos, boxart etc. Forces Fant/Bicubic resampling)
+
+### Text and styles
+
+Accent button:
+
+```xml
+<Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
+     ToolTip="Syncs this Launchbox Platform with the Target Romm Server"
+     Padding="16,8" Margin="0,0,10,0" FontWeight="DemiBold"
+        Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">        Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
+    <StackPanel Orientation="Horizontal">
+        <TextBlock Text="Sync Platform" />        <TextBlock Text="Sync Platform" />
+        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SwipeDown_20_Regular}" Margin="5,2,0,0" />        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SwipeDown_20_Regular}" Margin="5,2,0,0" />
+    </StackPanel>
+</Button>
+```
+
+To use custom styles on visual element example:100:
+
+```xml
+<Border Background="{DynamicResource {x:Static ui:ThemeKeys.SystemControlBackgroundAccentBrushKey}}" BorderBrush="#80000000" BorderThickness="1"
+CornerRadius="14" Padding="10,4" Margin="0,0,8,8"/>
+```
+
+## Launchbox Plugin Api
 
 ### Retrieve a game
 

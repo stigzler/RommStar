@@ -9,6 +9,7 @@ using RommStar.Core.Services;
 using RommStar.Core.UI.Messages;
 using RommStar.Core.UI.ViewModels.DataModels;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
@@ -34,6 +35,9 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private readonly SettingsService _settingsService;
 
         [ObservableProperty]
+        private InfoBar? _launchboxPlatformsInfoBar = new InfoBar();
+
+        [ObservableProperty]
         private bool _addLaunchboxPlatformDialogOpen = false;
 
         [ObservableProperty]
@@ -56,6 +60,10 @@ namespace RommStar.Core.UI.ViewModels.Pages
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(FilteredServerPlatforms))]
         private string _platformSearchText = string.Empty;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(FilteredLaunchboxPlatforms))]
+        private string _launchboxPlatformSearchText = string.Empty;
 
         [ObservableProperty]
         private RommPlatformDTO? _selectedRommPlatform;
@@ -99,6 +107,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
                     .ToList();
             }
         }
+
+        public List<LaunchboxPlatformItemVM> FilteredLaunchboxPlatforms => LaunchboxPlatformItems.Where(p => p.LaunchboxPlatformName.Contains(LaunchboxPlatformSearchText, StringComparison.OrdinalIgnoreCase)).ToList();
 
         /// <summary>
         /// Parameterless constructor for the XAML Designer
@@ -151,6 +161,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
         void IRecipient<DeleteLaunchboxPlatformItemMessage>.Receive(DeleteLaunchboxPlatformItemMessage message)
         {
             DeleteLaunchboxPlatformItem(message.Value);
+            OnPropertyChanged(nameof(FilteredLaunchboxPlatforms));
         }
 
         private void DeleteLaunchboxPlatformItem(LaunchboxPlatformItemVM launchboxPlatformItemVM)
@@ -198,24 +209,94 @@ namespace RommStar.Core.UI.ViewModels.Pages
             }
         }
 
-        // This event communicates with the View layer asynchronously
-        public event Func<Task<string>> RequestAddPlatformName;
+        /// <summary>
+        /// Used in AddNewLaunchboxPlatform: communicates with the View layer asynchronously
+        /// </summary>
+        public event Func<Task<string>> RequestAddPlatformNameDialog;
 
         [RelayCommand]
         private async Task AddNewLaunchboxPlatform()
         {
-            if (RequestAddPlatformName != null)
+            if (RequestAddPlatformNameDialog == null) return;
+            LaunchboxPlatformsInfoBar.IsOpen = false;
+
+            // Fire the event and await the text input from the dialog
+            string votiNewPlatformName = await RequestAddPlatformNameDialog.Invoke();
+            // remove unsafe filename chars + trim
+            votiNewPlatformName = Core.Helpers.StringsHelper.SanitizeFileName(votiNewPlatformName).Trim();
+
+            // On blank, or platform name already existing (must be unique in lb), return
+            if (string.IsNullOrWhiteSpace(votiNewPlatformName) ||
+                LaunchboxPlatformItems.Any(lpi => lpi.LaunchboxPlatformName.ToLower() == votiNewPlatformName.ToLower()))
             {
-                // Fire the event and await the text input from the dialog
-                string chosenPlatform = await RequestAddPlatformName.Invoke();
-
-                // If the user cancelled or left it blank, do nothing
-                if (string.IsNullOrWhiteSpace(chosenPlatform))
-                    return;
-
-                // Success! Proceed with your platform addition logic here
-                System.Diagnostics.Debug.WriteLine($"New platform to save: {chosenPlatform}");
+                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error", "Platform name was null or already exists. It has to be unique.");
+                return;
             }
+
+            // Success!
+            _launchboxService.CreateNewPlatform(votiNewPlatformName);
+            SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Success, "Added new Platform", $"New Platform {votiNewPlatformName} added successfully");
+            LoadLaunchboxPlatforms();
+            OnPropertyChanged(nameof(FilteredLaunchboxPlatforms));
+        }
+
+        public delegate Task<bool> ConfirmationDialogHandler(string title, string message);
+
+        public event ConfirmationDialogHandler RequestConfirmationDialog;
+
+        [RelayCommand]
+        private async Task DeleteSelectedLaunchboxPlatform()
+        {
+            if (RequestConfirmationDialog == null) return;
+            LaunchboxPlatformsInfoBar.IsOpen = false;
+
+            // Fire the event and await the boolean return (true = confirmed)
+            bool confirmed = await RequestConfirmationDialog.Invoke("Confirm Deletion?",
+                $"This will permanently delete the platform \"{SelectedPlatform.LaunchboxPlatformName}\" from your Launchbox. Are you sure?");
+
+            if (!confirmed)
+            {
+                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Informational, "Delete Platform", $"Platform deletion cancelled");
+                return;
+            }
+
+            // deal with IsOrphaned case (doesn't need launchbox deletion)
+            if (SelectedPlatform.IsOrphaned)
+            {
+                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Success, "Deleted Platform",
+                    $"Orphaned Platform \"{SelectedPlatform.LaunchboxPlatformName}\" deleted successfully");
+
+                DeleteLaunchboxPlatformItem(SelectedPlatform);
+                return;
+            }
+
+            bool successfulDeletion = await _launchboxService.DeletePlatform(SelectedPlatform.LaunchboxPlatformName);
+
+            if (successfulDeletion)
+            {
+                _settingsService.Settings.PlatformSyncSettings.RemoveAll(pss => pss.LaunchboxPlatformName == SelectedPlatform.LaunchboxPlatformName);
+                _settingsService.Save();
+
+                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Success, "Deleted Platform",
+                    $"Launchbox Platform \"{SelectedPlatform.LaunchboxPlatformName}\" deleted successfully");
+
+                LaunchboxPlatformItems.Remove(SelectedPlatform); // this MUST be last given SelectedPlatform.LaunchboxPlatformName refs above
+
+                LoadLaunchboxPlatforms();
+            }
+            else
+            {
+                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Delete Platform Error",
+                    $"Launchbox Platform \"{SelectedPlatform.LaunchboxPlatformName}\" could not be deleted via the Launchbox API.");
+            }
+        }
+
+        private void SetInfoBar(InfoBar infoBar, bool isOpen, InfoBarSeverity severity, string title, string message)
+        {
+            infoBar.IsOpen = isOpen;
+            infoBar.Title = title;
+            infoBar.Message = message;
+            infoBar.Severity = severity;
         }
 
         private async void LoadLaunchboxPlatforms()
@@ -282,6 +363,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
                     LaunchboxPlatformItems.Add(newLaunchboxPlatformItemVM);
                 }
             }
+
+            OnPropertyChanged(nameof(FilteredLaunchboxPlatforms));
         }
 
         /// <summary>
@@ -376,7 +459,14 @@ namespace RommStar.Core.UI.ViewModels.Pages
         //}
         partial void OnSelectedPlatformChanged(LaunchboxPlatformItemVM value)
         {
-            if (value == null || ((LaunchboxPlatformItemVM)value).AssignedServerItem == null) return;
+            if (value == null) return;
+
+            if (((LaunchboxPlatformItemVM)value).AssignedServerItem == null)
+            {
+                SelectedRommServer = null;
+                return;
+            }
+
             //SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
 
             SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
@@ -470,10 +560,24 @@ namespace RommStar.Core.UI.ViewModels.Pages
         [RelayCommand]
         private async Task ReloadLaunchboxPlatforms()
         {
+            //LoadLaunchboxPlatforms();
+            //OnPropertyChanged(nameof(FilteredServerPlatforms));
+
+            // 1. Cache the name of the platform the user had highlighted before the reload
+            string? previouslySelectedName = SelectedPlatform?.LaunchboxPlatformName;
+
+            // 2. Run your existing structural reload
             LoadLaunchboxPlatforms();
-            // TESTS
-            var platfroms = PluginHelper.DataManager.GetAllPlatforms();
-            var dave = platfroms[1].GetAllPlatformFolders();
+
+            // 3. Force the UI to re-evaluate the read-only filtered property
+            OnPropertyChanged(nameof(FilteredLaunchboxPlatforms));
+
+            // 4. Restore the selection by finding the equivalent item in the newly loaded set
+            if (!string.IsNullOrEmpty(previouslySelectedName))
+            {
+                SelectedPlatform = LaunchboxPlatformItems.FirstOrDefault(p =>
+                    p.LaunchboxPlatformName.Equals(previouslySelectedName, StringComparison.OrdinalIgnoreCase));
+            }
         }
 
         /// <summary>

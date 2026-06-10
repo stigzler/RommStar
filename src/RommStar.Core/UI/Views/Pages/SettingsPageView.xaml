@@ -10,6 +10,10 @@
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance Type=vm:Pages.SettingsPageVM, IsDesignTimeCreatable=True}"
       d:DesignHeight="450" d:DesignWidth="800" d:Background="#202020" d:Foreground="Gainsboro"
+         TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextRenderingMode="ClearType"
+      UseLayoutRounding="True"
+      SnapsToDevicePixels="True"
       Title="Settings">
 
     <ui:Page.Resources>

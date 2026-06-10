@@ -1,4 +1,5 @@
-﻿using iNKORE.UI.WPF.Modern.Controls;
+﻿using iNKORE.UI.WPF.Modern;
+using iNKORE.UI.WPF.Modern.Controls;
 using RommStar.Core.Dtos;
 using RommStar.Core.UI.ViewModels;
 using RommStar.Core.UI.ViewModels.Pages;
@@ -43,16 +44,24 @@ namespace RommStar.Core.UI.Views.Pages
             if (e.NewValue is PlatformsPageVM vm)
             {
                 // Hook the event handler to intercept dialog open requests
-                vm.RequestAddPlatformName += OnRequestAddPlatformNameAsync;
+                vm.RequestAddPlatformNameDialog += OnRequestAddPlatformNameAsync;
+                vm.RequestConfirmationDialog += OnRequestConfirmationDialogAsync;
             }
+        }
+
+        private async Task<bool> OnRequestConfirmationDialogAsync(string title, string message)
+        {
+            var dialog = new ConfrimYesCancelContextDialog(title, message);
+
+            var result = await dialog.ShowAsync();
+            return result == ContentDialogResult.Primary;
         }
 
         private async Task<string> OnRequestAddPlatformNameAsync()
         {
             // Instantiate your custom ContentDialog object
-            var dialog = new AddPlatformDialogView();
 
-            var cunt = new ContentDialog();
+            var dialog = new SingleTextBoxContentDialog("Name for your new platform");
 
             // iNKORE's built-in engine overlays this on top of the Window automatically
             ContentDialogResult result = await dialog.ShowAsync();
@@ -61,7 +70,7 @@ namespace RommStar.Core.UI.Views.Pages
             if (result == ContentDialogResult.Primary)
             {
                 // Return the text typed into the custom dialog's TextBox
-                return "dave";
+                return dialog.Text;
             }
 
             // Return empty if they closed or canceled

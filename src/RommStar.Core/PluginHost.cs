@@ -190,7 +190,14 @@ namespace RommStar.Core
 
             var adminWindow = _serviceProvider.GetRequiredService<MainWindowView>();
 
-            adminWindow.Show();
+            if (adminWindow.IsVisible)
+            {
+                if (adminWindow.WindowState == WindowState.Minimized)
+                    adminWindow.WindowState = WindowState.Normal;
+                adminWindow.Activate();
+            }
+            else
+                adminWindow.Show();
         }
     }
 }

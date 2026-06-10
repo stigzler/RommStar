@@ -14,11 +14,18 @@ namespace RommStar.Core.UI.Converters
 
             if (string.IsNullOrWhiteSpace(path))
             {
-                return null; // Return null to hide the image
+                return null;
             }
 
-            // Use the helper method to guarantee the file stream is closed immediately
-            return ImageHelper.LoadImageNoLock(path);
+            // 1. Check if a parameter was passed from XAML
+            int decodeWidth = 0;
+            if (parameter != null && int.TryParse(parameter.ToString(), out int parsedWidth))
+            {
+                decodeWidth = parsedWidth;
+            }
+
+            // 2. Pass the parsed integer value to your LoadImage method
+            return ImageHelper.LoadImageNoLock(path, decodeWidth);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
