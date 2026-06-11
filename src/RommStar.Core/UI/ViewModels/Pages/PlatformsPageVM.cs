@@ -135,7 +135,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
             new LaunchboxService(),
             new RommService(),
             new LoggingService(),
-            new SyncManager(new RommServer(), new RommService()))
+            new SyncManager(new RommServer(), new RommService(), new LaunchboxService())
+            )
         {
             // any test data
             if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject()))
@@ -613,16 +614,18 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 return;
             }
 
-            // note: at this stage, this list may inculde orphaned platforms that have been persisted in user settings,
+            // note: at this stage, this list may include orphaned platforms that have been persisted in user settings,
             // but then deleted later on the romm server.
             List<int> rommPlatformIds = SelectedPlatform.MatchedRommPlatforms.Select(p => p.RommId).ToList();
 
+            ExtendedSyncSettings resolvedExtSyncSettings = _settingsService.Settings.GlobalExtendedSyncSettings;
+            //if ( SelectedPlatform.)
 
             _syncManager?.QueuePlatformSync(SelectedPlatform.LaunchboxPlatformName,
-                                            rommPlatformIds, 
-                                            _settingsService.Settings.GlobalExtendedSyncSettings.SyncProfile,
-                                            SelectedPlatform.AssignedServerItem.RommServer
-                                            );
+                                            rommPlatformIds,
+                                            resolvedExtSyncSettings,
+                                            SelectedPlatform.AssignedServerItem.RommServer);
+
         }
 
         [RelayCommand]

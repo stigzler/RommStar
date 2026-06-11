@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -9,6 +10,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Accessibility;
+using Microsoft.Win32.SafeHandles;
 using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Models;
 using RommStar.Core.Services;
@@ -36,6 +38,8 @@ namespace RommStar.Core.Sync
 
         private readonly RommService _rommService;
 
+        private readonly LaunchboxService _launchboxService;
+
         /// <summary>
         /// Channel pipelines handling FIFO operations natively across background threads
         /// </summary>
@@ -57,7 +61,7 @@ namespace RommStar.Core.Sync
 
         public MediaSelectionProfile InstallProfile { get; set; } = new() { BoxFront = true, Box3D = true, Videos = true, Manuals = true, Music = true };
 
-        public SyncManager(RommServer initialServer, RommService rommService)
+        public SyncManager(RommServer initialServer, RommService rommService, LaunchboxService launchboxService)
         {
             // Thread-safe client initialization without global default authorization headers
             _client = new HttpClient();
@@ -68,6 +72,7 @@ namespace RommStar.Core.Sync
             _ = Task.Run(StartFileQueueProcessorAsync);
 
             _rommService = rommService;
+            _launchboxService = launchboxService;
         }
 
         public event Action<PlatformSyncJob>? OnSyncCompletedNotification;
@@ -128,7 +133,7 @@ namespace RommStar.Core.Sync
         // =========================================================================
         // MACRO MANAGEMENT: ENQUEUE PLATFORM RUN
         // =========================================================================
-        public void QueuePlatformSync(string lbPlatformName, List<int> rommPlatformIds, SyncProfile? syncProfile, RommServer targetServer)
+        public void QueuePlatformSync(string lbPlatformName, List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer)
         {
             var uiCard = new PlatformSyncJob
             {
@@ -148,14 +153,8 @@ namespace RommStar.Core.Sync
                 //DownloadRomFiles = downloadRoms,
                 UiCard = uiCard,
                 TargetServer = targetServer,
+                SyncSettings = syncSettings
             };
-
-            if (syncProfile == SyncProfile.CreateGame_DownloadRom_DownloadMedia ||
-                syncProfile == SyncProfile.CreateGame_DownloadRom ||
-                syncProfile == SyncProfile.DownloadRom)
-            {
-                task.DownloadRomFiles = true;
-            }
 
             // REGISTER THE TASK CTS SO IT CAN BE RECOVERED BY THE CANCEL BUTTON CLICK
             _activeTokens[uiCard.Id] = task.Cts;
@@ -179,7 +178,8 @@ namespace RommStar.Core.Sync
         /// <param name="platformIds"></param>
         /// <param name="server"></param>
         /// <returns></returns>
-        private async Task<RomCollectionDTO> FetchMetadataFromRommAsync(List<int> platformIds, RommServer server, int offset)
+        private async Task<RomCollectionDTO> FetchMetadataFromRommAsync(List<int> platformIds,
+            RommServer server, int offset, CancellationToken cancellationToken)
         {
             // TEMP test Data
             // Simulate the network delay of hitting the Romm API
@@ -199,10 +199,11 @@ namespace RommStar.Core.Sync
             // API implementation loop querying your target paths goes here...
             //await Task.Delay(1000); // Simulate network
 
-            var apiResult = await _rommService.GetRomCollectionAsync(server, platformIds, offset);
+            var apiResult = await _rommService.GetRomCollectionAsync(server, platformIds, offset, cancellationToken);
 
             if (!apiResult.IsSuccess)
             {
+                Debug.WriteLine($"Romm Collection Paging offset: {apiResult.Data.Offset}");
                 // TODO: Error handling
             }
 
@@ -219,17 +220,18 @@ namespace RommStar.Core.Sync
             // TODO: Reinstate from new DTOs
             //if (profile.BoxFront && !string.IsNullOrEmpty(rom.BoxFrontUrl))
             //{
-            //    EnqueueFileDownload(new DownloadJob
-            //    {
-            //        JobId = task.Id, // Link media download job to Guid
-            //        JobType = DownloadJobType.Media,
-            //        RelativeUrl = rom.BoxFrontUrl,
-            //        DestinationPath = Path.Combine("C:\\LaunchBox\\Images", task.LaunchBoxPlatformName, "Box - Front", $"{rom.Name}.png"),
-            //        LaunchBoxPlatformName = task.LaunchBoxPlatformName,
-            //        ServerContext = server,
-            //        UiCard = task.UiCard,
-            //        CancellationToken = task.Cts.Token
-            //    });
+            EnqueueFileDownload(new DownloadJob
+            {
+                JobId = task.Id, // Link media download job to Guid
+                JobType = DownloadJobType.Media,
+                //RelativeUrl = rom.BoxFrontUrl,
+                RelativeUrl = "rom.BoxFrontUrl",
+                DestinationPath = Path.Combine("C:\\LaunchBox\\Images", task.LaunchBoxPlatformName, "Box - Front", $"{rom.Name}.png"),
+                LaunchBoxPlatformName = task.LaunchBoxPlatformName,
+                ServerContext = server,
+                UiCard = task.UiCard,
+                CancellationToken = task.Cts.Token
+            });
             //}
             // Replicate block cleanly for Box3D, Videos, Manuals, etc.
         }
@@ -262,7 +264,7 @@ namespace RommStar.Core.Sync
         }
 
         // =========================================================================
-        // MACRO SEQUENTIAL PIPELINE PROCESSOR (1 Platform at a time)
+        // MACRO SEQUENTIAL PIPELINE PROCESSOR (Paging Stream Integration)
         // =========================================================================
         private async Task StartPlatformQueueProcessorAsync()
         {
@@ -270,7 +272,6 @@ namespace RommStar.Core.Sync
             {
                 while (_platformQueue.Reader.TryRead(out var platformTask))
                 {
-                    // If user cancelled while sitting in the queue lane, skip instantly
                     if (platformTask.UiCard.Status == SyncStatus.Cancelled)
                     {
                         _activeTokens.TryRemove(platformTask.Id, out _);
@@ -278,61 +279,102 @@ namespace RommStar.Core.Sync
                     }
 
                     platformTask.UiCard.Status = SyncStatus.ProcessingMetadata;
+                    var currentSnapshot = platformTask.TargetServer;
 
-                    var currentSnapshot = platformTask.TargetServer; // Snaps the job-specific server config safely
+                    // Dynamically resolve page limits from the active server object if specified; otherwise default safely to 50
+                    int safePageLimit = currentSnapshot.PageLimit > 0 ? currentSnapshot.PageLimit : 50;
+                    int offset = 0;
+                    int totalItems = 0;
+                    bool isFirstFetch = true;
+                    bool collectionHasProcessedAnyItems = false;
 
-                    // STEP 1: Metadata Request execution
-                    RomCollectionDTO romCollection = await FetchMetadataFromRommAsync(platformTask.RommPlatformIds, currentSnapshot);
+                    var installRoms = platformTask.SyncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom
+                        || platformTask.SyncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom_DownloadMedia
+                        || platformTask.SyncSettings.SyncProfile == SyncProfile.DownloadRom;
 
-                    // TODO: romCollection has additional data at its root such as all genres, companies etc retrieved for all 
-                    // the roms in the collection
-                    // ALSO: do we need to page retrieval? How expensive is 400 psx game + numerous sub items (files/scraper results etc)
-                    // Atari 8-bit took 1.38s to fetch 50 items on LAN. That is without all the scraper metadata in the mix
-                    // 2700 items = 1 minute to fetch on LAN. Hmmmmm
+                    var chosenProfile = CatalogProfile;
+
+                    // Determine whether roms are to be downloaded at this stage or not 
+                    if (installRoms) chosenProfile = InstallProfile;
 
 
-                    if (romCollection == null || romCollection.Items.Count == 0)
+                    // PAGINATION LOOP: Iterates through blocks until offset exceeds server inventory size
+                    do
+                    {
+                        if (platformTask.Cts.Token.IsCancellationRequested) break;
+
+                        // Fetch a single explicit segment chunk
+                        RomCollectionDTO romCollection = await FetchMetadataFromRommAsync(platformTask.RommPlatformIds,
+                            currentSnapshot, offset, platformTask.Cts.Token);
+
+                        if (isFirstFetch)
+                        {
+                            totalItems = romCollection.Total ?? 0;
+                            isFirstFetch = false;
+
+                            // Break early if the collection on the server is completely blank
+                            if (totalItems == 0 || romCollection.Items == null || romCollection.Items.Count == 0)
+                            {
+                                break;
+                            }
+
+                            // Visual transition: Flip status text as soon as data streaming begins
+                            platformTask.UiCard.Status = SyncStatus.SyncingFiles;
+                        }
+
+                        if (romCollection.Items == null || romCollection.Items.Count == 0)
+                        {
+                            break; // Stop parsing if an intermediate page yields an unexpected empty list
+                        }
+
+                        collectionHasProcessedAnyItems = true;
+
+                        // Process this chunk immediately to feed downstream download queues right away
+
+                        // STEP 2A: Process local LaunchBox Database mapping & calculate files payload
+
+                        foreach (var rom in romCollection.Items)
+                        {
+                            if (platformTask.Cts.Token.IsCancellationRequested) break;
+
+
+
+                            // Zero code-behind execution: Inject record directly into Local Database layer
+                            SyncWithLaunchBoxDatabaseIfSet(rom, platformTask.LaunchBoxPlatformName);
+
+                            // STEP 2B:  Schedule ROM file extraction if explicitly configured
+                            if (installRoms)
+                            {
+                                EnqueueFileDownload(new DownloadJob
+                                {
+                                    JobId = platformTask.Id,
+                                    JobType = DownloadJobType.Rom,
+                                    LaunchBoxPlatformName = platformTask.LaunchBoxPlatformName,
+                                    ServerContext = currentSnapshot,
+                                    UiCard = platformTask.UiCard,
+                                    CancellationToken = platformTask.Cts.Token,
+                                    OnSuccessCallback = () => { }
+                                });
+                            }
+
+                            // STEP 2C: Schedule individual media files by cross-checking profile toggles
+                            ScheduleMediaDownloads(rom, platformTask, chosenProfile, currentSnapshot);
+                        }
+
+                        // Progress the tracking index forward to request the next page
+                        offset += safePageLimit;
+
+                    } while (offset < totalItems && !platformTask.Cts.Token.IsCancellationRequested);
+
+                    // Error Check fallback if the initial connection failed to grab any records
+                    if (!collectionHasProcessedAnyItems && !platformTask.Cts.Token.IsCancellationRequested)
                     {
                         platformTask.UiCard.Status = SyncStatus.CompletedWithErrors;
                         _activeTokens.TryRemove(platformTask.Id, out _);
                         continue;
                     }
 
-                    if (platformTask.Cts.Token.IsCancellationRequested) { platformTask.UiCard.Status = SyncStatus.Cancelled; _activeTokens.TryRemove(platformTask.Id, out _); continue; }
-
-                    platformTask.UiCard.Status = SyncStatus.SyncingFiles;
-                    var chosenProfile = platformTask.DownloadRomFiles ? InstallProfile : CatalogProfile;
-
-                    // STEP 2A: Process local LaunchBox Database mapping & calculate files payload
-                    foreach (var rom in romCollection.Items)
-                    {
-                        if (platformTask.Cts.Token.IsCancellationRequested) break;
-
-                        // Zero code-behind execution: Inject record directly into Local Database layer
-                        var lbGameMock = SyncWithLaunchBoxDatabase(rom, platformTask.LaunchBoxPlatformName);
-
-                        // STEP 2B:  Schedule ROM file extraction if explicitly configured
-                        if (platformTask.DownloadRomFiles)
-                        {
-                            EnqueueFileDownload(new DownloadJob
-                            {
-                                JobId = platformTask.Id,
-                                JobType = DownloadJobType.Rom,
-                                //RelativeUrl = rom., // TODO: Reinstate from new DTOs
-                                //DestinationPath = Path.Combine("C:\\LaunchBox\\Games", platformTask.LaunchBoxPlatformName, rom.FileName), // TODO: Reinstate from new DTOs
-                                LaunchBoxPlatformName = platformTask.LaunchBoxPlatformName,
-                                ServerContext = currentSnapshot,
-                                UiCard = platformTask.UiCard,
-                                CancellationToken = platformTask.Cts.Token, // <-- PASS TOKEN HERE
-                                OnSuccessCallback = () => { /* TODO: Flip IGame.Installed = true; SaveChanges(); */ }
-                            });
-                        }
-
-                        // STEP 2C: Schedule individual media files by cross-checking profile toggles
-                        ScheduleMediaDownloads(rom, platformTask, chosenProfile, currentSnapshot);
-                    }
-
-                    // STEP 3: Wait using Guid key tracking
+                    // STEP 3: Wait for all file downpour blocks enqueued across pages to wrap up operations safely
                     while (_activeFileCounters.TryGetValue(platformTask.Id, out int fileCount) && fileCount > 0)
                     {
                         if (platformTask.Cts.Token.IsCancellationRequested) break;
@@ -350,14 +392,14 @@ namespace RommStar.Core.Sync
                         OnSyncCompletedNotification?.Invoke(platformTask.UiCard);
                     }
 
-                    // Flush active counter memory tracking
                     _activeFileCounters.TryRemove(platformTask.Id, out _);
-
                     _activeTokens.TryRemove(platformTask.Id, out _);
                 }
             }
         }
-        private async Task<bool> StreamFileFromNetworkAsync(string relativeUrl, string targetPath, RommServer server, 
+
+
+        private async Task<bool> StreamFileFromNetworkAsync(string relativeUrl, string targetPath, RommServer server,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(relativeUrl)) return true;
@@ -366,7 +408,7 @@ namespace RommStar.Core.Sync
             try
             {
                 // Pass the token to Task.Delay so your test simulated code aborts immediately
-                await Task.Delay(1000, cancellationToken);
+                await Task.Delay(100, cancellationToken);
                 return true;
             }
             catch (TaskCanceledException)
@@ -400,8 +442,13 @@ namespace RommStar.Core.Sync
                 return false;
             }
         }
-        private object SyncWithLaunchBoxDatabase(RomDTO rom, string platformName)
+        private object SyncWithLaunchBoxDatabaseIfSet(RomDTO rom, string platformName)
         {
+            // Check if defaul or platform specific profile indicates launchbox database sync disabled
+
+
+
+
             // TODO: Create custom fields:
             // RomId - local rom id of the specific rom - for ondemand rom instals after syncing (ie. via install)
             // ServerId - local server id of the specific rom - for ondemand rom instals after syncing (ie. via install)

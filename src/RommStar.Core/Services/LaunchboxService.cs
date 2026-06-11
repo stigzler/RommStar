@@ -1,12 +1,13 @@
-﻿using System;
+﻿using RommStar.Core.Dtos;
+using RommStar.Core.Dtos.Romm;
+using RommStar.Core.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Unbroken.LaunchBox.Plugins;
-using RommStar.Core.Dtos;
-using RommStar.Core.Models;
-using System.Xml.Linq;
 using System.Windows.Media.Media3D;
+using System.Xml.Linq;
+using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.Services
@@ -19,6 +20,14 @@ namespace RommStar.Core.Services
         {
             PopulateLaunchboxSettings();
         }
+
+        //public bool UpsertGameFromRomDto(string platformName, RomDTO rom )
+        //{
+
+
+
+
+        //}
 
         public List<LaunchboxPlatformDTO> GetPlatforms()
         {

@@ -14,9 +14,12 @@ namespace RommStar.Core.Sync
 
         public string LaunchBoxPlatformName { get; set; } = string.Empty;
         public List<int> RommPlatformIds { get; set; } = new();
-        public bool DownloadRomFiles { get; set; }
+
+        //public bool DownloadRomFiles { get; set; }
         public PlatformSyncJob UiCard { get; set; } = null!;
         public CancellationTokenSource Cts { get; set; } = new();
+        public ExtendedSyncSettings SyncSettings { get; set; }
+
 
         /// <summary>
         /// Captures the specific server assigned to this run to eliminate cross-talk race conditions

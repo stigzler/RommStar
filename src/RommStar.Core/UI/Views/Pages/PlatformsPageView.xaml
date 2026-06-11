@@ -401,7 +401,6 @@
                                                     </Grid.RowDefinitions>
                                                     <TextBlock Grid.Row="0" Text="{Binding RommName}" />
                                                     <TextBlock Grid.Row="1" FontSize="11" Opacity="0.6">
-
                                                         <Run Text="{Binding RomCount}" />
                                                         <Run Text="roms" />
                                                         <Run Text="(" />

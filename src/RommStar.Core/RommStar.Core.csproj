@@ -16,6 +16,7 @@
 
 	<ItemGroup>
 	  <None Remove="Monikers.imagemanifest" />
+	  <None Remove="Resources\LogoBox.ico" />
 	  <None Remove="Resources\rommIcon64px.ico" />
 	  <None Remove="Resources\rommIcon64px.png" />
 	</ItemGroup>
@@ -66,6 +67,7 @@
 	</Target>
 
 	<ItemGroup>
+	  <Resource Include="Resources\LogoBox.ico" />
 	  <Resource Include="Resources\rommIcon64px.ico" />
 	  <Resource Include="Resources\rommIcon64px.png" />
 	</ItemGroup>

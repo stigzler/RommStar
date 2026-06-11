@@ -110,8 +110,6 @@ namespace RommStar.Core.Services
                 response.HttpResponse?.Dispose();
                 return RommApiResponse<RomCollectionDTO>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
             }
-
-            return null;
         }
 
         // =========================================================================
