@@ -63,7 +63,6 @@ namespace RommStar.Core.Services
             {
                 return RommApiResponse<List<PlatformDTO>>.Fail(response.FailureReason, response.ExceptionMessage);
             }
-
             try
             {
                 using var contentStream = await response.HttpResponse.Content.ReadAsStreamAsync();
@@ -77,25 +76,40 @@ namespace RommStar.Core.Services
                 response.HttpResponse?.Dispose();
                 return RommApiResponse<List<PlatformDTO>>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
             }
+
         }
 
-        public async Task<RommApiResponse<List<RomDTO>>> GetRommRomsAsync(RommServer server, List<int> platformIds, CancellationToken externalToken = default)
+        public async Task<RommApiResponse<RomCollectionDTO>> GetRomCollectionAsync(RommServer server, List<int> platformIds, 
+                                CancellationToken externalToken = default)
         {
             StringBuilder urlSB = new($"{server.BaseUrl.TrimEnd('/')}/api/roms?");
             foreach (var platformId in platformIds)
             {
                 urlSB.Append($"platform_ids={platformId}&");
             }
-            urlSB.Remove(urlSB.Length - 1, 1);
+            urlSB.Append($"limit=5000");
+            //urlSB.Remove(urlSB.Length - 1, 1);
 
             string endpointUrl = urlSB.ToString();
 
             var response = await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
             if (!response.IsSuccess)
             {
-                return RommApiResponse<List<RomDTO>>.Fail(response.FailureReason, response.ExceptionMessage);
+                return RommApiResponse<RomCollectionDTO>.Fail(response.FailureReason, response.ExceptionMessage);
             }
 
+            try
+            {
+                using var contentStream = await response.HttpResponse.Content.ReadAsStreamAsync();
+                var roms = await JsonSerializer.DeserializeAsync<RomCollectionDTO>(contentStream, _jsonOptions);
+                response.HttpResponse?.Dispose();
+                return RommApiResponse<RomCollectionDTO>.SuccessWithData(response.HttpResponse!, roms ?? new RomCollectionDTO());
+            }
+            catch (Exception ex)
+            {
+                response.HttpResponse?.Dispose();
+                return RommApiResponse<RomCollectionDTO>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
+            }
 
             return null;
         }

@@ -45,7 +45,7 @@ namespace RommStar.Core.Dtos.Romm
                             Genres { get; set; }
 
         [JsonPropertyName("player_count")]
-        public int? 
+        public string? 
                             PlayerCount { get; set; }
     }
 }

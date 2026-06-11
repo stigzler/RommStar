@@ -26,7 +26,7 @@ namespace RommStar.Core.Dtos.Romm
                             HasSimpleSingleFile { get; set; }
 
         [JsonPropertyName("is_identified")]
-        public string?
+        public bool?
                             IsIdentified { get; set; }
 
         [JsonPropertyName("launchbox_id")]

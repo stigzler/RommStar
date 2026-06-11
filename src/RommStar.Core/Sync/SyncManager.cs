@@ -29,6 +29,7 @@ namespace RommStar.Core.Sync
         /// Tracks active cancellation tokens based on the LaunchBox platform name
         /// </summary>
         private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _activeTokens = new();
+
         private readonly HttpClient _client;
 
         private readonly Channel<DownloadJob> _fileDownloadQueue = Channel.CreateUnbounded<DownloadJob>();
@@ -39,8 +40,16 @@ namespace RommStar.Core.Sync
         /// Channel pipelines handling FIFO operations natively across background threads
         /// </summary>
         private readonly Channel<PlatformSyncTask> _platformQueue = Channel.CreateUnbounded<PlatformSyncTask>();
+
+
+        /// <summary>
+        /// Used primarily as the default initial fallback server or design-time tracking context.
+        /// Macro and file tasks resolve their specific target servers natively via contextual properties.
+        /// </summary>
         public RommServer ActiveServer { get; set; }
+
         public ObservableCollection<PlatformSyncJob> ActiveSyncJobs { get; } = new();
+
         /// <summary>
         /// Media Profiles configuration sets
         /// </summary>
@@ -62,6 +71,7 @@ namespace RommStar.Core.Sync
         }
 
         public event Action<PlatformSyncJob>? OnSyncCompletedNotification;
+
         public void CancelPlatformSync(Guid jobId)
         {
             var card = ActiveSyncJobs.FirstOrDefault(j => j.Id == jobId);
@@ -85,9 +95,10 @@ namespace RommStar.Core.Sync
         // =========================================================================
         // PARALLEL ON-DEMAND BYPASS (Bypasses macro structural sync channel entirely)
         // =========================================================================
-        public async Task ExecuteOnDemandInstallAsync(string lbPlatform, RomDTO rom)
+        // ToDO: IGAME
+        public async Task ExecuteOnDemandInstallAsync(string lbPlatform, RomDTO rom, RommServer targetServer)
         {
-            var currentSnapshot = ActiveServer;
+            var currentSnapshot = targetServer;
             // string destinationRomPath = Path.Combine("C:\\LaunchBox\\Games", lbPlatform, rom.FileName); // TODO: Reinstate from new DTOs
 
             // TODO: Reinstate from new DTOs:
@@ -168,7 +179,7 @@ namespace RommStar.Core.Sync
         /// <param name="platformIds"></param>
         /// <param name="server"></param>
         /// <returns></returns>
-        private async Task<List<RomDTO>?> FetchMetadataFromRommAsync(List<int> platformIds, RommServer server)
+        private async Task<RomCollectionDTO> FetchMetadataFromRommAsync(List<int> platformIds, RommServer server)
         {
             // TEMP test Data
             // Simulate the network delay of hitting the Romm API
@@ -188,9 +199,19 @@ namespace RommStar.Core.Sync
             // API implementation loop querying your target paths goes here...
             //await Task.Delay(1000); // Simulate network
 
-            var apiResult = _rommService.GetRommRomsAsync(server, platformIds);
+            var apiResult = await _rommService.GetRomCollectionAsync(server, platformIds);
 
-            return new List<RomDTO>();
+            if (!apiResult.IsSuccess)
+            {
+                // TODO: Error handling
+            }
+
+            if (apiResult.Data != null)
+            {
+                return apiResult.Data;
+            }
+
+            return new RomCollectionDTO();
         }
 
         private void ScheduleMediaDownloads(RomDTO rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServer server)
@@ -257,11 +278,21 @@ namespace RommStar.Core.Sync
                     }
 
                     platformTask.UiCard.Status = SyncStatus.ProcessingMetadata;
+
                     var currentSnapshot = platformTask.TargetServer; // Snaps the job-specific server config safely
 
                     // STEP 1: Metadata Request execution
-                    var roms = await FetchMetadataFromRommAsync(platformTask.RommPlatformIds, currentSnapshot);
-                    if (roms == null || roms.Count == 0)
+                    RomCollectionDTO romCollection = await FetchMetadataFromRommAsync(platformTask.RommPlatformIds, currentSnapshot);
+
+                    // TODO: romCollection has additional data at its root such as all genres, companies etc retrieved for all 
+                    // the roms in the collection
+                    // ALSO: do we need to page retrieval? How expensive is 400 psx game + numerous sub items (files/scraper results etc)
+                    // Atari 8-bit took 1.38s to fetch 50 items on LAN. That is without all the scraper metadata in the mix
+                    // 2700 items = 1 minute to fetch on LAN. Hmmmmm
+
+
+
+                    if (romCollection == null || romCollection.Items.Count == 0)
                     {
                         platformTask.UiCard.Status = SyncStatus.CompletedWithErrors;
                         _activeTokens.TryRemove(platformTask.Id, out _);
@@ -274,7 +305,7 @@ namespace RommStar.Core.Sync
                     var chosenProfile = platformTask.DownloadRomFiles ? InstallProfile : CatalogProfile;
 
                     // STEP 2A: Process local LaunchBox Database mapping & calculate files payload
-                    foreach (var rom in roms)
+                    foreach (var rom in romCollection.Items)
                     {
                         if (platformTask.Cts.Token.IsCancellationRequested) break;
 
@@ -327,7 +358,8 @@ namespace RommStar.Core.Sync
                 }
             }
         }
-        private async Task<bool> StreamFileFromNetworkAsync(string relativeUrl, string targetPath, RommServer server, CancellationToken cancellationToken = default)
+        private async Task<bool> StreamFileFromNetworkAsync(string relativeUrl, string targetPath, RommServer server, 
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(relativeUrl)) return true;
 
@@ -371,6 +403,11 @@ namespace RommStar.Core.Sync
         }
         private object SyncWithLaunchBoxDatabase(RomDTO rom, string platformName)
         {
+            // TODO: Create custom fields:
+            // RomId - local rom id of the specific rom - for ondemand rom instals after syncing (ie. via install)
+            // ServerId - local server id of the specific rom - for ondemand rom instals after syncing (ie. via install)
+
+
             // Core injection wrapper matching LaunchBox plugin SDK rules
             return new object();
         }

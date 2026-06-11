@@ -5,7 +5,7 @@ using System.Threading;
 namespace RommStar.Core.Sync
 {
     /// <summary>
-    /// Holds the structural execution context for an entire macro platform sync run.
+    /// Internal task encapsulation carrying explicit self-contained execution state.
     /// </summary>
     public class PlatformSyncTask
     {
@@ -17,6 +17,10 @@ namespace RommStar.Core.Sync
         public bool DownloadRomFiles { get; set; }
         public PlatformSyncJob UiCard { get; set; } = null!;
         public CancellationTokenSource Cts { get; set; } = new();
+
+        /// <summary>
+        /// Captures the specific server assigned to this run to eliminate cross-talk race conditions
+        /// </summary>
         public RommServer TargetServer { get; set; } = null!;
     }
 }
