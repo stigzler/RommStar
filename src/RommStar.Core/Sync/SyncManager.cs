@@ -179,7 +179,7 @@ namespace RommStar.Core.Sync
         /// <param name="platformIds"></param>
         /// <param name="server"></param>
         /// <returns></returns>
-        private async Task<RomCollectionDTO> FetchMetadataFromRommAsync(List<int> platformIds, RommServer server)
+        private async Task<RomCollectionDTO> FetchMetadataFromRommAsync(List<int> platformIds, RommServer server, int offset)
         {
             // TEMP test Data
             // Simulate the network delay of hitting the Romm API
@@ -199,7 +199,7 @@ namespace RommStar.Core.Sync
             // API implementation loop querying your target paths goes here...
             //await Task.Delay(1000); // Simulate network
 
-            var apiResult = await _rommService.GetRomCollectionAsync(server, platformIds);
+            var apiResult = await _rommService.GetRomCollectionAsync(server, platformIds, offset);
 
             if (!apiResult.IsSuccess)
             {
@@ -289,7 +289,6 @@ namespace RommStar.Core.Sync
                     // ALSO: do we need to page retrieval? How expensive is 400 psx game + numerous sub items (files/scraper results etc)
                     // Atari 8-bit took 1.38s to fetch 50 items on LAN. That is without all the scraper metadata in the mix
                     // 2700 items = 1 minute to fetch on LAN. Hmmmmm
-
 
 
                     if (romCollection == null || romCollection.Items.Count == 0)

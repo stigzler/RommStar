@@ -79,7 +79,7 @@ namespace RommStar.Core.Services
 
         }
 
-        public async Task<RommApiResponse<RomCollectionDTO>> GetRomCollectionAsync(RommServer server, List<int> platformIds, 
+        public async Task<RommApiResponse<RomCollectionDTO>> GetRomCollectionAsync(RommServer server, List<int> platformIds, int offset,
                                 CancellationToken externalToken = default)
         {
             StringBuilder urlSB = new($"{server.BaseUrl.TrimEnd('/')}/api/roms?");
@@ -87,8 +87,8 @@ namespace RommStar.Core.Services
             {
                 urlSB.Append($"platform_ids={platformId}&");
             }
-            urlSB.Append($"limit=5000");
-            //urlSB.Remove(urlSB.Length - 1, 1);
+
+            urlSB.Append($"limit={server.PageLimit}&offset={offset}"); // paging parameters
 
             string endpointUrl = urlSB.ToString();
 
