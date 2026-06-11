@@ -15,6 +15,7 @@ namespace RommStar.Core.Dtos
         public string SortTitle { get; set; }
         public string SortTitleOrTitle { get; set; }
         public string ScrapeAs { get; set; }
+        public bool DisableAutoImport { get; set; }
 
         public LaunchboxPlatformItemVM ToLaunchboxPlatformItem()
         {

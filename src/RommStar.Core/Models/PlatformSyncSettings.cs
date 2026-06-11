@@ -1,4 +1,4 @@
-﻿using RommStar.Core.Dtos;
+﻿using RommStar.Core.Dtos.Romm;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +19,8 @@ namespace RommStar.Core.Models
         /// <summary>
         /// Bit hacky but meh
         /// </summary>
-        public List<RommPlatformDTO> RommServerPlatforms { get; set; }
+        public List<PlatformDTO> RommServerPlatforms { get; set; }
+
+        public ExtendedSyncSettings ExtendedSyncSettings { get; set; } = new ExtendedSyncSettings();
     }
 }

@@ -59,7 +59,40 @@ To use custom styles on visual element example:100:
 CornerRadius="14" Padding="10,4" Margin="0,0,8,8"/>
 ```
 
-## Launchbox Plugin Api
+## Romm API
+
+### Roms
+
+Romm has no Game object, just Rom.
+
+Has **sibling_roms** - different versions of the game. Eg. 1942 Commodore 64 ("music 1" and "music 2").
+
+Way to discern multi disc games from those with sibling roms:
+
+has_simple_single_file - should always be opposite of has_multiple_files?
+has_multiple_files
+has_nested_single_file
+
+Best approach to download all = iterate through all roms in that through files object?
+
+If a game has multiple roms (eg. FF7) these are stored in and array of **files** which contains:
+
+file.id (in individual id for the file)
+file.romm_id (matched the parent rom)
+file_path (could be the same as the other files - for eg for ff9 they share "roms/psx/Final Fantasy IX")
+
+## Launchbox Plugin API
+
+### Design
+
+#### XML file and fields
+
+Game holds master game. For multi disc games, all disks are held as "additionalApplicaitons" Looks like these are derived from the rom name?
+
+|Element|Description|
+|-|-|
+|ID|Unique local identifier for the game|
+|DatabaseID|The ID in the local db3 file|
 
 ### Retrieve a game
 

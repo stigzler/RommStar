@@ -5,10 +5,12 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace RommStar.Core.Dtos
+namespace RommStar.Core.Dtos.Romm
 {
-    public class RommPlatformDTO
+    public class PlatformDTO
     {
+        #region RommServerData
+
         //NOTE: Romm confirmed this IS NOT a universal unique ID for platforms - slug is.
 
         [JsonPropertyName("id")]
@@ -57,5 +59,7 @@ namespace RommStar.Core.Dtos
         /// </summary>
         [JsonPropertyName("fs_size_bytes")]
         public long? AllRomsFileSizeBytes { get; set; }
+
+        #endregion RommServerData
     }
 }

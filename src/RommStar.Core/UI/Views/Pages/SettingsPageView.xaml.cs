@@ -32,5 +32,10 @@ namespace RommStar.Core.UI.Views.Pages
             ViewModel = viewModel;
             DataContext = ViewModel;
         }
+
+        private void Page_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            ViewModel.OnPageVisibilityChanged((bool)e.NewValue);
+        }
     }
 }

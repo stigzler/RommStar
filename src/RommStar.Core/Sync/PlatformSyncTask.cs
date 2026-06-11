@@ -1,3 +1,4 @@
+using RommStar.Core.Models;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -16,5 +17,6 @@ namespace RommStar.Core.Sync
         public bool DownloadRomFiles { get; set; }
         public PlatformSyncJob UiCard { get; set; } = null!;
         public CancellationTokenSource Cts { get; set; } = new();
+        public RommServer TargetServer { get; set; } = null!;
     }
 }

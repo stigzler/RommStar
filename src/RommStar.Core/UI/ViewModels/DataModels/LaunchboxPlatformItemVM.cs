@@ -1,7 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using RommStar.Core.Dtos;
+using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Models;
 using RommStar.Core.UI.Messages;
 using System;
@@ -17,27 +17,32 @@ public partial class LaunchboxPlatformItemVM : ObservableObject
 {
     // Model related Observables
     [ObservableProperty]
-    private RommServerItemVM? _assignedServerItem;
+    private RommServerItemVM?
+        _assignedServerItem;
 
     [ObservableProperty]
-    private string _launchboxPlatformName = string.Empty;
+    private string
+        _launchboxPlatformName = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MappedRommPlatformsCount))]
-    private ObservableCollection<RommPlatformDTO> _matchedRommPlatforms = new ObservableCollection<RommPlatformDTO>();
+    private ObservableCollection<PlatformDTO>
+        _matchedRommPlatforms = new ObservableCollection<PlatformDTO>();
 
     // Operational Observables
 
     [ObservableProperty]
-    private bool _isOrphaned;
+    private bool
+        _isOrphaned;
 
     [ObservableProperty]
-    private string _iconPath = string.Empty;
+    private string
+        _iconPath = string.Empty;
 
     [ObservableProperty]
-    private List<String> _errors = new List<string>();
+    private List<String>
+        _errors = new List<string>();
 
-    public int MappedRommPlatformsCount => MatchedRommPlatforms.Count();
+    //public int MappedRommPlatformsCount => MatchedRommPlatforms.Count();
 
     public LaunchboxPlatformItemVM()
     {

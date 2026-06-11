@@ -1,4 +1,4 @@
-﻿using RommStar.Core.Dtos;
+﻿using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Models;
 using RommStar.Core.Primitives;
 using System;
@@ -54,33 +54,54 @@ namespace RommStar.Core.Services
             return await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
         }
 
-        public async Task<RommApiResponse<List<RommPlatformDTO>>> GetRommPlatformsAsync(RommServer server, CancellationToken externalToken = default)
+        public async Task<RommApiResponse<List<PlatformDTO>>> GetRommPlatformsAsync(RommServer server, CancellationToken externalToken = default)
         {
             string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/platforms";
 
             var response = await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
             if (!response.IsSuccess)
             {
-                return RommApiResponse<List<RommPlatformDTO>>.Fail(response.FailureReason, response.ExceptionMessage);
+                return RommApiResponse<List<PlatformDTO>>.Fail(response.FailureReason, response.ExceptionMessage);
             }
 
             try
             {
                 using var contentStream = await response.HttpResponse.Content.ReadAsStreamAsync();
-                var platforms = await JsonSerializer.DeserializeAsync<List<RommPlatformDTO>>(contentStream, _jsonOptions);
+                var platforms = await JsonSerializer.DeserializeAsync<List<PlatformDTO>>(contentStream, _jsonOptions);
 
                 response.HttpResponse?.Dispose();
-                return RommApiResponse<List<RommPlatformDTO>>.SuccessWithData(response.HttpResponse!, platforms ?? new List<RommPlatformDTO>());
+                return RommApiResponse<List<PlatformDTO>>.SuccessWithData(response.HttpResponse!, platforms ?? new List<PlatformDTO>());
             }
             catch (Exception ex)
             {
                 response.HttpResponse?.Dispose();
-                return RommApiResponse<List<RommPlatformDTO>>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
+                return RommApiResponse<List<PlatformDTO>>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
             }
         }
 
+        public async Task<RommApiResponse<List<RomDTO>>> GetRommRomsAsync(RommServer server, List<int> platformIds, CancellationToken externalToken = default)
+        {
+            StringBuilder urlSB = new($"{server.BaseUrl.TrimEnd('/')}/api/roms?");
+            foreach (var platformId in platformIds)
+            {
+                urlSB.Append($"platform_ids={platformId}&");
+            }
+            urlSB.Remove(urlSB.Length - 1, 1);
+
+            string endpointUrl = urlSB.ToString();
+
+            var response = await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
+            if (!response.IsSuccess)
+            {
+                return RommApiResponse<List<RomDTO>>.Fail(response.FailureReason, response.ExceptionMessage);
+            }
+
+
+            return null;
+        }
+
         // =========================================================================
-        // CENTRALIZED PLUMBING (The DRY Exception & Timeout Gateway)
+        // CENTRALIZED PLUMBING (Timeout Gateway)
         // =========================================================================
 
         private async Task<RommApiResponse> SendRequestAsync(

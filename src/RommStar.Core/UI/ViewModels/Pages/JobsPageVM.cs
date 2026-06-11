@@ -30,9 +30,9 @@ namespace RommStar.Core.UI.ViewModels.Pages
         [RelayCommand]
         private void StartSyncJob()
         {
-            _syncManager?.QueuePlatformSync("Atari 2600", new List<int>() { 1, 2, 4 }, false);
-            _syncManager?.QueuePlatformSync("Dave 2000", new List<int>() { 7, 9, 11 }, false);
-            _syncManager?.QueuePlatformSync("Amiga 7000", new List<int>() { 13, 19, 32 }, false);
+            //_syncManager?.QueuePlatformSync("Atari 2600", new List<int>() { 1, 2, 4 }, false);
+            //_syncManager?.QueuePlatformSync("Dave 2000", new List<int>() { 7, 9, 11 }, false);
+            //_syncManager?.QueuePlatformSync("Amiga 7000", new List<int>() { 13, 19, 32 }, false);
         }
 
         [RelayCommand]

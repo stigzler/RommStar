@@ -7,6 +7,7 @@ using RommStar.Core.Dtos;
 using RommStar.Core.Models;
 using System.Xml.Linq;
 using System.Windows.Media.Media3D;
+using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.Services
 {

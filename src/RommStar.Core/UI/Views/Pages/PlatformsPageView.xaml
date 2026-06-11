@@ -9,7 +9,7 @@
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
       xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
       xmlns:helpers="clr-namespace:RommStar.Core.UI.Helpers"
-      xmlns:dtos="clr-namespace:RommStar.Core.Dtos"
+      xmlns:romDtos="clr-namespace:RommStar.Core.Dtos.Romm"
       xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
       d:DataContext="{d:DesignInstance Type=vms:Pages.PlatformsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
@@ -155,7 +155,7 @@
                     </ListView>
                 </Border>
 
-                <!-- Bottom Launchbox Buttons -->
+                <!-- Bottom Launchbox Notify bar and Buttons -->
                 <StackPanel Grid.Row="3">
                     <ui:InfoBar IsClosable="True" IsIconVisible="True" Margin="0,0,10,10" CornerRadius="6"
                                             IsOpen="{Binding LaunchboxPlatformsInfoBar.IsOpen, Mode=TwoWay}"
@@ -172,11 +172,13 @@
                                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" Margin="5,2,0,0" />
                             </StackPanel>
                         </Button>
+
                         <Button Padding="16,8" Margin="0,0,10,0"
                             ToolTip="Refresh LaunchBox Platforms List"
                             Command="{Binding ReloadLaunchboxPlatformsCommand}">
                             <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Refresh}" />
                         </Button>
+
                         <ui:DropDownButton AutomationProperties.Name="Add" Padding="16,8" FlowDirection="LeftToRight">
                             <ui:DropDownButton.Content>
                                 <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Edit}" />
@@ -421,9 +423,9 @@
                                     </Grid.RowDefinitions>
                                     <StackPanel Orientation="Vertical">
                                         <TextBlock Grid.Row="0" Text="Matched RomM Platforms"
-                                       FontWeight="SemiBold" VerticalAlignment="Center"
-                                        Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}"
-                                               Margin="0,5,0,0" />
+                                                   FontWeight="SemiBold" VerticalAlignment="Center"
+                                                   Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}"
+                                                   Margin="0,5,0,0" />
                                         <TextBlock Text="These RomM platform/s will be synced with this Launchbox Platform."
                                                    TextWrapping="Wrap" Opacity="0.6" />
                                     </StackPanel>
@@ -436,11 +438,13 @@
                                             </ItemsPanelTemplate>
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
-                                            <DataTemplate DataType="{x:Type dtos:RommPlatformDTO}">
-                                                <Border Background="{DynamicResource {x:Static ui:ThemeKeys.SystemControlBackgroundAccentBrushKey}}" BorderBrush="#80000000" BorderThickness="1"
+                                            <DataTemplate DataType="{x:Type romDtos:PlatformDTO}">
+                                                <Border Background="{DynamicResource {x:Static ui:ThemeKeys.SystemControlBackgroundAccentBrushKey}}"
+                                                        BorderBrush="#80000000" BorderThickness="1"
                                                 CornerRadius="14" Padding="10,4" Margin="0,0,8,8">
                                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding RommName}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                        <TextBlock Text="{Binding IsOrphaned}" VerticalAlignment="Center" Margin="0,0,8,0" />
                                                         <!-- x:Name not needed here; DataContext carries the DTO via button.DataContext -->
                                                         <Button Content="✕"
                                                                 Command="{Binding DataContext.RemoveRommPlatformFromMapCommand, ElementName=PlatformsPage}"
@@ -459,16 +463,27 @@
                     </Border>
                 </Grid>
 
-                <StackPanel Grid.Row="1"  Orientation="Horizontal" FlowDirection="RightToLeft" Margin="0,0,10,10">
-                    <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
+                <!-- Bottom Buttons and Info Bar -->
+                <StackPanel Grid.Row="1">
+                    <ui:InfoBar IsClosable="True" IsIconVisible="True" Margin="0,0,10,10" CornerRadius="6"
+                                            IsOpen="{Binding LaunchboxRommPlatformsInfoBar.IsOpen, Mode=TwoWay}"
+                                            Severity="{Binding LaunchboxRommPlatformsInfoBar.Severity}"
+                                            Title="{Binding LaunchboxRommPlatformsInfoBar.Title}"
+                                            Message="{Binding LaunchboxRommPlatformsInfoBar.Message}" />
+
+                    <!-- Sync PLatfrom Button -->
+                    <StackPanel  Orientation="Horizontal" FlowDirection="RightToLeft" Margin="0,0,10,10">
+                        <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
                          ToolTip="Syncs this Launchbox Platform with the Target Romm Server"
                          Padding="16,8" Margin="0,0,10,0" FontWeight="DemiBold"
+                                Command="{Binding SyncSelectedPlatformCommand}"
                             Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Sync Platform" />
-                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SwipeDown_20_Regular}" Margin="5,2,0,0" />
-                        </StackPanel>
-                    </Button>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Sync Platform" />
+                                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SwipeDown_20_Regular}" Margin="5,2,0,0" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </Grid>

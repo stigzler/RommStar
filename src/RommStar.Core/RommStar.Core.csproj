@@ -55,6 +55,7 @@
 		</PackageReference>
 		<PackageReference Include="iNKORE.UI.WPF" Version="1.2.8" ExcludeAssets="runtime" />
 		<PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.10.2.1" ExcludeAssets="runtime" />
+		<PackageReference Include="Riok.Mapperly" Version="5.0.0-next.8" />
 	</ItemGroup>
 
 	<Target Name="CopyAndDisguiseAssemblies" AfterTargets="CopyFilesToOutputDirectory">

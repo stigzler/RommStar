@@ -1,10 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using RommStar.Core.Properties;
 using RommStar.Core.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RommStar.Core.UI.ViewModels.Pages
 {
@@ -15,6 +11,9 @@ namespace RommStar.Core.UI.ViewModels.Pages
         [ObservableProperty]
         private bool _isDarkTheme;
 
+        [ObservableProperty]
+        private PluginSettings _pluginSettings;
+
         public SettingsPageVM() : this(new SettingsService(new CryptoService()))
         {
         }
@@ -22,23 +21,25 @@ namespace RommStar.Core.UI.ViewModels.Pages
         public SettingsPageVM(SettingsService settingsService)
         {
             _settingsService = settingsService;
-
-            LoadSettings();
-            this.PropertyChanged += OnSettingsPropertyChanged;
+            PluginSettings = settingsService.Settings;
         }
 
-        private void OnSettingsPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        public async Task OnPageVisibilityChanged(bool madeVisible)
         {
-            if (e.PropertyName == nameof(IsDarkTheme))
+            if (madeVisible)
             {
-                _settingsService.Settings.DarkModeEnabled = IsDarkTheme;
+                //LoadPersistedRommServers();
+                //LoadLaunchboxPlatforms();
             }
-            _settingsService.Save();
+            else
+            {
+                SaveSettings();
+            }
         }
 
-        private void LoadSettings()
+        private void SaveSettings()
         {
-            IsDarkTheme = _settingsService.Settings.DarkModeEnabled;
+            _settingsService.Save();
         }
     }
 }

@@ -22,6 +22,11 @@ namespace RommStar.Core.Properties
         /// </summary>
         public LoggingLevel LoggingLevel { get; set; } = LoggingLevel.Normal;
 
+        public ExtendedSyncSettings GlobalExtendedSyncSettings { get; set; } = new()
+        {
+            SyncProfile = Sync.SyncProfile.CreateGame_DownloadMedia
+        };
+
         public bool DarkModeEnabled { get; set; } = true;
     }
 }

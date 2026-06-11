@@ -3,17 +3,21 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-      xmlns:local="clr-namespace:RommStar.Core.UI.Views"
+      xmlns:local="clr-namespace:RommStar.Core.UI.Views.Pages"
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
       xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
       xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+      xmlns:sync="clr-namespace:RommStar.Core.Sync"
+      xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance Type=vm:Pages.SettingsPageVM, IsDesignTimeCreatable=True}"
       d:DesignHeight="450" d:DesignWidth="800" d:Background="#202020" d:Foreground="Gainsboro"
-         TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextFormattingMode="Ideal"
       TextOptions.TextRenderingMode="ClearType"
       UseLayoutRounding="True"
       SnapsToDevicePixels="True"
+      IsVisibleChanged="Page_IsVisibleChanged"
       Title="Settings">
 
     <ui:Page.Resources>
@@ -22,23 +26,61 @@
                 <ui:XamlControlsResources />
                 <ui:ThemeResources AccentColor="#553e98" />
             </ResourceDictionary.MergedDictionaries>
+
+            <converters:SyncProfileConverter x:Key="SyncProfileConverter" />
+
+            <ObjectDataProvider x:Key="SyncProfileEnum"
+                            MethodName="GetValues"
+                            ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="sync:SyncProfile" />
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
         </ResourceDictionary>
     </ui:Page.Resources>
 
-    <TabControl ui:TabControlHelper.IsAddTabButtonVisible="False">
+    <TabControl ui:TabControlHelper.IsAddTabButtonVisible="False" Style="{StaticResource TabControlPivotStyle}">
 
         <TabItem Header="Sync Settings" ui:TabItemHelper.IsClosable="False">
+
             <ui:TabItemHelper.Icon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" Margin="5,2,0,0" />
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
             </ui:TabItemHelper.Icon>
+
             <Grid Margin="10">
                 <StackPanel>
-                    <ui:SettingsCard Header="Download Romm only." Description="Download only the Romm files. Do not update the launchbox database, metadata or media. Use this if you have automatic imports anabled for this system">
+
+                    <ui:SettingsCard Header="lkjlkj">
                         <ui:SettingsCard.HeaderIcon>
-                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" Margin="5,2,0,0" />
+                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
                         </ui:SettingsCard.HeaderIcon>
                         <ui:ToggleSwitch />
                     </ui:SettingsCard>
+
+                    <ui:SettingsCard Header="Sync Profile" Description="(Descrition here)">
+                        <ui:SettingsCard.HeaderIcon>
+                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudCube_20_Regular}" />
+                        </ui:SettingsCard.HeaderIcon>
+
+                        <ComboBox ItemsSource="{Binding Source={StaticResource SyncProfileEnum}}"
+                              SelectedItem="{Binding PluginSettings.GlobalSyncSettings.SyncProfile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               VerticalContentAlignment="Center">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,3">
+                                        <TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}}" />
+
+                                        <TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}, ConverterParameter=Description}"
+
+                                   TextWrapping="Wrap" Opacity="0.6"
+                                   Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </ui:SettingsCard>
+
+                    <TextBlock>lkhjlkj</TextBlock>
                 </StackPanel>
             </Grid>
         </TabItem>
