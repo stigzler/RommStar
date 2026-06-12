@@ -136,7 +136,7 @@ namespace RommStar.Core.Sync
         public void QueuePlatformSync(string lbPlatformName, List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer)
         {
             // Set the IPlatform in Launchbox Service
-            _launchboxService.SetOperationalPlatform(lbPlatformName);
+            _launchboxService.SetupGameUpserts(lbPlatformName);
 
             var uiCard = new PlatformSyncJob
             {
@@ -157,17 +157,17 @@ namespace RommStar.Core.Sync
                 TargetServer = targetServer,
                 SyncSettings = syncSettings,
 
-                DownloadRomFiles = syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom
-                        || syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom_DownloadMedia
-                        || syncSettings.SyncProfile == SyncProfile.DownloadRom,
+                DownloadRomFiles = syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
+                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
+                        || syncSettings.SyncProfile == SyncProfileTypes.DownloadRom,
 
-                UpsertIGame = (syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom_DownloadMedia
-                || syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom
-                || syncSettings.SyncProfile == SyncProfile.CreateGame
-                || syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadMedia),
+                UpsertIGame = (syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
+                || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
+                || syncSettings.SyncProfile == SyncProfileTypes.CreateGame
+                || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia),
 
-                DownloadMediaFiles = syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadMedia
-                                        || syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom_DownloadMedia
+                DownloadMediaFiles = syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia
+                                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
 
             };
 
@@ -303,9 +303,9 @@ namespace RommStar.Core.Sync
                     bool isFirstFetch = true;
                     bool collectionHasProcessedAnyItems = false;
 
-                    var installRoms = platformTask.SyncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom
-                        || platformTask.SyncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom_DownloadMedia
-                        || platformTask.SyncSettings.SyncProfile == SyncProfile.DownloadRom;
+                    var installRoms = platformTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
+                        || platformTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
+                        || platformTask.SyncSettings.SyncProfile == SyncProfileTypes.DownloadRom;
 
                     var chosenProfile = CatalogProfile;
 
@@ -359,7 +359,7 @@ namespace RommStar.Core.Sync
                             // Zero code-behind execution: Inject record directly into Local Database layer
                             if (platformTask.UpsertIGame)
                             {
-                                _launchboxService.UpsertGame(rom);
+                                _launchboxService.UpsertGame(rom, platformTask.SyncSettings.OverwriteMetadata);
                             }
 
                             //SyncWithLaunchBoxDatabaseIfSet(rom, platformTask.LaunchBoxPlatformName);

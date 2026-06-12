@@ -13,6 +13,7 @@
       xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
       xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:sync="clr-namespace:RommStar.Core.Sync"
+    xmlns:ucs="clr-namespace:RommStar.Core.UI.Views.UserControls"
       d:DataContext="{d:DesignInstance Type=vms:Pages.PlatformsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
@@ -34,7 +35,7 @@
                             MethodName="GetValues"
                             ObjectType="{x:Type sys:Enum}">
                 <ObjectDataProvider.MethodParameters>
-                    <x:Type TypeName="sync:SyncProfile" />
+                    <x:Type TypeName="sync:SyncProfileTypes" />
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
 
@@ -470,18 +471,25 @@
 
                             <Expander Grid.Row="4" Header="Advanced Settings"  Margin="0,0,5,10" Background="#10000000" Padding="10" BorderBrush="#80808080" BorderThickness="1"
                                     ExpandDirection="Up" IsExpanded="False" Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
-                                    
+
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="auto" />
-                                        <RowDefinition Height="auto" />    
+                                        <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
-                                    
-                                    <ui:SettingsCard Grid.Row="0" Header="Apply Advanced Settings" Description="These settings will overide the global defaults in Settings.">
+
+                                    <ui:SettingsCard Grid.Row="0" Header="Apply Advanced Settings" Description="These settings will overide the global defaults in Settings for thisw Platform.">
                                         <ui:ToggleSwitch IsOn="{Binding SelectedPlatform.ExtendedSyncSettings.ApplySettings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                     </ui:SettingsCard>
                                     
-                                    <ui:SettingsCard Grid.Row="1" Header="Sync Profile" Description="See main Settings for descrption of these options.">
+                                    <ScrollViewer Grid.Row="1" MaxHeight="200" >
+                                        <ucs:ExtendedSyncSettingsView  ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,0,15,0"
+                                                ExtendedSyncSettings="{Binding SelectedPlatform.ExtendedSyncSettings, Mode=TwoWay}"/>
+
+                                    </ScrollViewer>
+
+
+                                    <!--<ui:SettingsCard Grid.Row="1" Header="Sync Profile" Description="See main Settings for descrption of these options.">
                                         <ui:SettingsCard.HeaderIcon>
                                             <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudCube_20_Regular}" />
                                         </ui:SettingsCard.HeaderIcon>
@@ -494,14 +502,16 @@
                                                     <StackPanel Margin="0,3" >
                                                         <TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}}" />
 
-                                                        <!--<TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}, ConverterParameter=Description}"
+                                                        -->
+                                    <!--<TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}, ConverterParameter=Description}"
                                                                    TextWrapping="Wrap" Opacity="0.6"
                                                                    Margin="0,2,0,0" />-->
+                                    <!--
                                                     </StackPanel>
                                                 </DataTemplate>
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
-                                    </ui:SettingsCard>
+                                    </ui:SettingsCard>-->
                                 </Grid>
 
                             </Expander>

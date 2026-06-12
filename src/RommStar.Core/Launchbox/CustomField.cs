@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Unbroken.LaunchBox.Plugins.Data;
 
-namespace RommBox.Core.Models.Launchbox
+namespace RommStar.Core.Launchbox
 {
     internal class CustomField : ICustomField
     {

@@ -27,28 +27,27 @@
                             MethodName="GetValues"
                             ObjectType="{x:Type sys:Enum}">
                 <ObjectDataProvider.MethodParameters>
-                    <x:Type TypeName="sync:SyncProfile" />
+                    <x:Type TypeName="sync:SyncProfileTypes" />
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
         </ResourceDictionary>
     </UserControl.Resources>
 
     <StackPanel>
-        <ui:SettingsCard Header="Sync Profile" Description="(Descrition here)">
+        <ui:SettingsCard Header="Sync Profile" Description="Actions completed during a Sync." MinWidth="300" >
             <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudCube_20_Regular}" />
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}"/>
             </ui:SettingsCard.HeaderIcon>
             <ComboBox ItemsSource="{Binding Source={StaticResource SyncProfileEnum}}"
                               SelectedItem="{Binding ExtendedSyncSettings.SyncProfile, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                               VerticalContentAlignment="Center">
+                              >
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Margin="0,3">
                             <TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}}" />
 
                             <TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}, ConverterParameter=Description}"
-
-                                   TextWrapping="Wrap" Opacity="0.6"
+                                   TextWrapping="WrapWithOverflow" Opacity="0.6" MaxWidth="340"
                                    Margin="0,2,0,0" />
                         </StackPanel>
                     </DataTemplate>
@@ -59,9 +58,16 @@
         
         <ui:SettingsCard Grid.Row="0" Header="Overwrite Metadata" Description="If game already exists in Launchbox, overwrite the metadata with that from Romm.">
             <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.TextBulletList_20_Regular}" />
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.TextBulletListSquareEdit_20_Regular}" />
             </ui:SettingsCard.HeaderIcon>
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.OverwriteMetadata, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </ui:SettingsCard>
+
+        <ui:SettingsCard Grid.Row="0" Header="Remove Local Games not on Romm Server" Description="If local games are found that are not on the Romm Server, they are removed form the local server. Keeps platforms perfectly synced with Romm.">
+            <ui:SettingsCard.HeaderIcon>
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
+            </ui:SettingsCard.HeaderIcon>
+            <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.RemoveLocalGamesNotOnRommServer, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </ui:SettingsCard>
 
 

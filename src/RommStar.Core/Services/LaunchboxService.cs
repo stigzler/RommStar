@@ -1,5 +1,7 @@
 ﻿using RommStar.Core.Dtos;
 using RommStar.Core.Dtos.Romm;
+using RommStar.Core.Extensions;
+using RommStar.Core.Launchbox;
 using RommStar.Core.Models;
 using System;
 using System.Collections.Generic;
@@ -18,23 +20,81 @@ namespace RommStar.Core.Services
 
         private IPlatform _operationalPlatform;
 
+        /// <summary>
+        /// Used in conjunction with _platformGameIdMap. 
+        /// Performant lookup of games with LaunchboxDatabaseIds.
+        /// </summary>
+        private HashSet<int?> _platformGameDatabaseIds = new HashSet<int?>();
+
+        /// <summary>
+        /// Used in conjunction with _platformGameIdMap. 
+        /// Performant lookup of games with existing RommIds.
+        /// </summary>
+        private HashSet<int> _platformRommIds = new HashSet<int>();
+
+        /// <summary>
+        /// Used in conjunction with _platformGameDatabaseIds. Lookup once presence of launchboxDatabaseID Game
+        /// </summary>
+        private HashSet<GameIdMap> _platformGameIdMap = new HashSet<GameIdMap>();
+
         public LaunchboxService()
         {
             PopulateLaunchboxSettings();
-        }   
-
-
-        public async Task<bool> UpsertGame(RomDTO rommDTO)
+        }
+        public bool SetupGameUpserts(string platformName)
         {
+            _operationalPlatform = PluginHelper.DataManager.GetPlatformByName(platformName);
+
+            _platformGameDatabaseIds.Clear();
+            _platformGameIdMap.Clear();
+
+            if (_operationalPlatform == null) return false;
+
+            IGame[] games = _operationalPlatform.GetAllGames(true, true);
+
+            _platformGameDatabaseIds = new HashSet<int?>(games.Select(g => g.LaunchBoxDbId));
+
+            foreach (IGame game in games)
+            {
+                GameIdMap gameIdMap = new GameIdMap(game.Id, game.LaunchBoxDbId);
+
+                CustomField[] gameCustomFields = (CustomField[])game.GetAllCustomFields();
+
+                if (gameCustomFields != null) 
+                {
+                    CustomField dave = gameCustomFields.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomId.GetCustomName());
+                    gameIdMap.RommId = gameCustomFields(game.Id);
+                }
+
+                _platformGameIdMap.Add(gameIdMap);
+
+
+            }
+
+            return _operationalPlatform != null;
+        }
+
+
+        public async Task<bool> UpsertGame(RomDTO rommDTO, bool overwriteMetadata)
+        {
+            IGame game;
+
+            if (_platformGameDatabaseIds.Contains((int)rommDTO.LaunchboxId))
+            {
+                game = PluginHelper.DataManager.GetGameById(_platformGameIdMap.Single(gim => gim.DatabaseId == rommDTO.LaunchboxId).LocalId);
+            }
+            else
+            {
+
+            }
+
+
+            // IGame game = : 
+
 
             return false;
         }
 
-        public bool SetOperationalPlatform(string platformName)
-        {
-           _operationalPlatform = PluginHelper.DataManager.GetPlatformByName(platformName);
-            return _operationalPlatform != null;
-        }
 
         public List<LaunchboxPlatformDTO> GetPlatforms()
         {

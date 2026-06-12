@@ -9,8 +9,8 @@ using RommStar.Core.CustomAttributes;
 
 namespace RommStar.Core.Sync
 {
-    [DefaultValue(SyncProfile.CreateGame_DownloadMedia)]
-    public enum SyncProfile
+    [DefaultValue(SyncProfileTypes.CreateGame_DownloadMedia)]
+    public enum SyncProfileTypes
     {
         [CustomName("Create Game, Download Media [Default]")]
         [Description("Create Game in launchbox and get media from romm server. Best with auto-import off?")]
