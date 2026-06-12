@@ -17,5 +17,8 @@ namespace RommStar.Core.Models
         public bool ApplySettings { get; set; } = false;
         public SyncProfile SyncProfile { get; set; } = SyncProfile.CreateGame_DownloadMedia;
 
+        public bool OverwriteMetadata { get; set; } = true;
+
+
     }
 }

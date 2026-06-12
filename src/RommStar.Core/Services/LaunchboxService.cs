@@ -16,18 +16,25 @@ namespace RommStar.Core.Services
     {
         public LaunchboxSettings LaunchboxSettings { get; set; } = new LaunchboxSettings();
 
+        private IPlatform _operationalPlatform;
+
         public LaunchboxService()
         {
             PopulateLaunchboxSettings();
+        }   
+
+
+        public async Task<bool> UpsertGame(RomDTO rommDTO)
+        {
+
+            return false;
         }
 
-        //public bool UpsertGameFromRomDto(string platformName, RomDTO rom )
-        //{
-
-
-
-
-        //}
+        public bool SetOperationalPlatform(string platformName)
+        {
+           _operationalPlatform = PluginHelper.DataManager.GetPlatformByName(platformName);
+            return _operationalPlatform != null;
+        }
 
         public List<LaunchboxPlatformDTO> GetPlatforms()
         {

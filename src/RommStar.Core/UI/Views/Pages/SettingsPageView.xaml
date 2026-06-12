@@ -10,6 +10,7 @@
       xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:sync="clr-namespace:RommStar.Core.Sync"
       xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
+      xmlns:ucs="clr-namespace:RommStar.Core.UI.Views.UserControls"
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance Type=vm:Pages.SettingsPageVM, IsDesignTimeCreatable=True}"
       d:DesignHeight="450" d:DesignWidth="800" d:Background="#202020" d:Foreground="Gainsboro"
@@ -46,7 +47,6 @@
             <ui:TabItemHelper.Icon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
             </ui:TabItemHelper.Icon>
-
             <Grid Margin="10">
                 <StackPanel>
 
@@ -63,7 +63,7 @@
                         </ui:SettingsCard.HeaderIcon>
 
                         <ComboBox ItemsSource="{Binding Source={StaticResource SyncProfileEnum}}"
-                              SelectedItem="{Binding PluginSettings.GlobalSyncSettings.SyncProfile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              SelectedItem="{Binding PluginSettings.GlobalExtendedSyncSettings.SyncProfile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                VerticalContentAlignment="Center">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
@@ -91,14 +91,9 @@
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.AppGeneric_20_Regular}" />
             </ui:TabItemHelper.Icon>
             <Grid Margin="10">
-                <StackPanel>
-                    <ui:SettingsCard Header="Dark Theme">
-                        <ui:SettingsCard.HeaderIcon>
-                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Eye_20_Regular}" Margin="5,2,0,0" />
-                        </ui:SettingsCard.HeaderIcon>
-                        <ui:ToggleSwitch IsOn="{Binding IsDarkTheme, Mode=TwoWay}" />
-                    </ui:SettingsCard>
-                </StackPanel>
+                <ucs:ExtendedSyncSettingsView ExtendedSyncSettings="{Binding PluginSettings.GlobalExtendedSyncSettings, Mode=TwoWay}">
+
+                </ucs:ExtendedSyncSettingsView>
             </Grid>
         </TabItem>
 

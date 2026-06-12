@@ -135,6 +135,9 @@ namespace RommStar.Core.Sync
         // =========================================================================
         public void QueuePlatformSync(string lbPlatformName, List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer)
         {
+            // Set the IPlatform in Launchbox Service
+            _launchboxService.SetOperationalPlatform(lbPlatformName);
+
             var uiCard = new PlatformSyncJob
             {
                 Id = Guid.NewGuid(),
@@ -150,10 +153,22 @@ namespace RommStar.Core.Sync
             {
                 LaunchBoxPlatformName = lbPlatformName,
                 RommPlatformIds = rommPlatformIds,
-                //DownloadRomFiles = downloadRoms,
                 UiCard = uiCard,
                 TargetServer = targetServer,
-                SyncSettings = syncSettings
+                SyncSettings = syncSettings,
+
+                DownloadRomFiles = syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom
+                        || syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom_DownloadMedia
+                        || syncSettings.SyncProfile == SyncProfile.DownloadRom,
+
+                UpsertIGame = (syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom_DownloadMedia
+                || syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom
+                || syncSettings.SyncProfile == SyncProfile.CreateGame
+                || syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadMedia),
+
+                DownloadMediaFiles = syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadMedia
+                                        || syncSettings.SyncProfile == SyncProfile.CreateGame_DownloadRom_DownloadMedia
+
             };
 
             // REGISTER THE TASK CTS SO IT CAN BE RECOVERED BY THE CANCEL BUTTON CLICK
@@ -331,17 +346,25 @@ namespace RommStar.Core.Sync
 
                         // Process this chunk immediately to feed downstream download queues right away
 
+                        // ---------------------------------------------------------------
                         // STEP 2A: Process local LaunchBox Database mapping & calculate files payload
+
+                        // TODO: Consider the platform global operations here
+                        // Eg. update Launchbox genres from RomCollectionDTO.FilterValues.Genres
 
                         foreach (var rom in romCollection.Items)
                         {
                             if (platformTask.Cts.Token.IsCancellationRequested) break;
 
-
-
                             // Zero code-behind execution: Inject record directly into Local Database layer
-                            SyncWithLaunchBoxDatabaseIfSet(rom, platformTask.LaunchBoxPlatformName);
+                            if (platformTask.UpsertIGame)
+                            {
+                                _launchboxService.UpsertGame(rom);
+                            }
 
+                            //SyncWithLaunchBoxDatabaseIfSet(rom, platformTask.LaunchBoxPlatformName);
+
+                            // ---------------------------------------------------------------
                             // STEP 2B:  Schedule ROM file extraction if explicitly configured
                             if (installRoms)
                             {
@@ -357,6 +380,7 @@ namespace RommStar.Core.Sync
                                 });
                             }
 
+                            // ---------------------------------------------------------------
                             // STEP 2C: Schedule individual media files by cross-checking profile toggles
                             ScheduleMediaDownloads(rom, platformTask, chosenProfile, currentSnapshot);
                         }
@@ -374,6 +398,7 @@ namespace RommStar.Core.Sync
                         continue;
                     }
 
+                    // ---------------------------------------------------------------
                     // STEP 3: Wait for all file downpour blocks enqueued across pages to wrap up operations safely
                     while (_activeFileCounters.TryGetValue(platformTask.Id, out int fileCount) && fileCount > 0)
                     {

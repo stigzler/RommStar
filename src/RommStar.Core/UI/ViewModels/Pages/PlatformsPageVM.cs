@@ -610,6 +610,15 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 return;
             }
 
+            if (SelectedPlatform.IsOrphaned)
+            {
+                SetInfoBar(LaunchboxRommPlatformsInfoBar, true,
+                    InfoBarSeverity.Error, "Sync Platform Error", "You cannot Sync an orphaned platform as it no longer exists in Launchbox." +
+                    " Either recreate it or delete it from the PLatforms list.");
+                return;
+
+            }
+
             // note: at this stage, this list may include orphaned platforms that have been persisted in user settings,
             // but then deleted later on the romm server.
             List<int> rommPlatformIds = SelectedPlatform.MatchedRommPlatforms.Select(p => p.RommId).ToList();
