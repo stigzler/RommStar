@@ -319,6 +319,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
                         newLaunchboxPlatformItemVM.AssignedServerItem = matchedRommServerItem;
                         // Assign the previously matched Romm PlatformIds only if server still in RommStar setup (no point if not)
                         newLaunchboxPlatformItemVM.MatchedRommPlatforms = new ObservableCollection<PlatformDTO>(matchedPersistedPlatform.RommServerPlatforms);
+                        newLaunchboxPlatformItemVM.ExtendedSyncSettings = matchedPersistedPlatform.ExtendedSyncSettings;
                     }
                 }
 
@@ -439,11 +440,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
         partial void OnPlatformSearchTextChanged(string value)
         {
         }
-
-        //partial void OnSelectedPlatformChanged(LaunchboxPlatformItemVM launchboxPlatformItemVM)
-        //{
-        //    SelectedRommServer = GetRommServerItemByServerId(launchboxPlatformItemVM.AssignedServerItem.RommServer.Id);
-        //}
+   
         partial void OnSelectedPlatformChanged(LaunchboxPlatformItemVM value)
         {
             if (value == null) return;
@@ -453,8 +450,6 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 SelectedRommServer = null;
                 return;
             }
-
-            //SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
 
             SelectedRommServer = GetRommServerItemByServerId(((LaunchboxPlatformItemVM)value).AssignedServerItem.RommServer.Id);
         }
@@ -491,7 +486,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 PlatformSyncSettings platformSyncSettings = new PlatformSyncSettings()
                 {
                     LaunchboxPlatformName = launchboxPlatformItem.LaunchboxPlatformName,
-                    RommServerPlatforms = launchboxPlatformItem.MatchedRommPlatforms.ToList()
+                    RommServerPlatforms = launchboxPlatformItem.MatchedRommPlatforms.ToList(),
+                    ExtendedSyncSettings = launchboxPlatformItem.ExtendedSyncSettings
                 };
 
                 // Server can be null
@@ -617,15 +613,16 @@ namespace RommStar.Core.UI.ViewModels.Pages
             // note: at this stage, this list may include orphaned platforms that have been persisted in user settings,
             // but then deleted later on the romm server.
             List<int> rommPlatformIds = SelectedPlatform.MatchedRommPlatforms.Select(p => p.RommId).ToList();
+   
 
             ExtendedSyncSettings resolvedExtSyncSettings = _settingsService.Settings.GlobalExtendedSyncSettings;
-            //if ( SelectedPlatform.)
+            if (SelectedPlatform.ExtendedSyncSettings.ApplySettings)
+                resolvedExtSyncSettings = SelectedPlatform.ExtendedSyncSettings;
 
             _syncManager?.QueuePlatformSync(SelectedPlatform.LaunchboxPlatformName,
                                             rommPlatformIds,
                                             resolvedExtSyncSettings,
                                             SelectedPlatform.AssignedServerItem.RommServer);
-
         }
 
         [RelayCommand]

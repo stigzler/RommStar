@@ -14,6 +14,8 @@ namespace RommStar.Core.Models
     /// </summary>
     public class ExtendedSyncSettings
     {
+        public bool ApplySettings { get; set; } = false;
         public SyncProfile SyncProfile { get; set; } = SyncProfile.CreateGame_DownloadMedia;
+
     }
 }

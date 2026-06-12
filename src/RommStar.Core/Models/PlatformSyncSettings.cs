@@ -21,8 +21,6 @@ namespace RommStar.Core.Models
         /// </summary>
         public List<PlatformDTO> RommServerPlatforms { get; set; }
 
-        public bool UseExtendedSyncSettings { get; set; } = false; 
-
-        public ExtendedSyncSettings ExtendedSyncSettings { get; set; } = new ExtendedSyncSettings();
+       public ExtendedSyncSettings ExtendedSyncSettings { get; set; } = new ExtendedSyncSettings();
     }
 }

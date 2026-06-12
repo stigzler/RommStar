@@ -28,6 +28,10 @@ public partial class LaunchboxPlatformItemVM : ObservableObject
     private ObservableCollection<PlatformDTO>
         _matchedRommPlatforms = new ObservableCollection<PlatformDTO>();
 
+    [ObservableProperty]
+    private ExtendedSyncSettings 
+        _extendedSyncSettings = new ExtendedSyncSettings();
+
     // Operational Observables
 
     [ObservableProperty]

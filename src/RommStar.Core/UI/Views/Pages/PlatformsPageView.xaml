@@ -11,6 +11,8 @@
       xmlns:helpers="clr-namespace:RommStar.Core.UI.Helpers"
       xmlns:romDtos="clr-namespace:RommStar.Core.Dtos.Romm"
       xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+      xmlns:sync="clr-namespace:RommStar.Core.Sync"
       d:DataContext="{d:DesignInstance Type=vms:Pages.PlatformsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
@@ -26,11 +28,17 @@
             <ResourceDictionary.MergedDictionaries>
                 <ui:XamlControlsResources />
                 <ui:ThemeResources AccentColor="#553e98" />
-
-                <!--<ui:ColorPaletteResources />
-                <ui:ResourceDictionaryEx />-->
             </ResourceDictionary.MergedDictionaries>
 
+            <ObjectDataProvider x:Key="SyncProfileEnum"
+                            MethodName="GetValues"
+                            ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="sync:SyncProfile" />
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+
+            <converters:SyncProfileConverter x:Key="SyncProfileConverter" />
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <converters:InfoBarSeverityToHexColorConverter x:Key="InfoBarSeverityToHexColorConverter" />
             <converters:BytesToFormattedConverter x:Key="BytesToFormattedConverter" />
@@ -82,9 +90,6 @@
                          ui:ControlHelper.PlaceholderText="Search Platforms..."
                          Margin="0,0,8,12" Text="{Binding LaunchboxPlatformSearchText, Mode=TwoWay}"
                          HorizontalAlignment="Stretch">
-                    <!--<ui:AutoSuggestBox.QueryIcon>
-                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Search}" />
-                    </ui:AutoSuggestBox.QueryIcon>-->
                 </ui:AutoSuggestBox>
 
                 <Border Grid.Row="2" Background="#20000000" Margin="0,0,8,10" CornerRadius="14">
@@ -230,6 +235,8 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
                     <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
+
                 </Grid.RowDefinitions>
 
                 <!-- Text when no Platform Selected -->
@@ -279,6 +286,8 @@
                                 <RowDefinition Height="auto" />
                                 <RowDefinition Height="auto" />
                                 <RowDefinition Height="*" />
+                                <RowDefinition Height="auto" />
+
                             </Grid.RowDefinitions>
 
                             <!-- Selected Platform Icon and Name Text -->
@@ -458,12 +467,56 @@
                                     </ItemsControl>
                                 </Grid>
                             </Grid>
+
+                            <Expander Grid.Row="4" Header="Advanced Settings"  Margin="0,0,5,10" Background="#10000000" Padding="10" BorderBrush="#80808080" BorderThickness="1"
+                                    ExpandDirection="Up" IsExpanded="False" Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
+                                    
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="auto" />
+                                        <RowDefinition Height="auto" />    
+                                    </Grid.RowDefinitions>
+                                    
+                                    <ui:SettingsCard Grid.Row="0" Header="Apply Advanced Settings" Description="These settings will overide the global defaults in Settings.">
+                                        <ui:ToggleSwitch IsOn="{Binding SelectedPlatform.ExtendedSyncSettings.ApplySettings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    </ui:SettingsCard>
+                                    
+                                    <ui:SettingsCard Grid.Row="1" Header="Sync Profile" Description="See main Settings for descrption of these options.">
+                                        <ui:SettingsCard.HeaderIcon>
+                                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudCube_20_Regular}" />
+                                        </ui:SettingsCard.HeaderIcon>
+
+                                        <ComboBox ItemsSource="{Binding Source={StaticResource SyncProfileEnum}}" 
+                                              SelectedItem="{Binding SelectedPlatform.ExtendedSyncSettings.SyncProfile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                               VerticalContentAlignment="Center" Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Margin="0,3" >
+                                                        <TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}}" />
+
+                                                        <!--<TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}, ConverterParameter=Description}"
+                                                                   TextWrapping="Wrap" Opacity="0.6"
+                                                                   Margin="0,2,0,0" />-->
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </ui:SettingsCard>
+                                </Grid>
+
+                            </Expander>
+
+
                         </Grid>
+
+
                     </Border>
+
                 </Grid>
 
+
                 <!-- Bottom Buttons and Info Bar -->
-                <StackPanel Grid.Row="1">
+                <StackPanel Grid.Row="2">
                     <ui:InfoBar IsClosable="True" IsIconVisible="True" Margin="0,0,10,10" CornerRadius="6"
                                             IsOpen="{Binding LaunchboxRommPlatformsInfoBar.IsOpen, Mode=TwoWay}"
                                             Severity="{Binding LaunchboxRommPlatformsInfoBar.Severity}"
