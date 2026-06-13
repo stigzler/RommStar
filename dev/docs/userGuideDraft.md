@@ -4,6 +4,7 @@
 
 - If using Launchbox scrape in Romm, **MUST** use "Local" (as the local LB Game db uses the db3 ids for launchboxdatabaseId). If uses "Cloud" - will get very mismatched results!
 - User MUST be careful about romm auto-import given
+- It is better to have the romm server in a 'canon' state (ie. all games are 'sealed' and no deleting re-adding will take place). Game CAN be added to the server platform, but not existing rejigged.
 
 App could check settings and warn user at some point: relevant settings:
 

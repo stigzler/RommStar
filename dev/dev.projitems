@@ -9,6 +9,7 @@
     <Import_RootNamespace>dev</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)docs\implementation.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\reserach.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\scope.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\userGuideDraft.md" />

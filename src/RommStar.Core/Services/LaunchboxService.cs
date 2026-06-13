@@ -3,8 +3,10 @@ using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Extensions;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Models;
+using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Windows.Media.Media3D;
@@ -20,56 +22,81 @@ namespace RommStar.Core.Services
 
         private IPlatform _operationalPlatform;
 
+        private string _operativeServerId = null;
+
+        private bool _overwriteMetadata = true;
+
+        private bool _deleteOldServerRoms = true;
+
         /// <summary>
-        /// Used in conjunction with _platformGameIdMap. 
+        /// Used in conjunction with _platformHelperMap. 
         /// Performant lookup of games with LaunchboxDatabaseIds.
         /// </summary>
-        private HashSet<int?> _platformGameDatabaseIds = new HashSet<int?>();
+        private HashSet<int?> _platformLbGameDatabaseIds = new HashSet<int?>();
 
         /// <summary>
-        /// Used in conjunction with _platformGameIdMap. 
+        /// Used in conjunction with _platformHelperMap. 
         /// Performant lookup of games with existing RommIds.
         /// </summary>
-        private HashSet<int> _platformRommIds = new HashSet<int>();
+        private HashSet<int?> _platformRommIds = new HashSet<int?>();
+
 
         /// <summary>
-        /// Used in conjunction with _platformGameDatabaseIds. Lookup once presence of launchboxDatabaseID Game
+        /// Used in conjunction with _platformHelperMap. 
+        /// Performant lookup of games with existing ServerIds.
         /// </summary>
-        private HashSet<GameIdMap> _platformGameIdMap = new HashSet<GameIdMap>();
+        private HashSet<string?> _platformServerIds = new HashSet<string?>();
+
+        /// <summary>
+        /// Used in conjunction with _platformLbGameDatabaseIds. Lookup once presence of launchboxDatabaseID Game
+        /// </summary>
+        private HashSet<MetadataSyncHelperMap> _platformHelperMap = new HashSet<MetadataSyncHelperMap>();
 
         public LaunchboxService()
         {
             PopulateLaunchboxSettings();
         }
-        public bool SetupGameUpserts(string platformName)
+
+
+        public bool SetupGameUpserts(string platformName, string serverId, ExtendedSyncSettings syncSettings)
         {
             _operationalPlatform = PluginHelper.DataManager.GetPlatformByName(platformName);
+            _operativeServerId = serverId;
+            _overwriteMetadata = syncSettings.OverwriteMetadata;
+            _deleteOldServerRoms = syncSettings.DeleteOldServerRoms;
 
-            _platformGameDatabaseIds.Clear();
-            _platformGameIdMap.Clear();
+            _platformLbGameDatabaseIds.Clear();
+            _platformRommIds.Clear();
+            _platformHelperMap.Clear();
 
             if (_operationalPlatform == null) return false;
 
             IGame[] games = _operationalPlatform.GetAllGames(true, true);
 
-            _platformGameDatabaseIds = new HashSet<int?>(games.Select(g => g.LaunchBoxDbId));
-
             foreach (IGame game in games)
             {
-                GameIdMap gameIdMap = new GameIdMap(game.Id, game.LaunchBoxDbId);
+                MetadataSyncHelperMap gameIdMap = new MetadataSyncHelperMap(game.Id, game.LaunchBoxDbId);
+                gameIdMap.GameName = game.Title;
 
-                CustomField[] gameCustomFields = (CustomField[])game.GetAllCustomFields();
+                var gameCustomFields = game.GetAllCustomFields();
 
-                if (gameCustomFields != null) 
+                if (gameCustomFields != null)
                 {
-                    CustomField dave = gameCustomFields.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomId.GetCustomName());
-                    gameIdMap.RommId = gameCustomFields(game.Id);
+                    var romIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomId.ToString());
+                    var serverIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
+                    var protectMetadataCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
+
+                    gameIdMap.RommId = (romIdCustomField != null) ? Convert.ToInt32(romIdCustomField.Value) : null;
+                    gameIdMap.RommServerId = (serverIdCustomField != null) ? serverIdCustomField.Value : null;
+                    gameIdMap.ProtectMetadata = (protectMetadataCustomField != null) ? Convert.ToBoolean(protectMetadataCustomField.Value) : null;
                 }
 
-                _platformGameIdMap.Add(gameIdMap);
-
-
+                _platformHelperMap.Add(gameIdMap);
             }
+
+            _platformLbGameDatabaseIds = _platformHelperMap.Select(phm => phm.LbDatabaseId).Where(id => id != null).ToHashSet();
+            _platformRommIds = _platformHelperMap.Select(phm => phm.RommId).Where(id => id != null).ToHashSet();
+            _platformServerIds = _platformHelperMap.Select(phm => phm.RommServerId).Where(id => id != null).ToHashSet();
 
             return _operationalPlatform != null;
         }
@@ -77,19 +104,15 @@ namespace RommStar.Core.Services
 
         public async Task<bool> UpsertGame(RomDTO rommDTO, bool overwriteMetadata)
         {
-            IGame game;
+            bool? masMatchingLaunchboxId = _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId);
+            bool? HasMatchingRommId = _platformRommIds.Contains(rommDTO.Id);
+            bool? HasMatchingServerId = _platformServerIds.Contains(_operativeServerId);
 
-            if (_platformGameDatabaseIds.Contains((int)rommDTO.LaunchboxId))
-            {
-                game = PluginHelper.DataManager.GetGameById(_platformGameIdMap.Single(gim => gim.DatabaseId == rommDTO.LaunchboxId).LocalId);
-            }
-            else
-            {
+            MetadataSyncState metadataSyncState = new MetadataSyncState(masMatchingLaunchboxId, HasMatchingRommId, HasMatchingServerId);
 
-            }
+            MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
 
-
-            // IGame game = : 
+        
 
 
             return false;

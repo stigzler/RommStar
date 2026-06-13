@@ -7,7 +7,7 @@ using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.Launchbox
 {
-    internal class CustomField : ICustomField
+    public class CustomField : ICustomField
     {
         public string GameId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;

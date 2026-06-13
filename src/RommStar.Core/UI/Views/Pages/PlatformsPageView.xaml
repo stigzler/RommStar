@@ -46,6 +46,8 @@
             <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
             <converters:NullToBoolConverter x:Key="NullToBoolConverter" />
             <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter" />
+            <converters:HeightToPercentageConverter x:Key="HeightToPercentageConverter" />
+
 
             <!--<SolidColorBrush x:Key="ThemeTextBrush" Color="{DynamicResource TextFillColorPrimary}" />-->
         </ResourceDictionary>
@@ -341,6 +343,7 @@
                                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Refresh}" />
                                 </Button>
                             </Grid>
+
                             <!-- Server Info Bar (Vis toggles) -->
                             <ui:InfoBar Grid.Row="2"
                                 IsClosable="True" IsIconVisible="True" Grid.ColumnSpan="3"
@@ -350,7 +353,7 @@
                                             Message="{Binding SelectedRommServer.InfoBar.Message}" />
 
                             <!-- Platform Picker -->
-                            <Grid Grid.Row="3">
+                            <Grid Grid.Row="3" x:Name="PlatformPickerGrid">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="*" />
@@ -469,10 +472,12 @@
                                 </Grid>
                             </Grid>
 
-                            <Expander Grid.Row="4" Header="Advanced Settings"  Margin="0,0,5,10" Background="#10000000" Padding="10" BorderBrush="#80808080" BorderThickness="1"
-                                    ExpandDirection="Up" IsExpanded="False" Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
-
-                                <Grid>
+                            <Expander Grid.Row="4" x:Name="AdvancedSettingsExpander"                                       
+                                            MaxHeight="450"      
+                                      Header="Advanced Settings"  Margin="0,0,5,10" Background="#10000000" Padding="10" 
+                                      BorderBrush="#80808080" BorderThickness="1" ExpandDirection="Up" IsExpanded="False"
+                                      Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
+                                <Grid >
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="auto" />
                                         <RowDefinition Height="*" />
@@ -481,47 +486,16 @@
                                     <ui:SettingsCard Grid.Row="0" Header="Apply Advanced Settings" Description="These settings will overide the global defaults in Settings for thisw Platform.">
                                         <ui:ToggleSwitch IsOn="{Binding SelectedPlatform.ExtendedSyncSettings.ApplySettings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                     </ui:SettingsCard>
-                                    
-                                    <ScrollViewer Grid.Row="1" MaxHeight="200" >
+
+                                    <ScrollViewer Grid.Row="1" >
                                         <ucs:ExtendedSyncSettingsView  ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,0,15,0"
                                                 ExtendedSyncSettings="{Binding SelectedPlatform.ExtendedSyncSettings, Mode=TwoWay}"/>
-
                                     </ScrollViewer>
 
-
-                                    <!--<ui:SettingsCard Grid.Row="1" Header="Sync Profile" Description="See main Settings for descrption of these options.">
-                                        <ui:SettingsCard.HeaderIcon>
-                                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudCube_20_Regular}" />
-                                        </ui:SettingsCard.HeaderIcon>
-
-                                        <ComboBox ItemsSource="{Binding Source={StaticResource SyncProfileEnum}}" 
-                                              SelectedItem="{Binding SelectedPlatform.ExtendedSyncSettings.SyncProfile, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                               VerticalContentAlignment="Center" Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
-                                            <ComboBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Margin="0,3" >
-                                                        <TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}}" />
-
-                                                        -->
-                                    <!--<TextBlock Text="{Binding Converter={StaticResource SyncProfileConverter}, ConverterParameter=Description}"
-                                                                   TextWrapping="Wrap" Opacity="0.6"
-                                                                   Margin="0,2,0,0" />-->
-                                    <!--
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ComboBox.ItemTemplate>
-                                        </ComboBox>
-                                    </ui:SettingsCard>-->
                                 </Grid>
-
                             </Expander>
-
-
                         </Grid>
-
-
                     </Border>
-
                 </Grid>
 
 

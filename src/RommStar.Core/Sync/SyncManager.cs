@@ -1,19 +1,12 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
-using Accessibility;
-using Microsoft.Win32.SafeHandles;
 using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Models;
 using RommStar.Core.Services;
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
+using System.Threading.Channels;
 
 namespace RommStar.Core.Sync
 {
@@ -135,9 +128,6 @@ namespace RommStar.Core.Sync
         // =========================================================================
         public void QueuePlatformSync(string lbPlatformName, List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer)
         {
-            // Set the IPlatform in Launchbox Service
-            _launchboxService.SetupGameUpserts(lbPlatformName);
-
             var uiCard = new PlatformSyncJob
             {
                 Id = Guid.NewGuid(),
@@ -292,6 +282,10 @@ namespace RommStar.Core.Sync
                         _activeTokens.TryRemove(platformTask.Id, out _);
                         continue;
                     }
+
+                    // Set the IPlatform in Launchbox Service
+                    _launchboxService.SetupGameUpserts(platformTask.LaunchBoxPlatformName, platformTask.TargetServer.Id.ToString(),
+                        platformTask.SyncSettings);
 
                     platformTask.UiCard.Status = SyncStatus.ProcessingMetadata;
                     var currentSnapshot = platformTask.TargetServer;

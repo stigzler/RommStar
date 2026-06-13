@@ -14,6 +14,9 @@ namespace RommStar.Core.Launchbox
         Romm_RomId,
 
         [CustomName("Romm_ServerId")]
-        Romm_ServerId,        
+        Romm_ServerId,
+
+        [CustomName("Romm_ProtectMetadata")]
+        Romm_ProtectMetadata,
     }
 }
