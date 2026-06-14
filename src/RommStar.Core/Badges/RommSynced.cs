@@ -10,7 +10,7 @@ namespace RommStar.Core.Badges
 {
     internal class RommSynced : IGameBadge
     {
-        public string Name => "Romm Synced";
+        public string Name => "Synced with Romm";
 
         public string UniqueId => "rommstarSynced";
 
@@ -24,7 +24,8 @@ namespace RommStar.Core.Badges
             // so we can use this to determine if the game has been processed by Romm and if has -
             // show romm icon in badge array.
 
-            return game.Installed != null;
+            return game.GetAllCustomFields().Any(cf => cf.Name == "Romm_RomId");
+            //return game.Installed != null;
         }
     }
 }

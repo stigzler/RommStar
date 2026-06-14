@@ -2,11 +2,14 @@
 using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Extensions;
 using RommStar.Core.Launchbox;
+using RommStar.Core.Mappers;
 using RommStar.Core.Models;
 using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Windows.Media.Media3D;
@@ -22,11 +25,14 @@ namespace RommStar.Core.Services
 
         private IPlatform _operationalPlatform;
 
-        private string _operativeServerId = null;
+        private string? _operativeServerId = null;
 
         private bool _overwriteMetadata = true;
 
         private bool _deleteOldServerRoms = true;
+
+        private RomMapper _romMapper;
+
 
         /// <summary>
         /// Used in conjunction with _platformHelperMap. 
@@ -52,8 +58,9 @@ namespace RommStar.Core.Services
         /// </summary>
         private HashSet<MetadataSyncHelperMap> _platformHelperMap = new HashSet<MetadataSyncHelperMap>();
 
-        public LaunchboxService()
+        public LaunchboxService(RomMapper romMapper)
         {
+            _romMapper = romMapper;
             PopulateLaunchboxSettings();
         }
 
@@ -102,18 +109,97 @@ namespace RommStar.Core.Services
         }
 
 
-        public async Task<bool> UpsertGame(RomDTO rommDTO, bool overwriteMetadata)
+        public async Task<bool> SyncRommDto(RomDTO rommDTO)
         {
-            bool? masMatchingLaunchboxId = _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId);
-            bool? HasMatchingRommId = _platformRommIds.Contains(rommDTO.Id);
-            bool? HasMatchingServerId = _platformServerIds.Contains(_operativeServerId);
+            bool? hasMatchingLaunchboxId = _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId);
+            bool? hasMatchingRommId = _platformRommIds.Contains(rommDTO.Id);
+            bool? hasMatchingServerId = _platformServerIds.Contains(_operativeServerId);
 
-            MetadataSyncState metadataSyncState = new MetadataSyncState(masMatchingLaunchboxId, HasMatchingRommId, HasMatchingServerId);
+            MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId);
 
+            // This determines what action needs to happen from the permutations of all 5 booleans: Ignore, Update, Insert, InsertAndDelete
             MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
 
-        
+            // Need to determine if IGame object is existing one from LB, or a new one. Also, what to retrieve it by. 
 
+            IGame game = null;
+
+            if (syncAction == MetadataSyncAction.Update)
+            {
+                // UPDATE existing IGame -------------------------------------------------
+                MetadataSyncHelperMap metadataSyncHelperMap;
+                string launchboxLocalId;
+
+
+                if (hasMatchingRommId == true && hasMatchingServerId == true)
+                {
+                    metadataSyncHelperMap = _platformHelperMap.Single(pg => pg.RommId == rommDTO.Id && pg.RommServerId == _operativeServerId);
+                }
+                else
+                {
+                    metadataSyncHelperMap = _platformHelperMap.Single(pg => pg.LbDatabaseId == rommDTO.LaunchboxId);
+                }
+                launchboxLocalId = metadataSyncHelperMap.LocalId;
+
+                game = PluginHelper.DataManager.GetGameById(launchboxLocalId);
+
+                var localAltNames = game.GetAllAlternateNames();
+                foreach (var altName in rommDTO.AlternativeNames.Distinct())
+                {
+                    if (!localAltNames.Any(lan => lan.Name == altName && altName != rommDTO.Name))
+                    {
+                        var newAltName = game.AddNewAlternateName();
+                        newAltName.Name = altName;
+                    }
+                    // TODO: Also has Region field - but don't think I can marry romm api response to this
+                }
+            }
+            else if (syncAction == MetadataSyncAction.Insert)
+            {
+                // INSERT new IGame -------------------------------------------------
+                game = PluginHelper.DataManager.AddNewGame(rommDTO.Name);
+                game.Installed = false;
+                game.ApplicationPath = Constants.romPlaceholder;
+
+                // Add RommStar Custom fields
+
+                var romIdCustomField = game.AddNewCustomField();
+                romIdCustomField.Name = CustomFieldTypes.Romm_RomId.ToString();
+                romIdCustomField.Value = Convert.ToString(rommDTO.Id);
+
+                var serverIdCustomField = game.AddNewCustomField();
+                serverIdCustomField.Name = CustomFieldTypes.Romm_ServerId.ToString();
+                serverIdCustomField.Value = _operativeServerId;
+
+                var protectMetadataCustomField = game.AddNewCustomField();
+                protectMetadataCustomField.Name = CustomFieldTypes.Romm_ProtectMetadata.ToString();
+                protectMetadataCustomField.Value = "false";
+
+                // Add alternate names (Mapper can't do this).
+                foreach (var altName in rommDTO.AlternativeNames.Distinct())
+                {
+                    if (altName != rommDTO.Name)
+                    {
+                        var newAltName = game.AddNewAlternateName();
+                        newAltName.Name = altName;
+                    }
+                    // TODO: Also has Region field - but don't think I can marry romm api response to this
+                }
+
+                // now install a placeholder file in 
+
+            }
+
+            game.Platform = _operationalPlatform.Name;
+
+            switch (syncAction)
+            {
+                case MetadataSyncAction.Insert or MetadataSyncAction.Update:
+                    _romMapper.RommRomDtoToIGame(rommDTO, game);
+                    break;
+            }
+
+            //ToDO: need to addAlternative game names (RomDTO.AlternativeNames) to each Igame. 
 
             return false;
         }

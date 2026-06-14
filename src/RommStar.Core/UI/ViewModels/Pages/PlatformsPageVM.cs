@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using iNKORE.UI.WPF.Modern.Controls;
 using Microsoft.Win32;
 using RommStar.Core.Dtos.Romm;
+using RommStar.Core.Mappers;
 using RommStar.Core.Models;
 using RommStar.Core.Services;
 using RommStar.Core.Sync;
@@ -132,10 +133,10 @@ namespace RommStar.Core.UI.ViewModels.Pages
         /// </summary>
         public PlatformsPageVM() : this(
             new SettingsService(new CryptoService()),
-            new LaunchboxService(),
+            new LaunchboxService(new RomMapper(new SettingsService(new CryptoService()))),
             new RommService(),
             new LoggingService(),
-            new SyncManager(new RommServer(), new RommService(), new LaunchboxService())
+            new SyncManager(new RommServer(), new RommService(), new LaunchboxService(new RomMapper(new SettingsService(new CryptoService()))))
             )
         {
             // any test data

@@ -16,7 +16,7 @@ namespace RommStar.Core.Dtos.Romm
                             AgeRatings { get; set; }
 
         [JsonPropertyName("average_rating")]
-        public double? 
+        public float? 
                             AverageRating { get; set; }
 
         [JsonPropertyName("collections")]

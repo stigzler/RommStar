@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Channels;
+using Unbroken.LaunchBox.Plugins;
 
 namespace RommStar.Core.Sync
 {
@@ -208,7 +209,7 @@ namespace RommStar.Core.Sync
 
             if (!apiResult.IsSuccess)
             {
-                Debug.WriteLine($"Romm Collection Paging offset: {apiResult.Data.Offset}");
+                //Debug.WriteLine($"Romm Collection Paging offset: {apiResult.Data.Offset}");
                 // TODO: Error handling
             }
 
@@ -353,7 +354,7 @@ namespace RommStar.Core.Sync
                             // Zero code-behind execution: Inject record directly into Local Database layer
                             if (platformTask.UpsertIGame)
                             {
-                                _launchboxService.UpsertGame(rom, platformTask.SyncSettings.OverwriteMetadata);
+                                _launchboxService.SyncRommDto(rom);
                             }
 
                             //SyncWithLaunchBoxDatabaseIfSet(rom, platformTask.LaunchBoxPlatformName);
@@ -399,6 +400,13 @@ namespace RommStar.Core.Sync
                         if (platformTask.Cts.Token.IsCancellationRequested) break;
                         await Task.Delay(250);
                     }
+
+                    // This point guarantees that:
+                    // 1. All paginated ROM metadata records have been processed
+                    // 2. All downstream file download payloads are 100% complete on disk
+                    // 3. It only executes exactly ONCE per task pulled from the channel queue
+                    PluginHelper.DataManager.Save();
+                    PluginHelper.LaunchBoxMainViewModel.RefreshData();
 
                     // Conclude Platform Lifecycle State
                     if (platformTask.Cts.Token.IsCancellationRequested)

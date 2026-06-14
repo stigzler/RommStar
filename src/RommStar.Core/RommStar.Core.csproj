@@ -25,6 +25,9 @@
 	  <content Include="Monikers.imagemanifest">
 	    <IncludeInVSIX>true</IncludeInVSIX>
 	  </content>
+	  <Content Include="Game Installation Required">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
 	</ItemGroup>
 
 	<ItemGroup>

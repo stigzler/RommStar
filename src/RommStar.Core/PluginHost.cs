@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using RommStar.Core.Launchbox;
+using RommStar.Core.Mappers;
 using RommStar.Core.Primitives;
 using RommStar.Core.Services;
 using RommStar.Core.Sync;
@@ -116,6 +117,7 @@ namespace RommStar.Core
             services.AddSingleton<SettingsService>();
             services.AddSingleton<RommService>();
             services.AddSingleton<CryptoService>();
+            services.AddSingleton<RomMapper>();
             services.AddSingleton<LaunchboxService>();
 
             // Register initial RommServerConfig & SyncManager

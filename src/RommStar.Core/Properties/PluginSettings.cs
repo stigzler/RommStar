@@ -28,5 +28,13 @@ namespace RommStar.Core.Properties
         };
 
         public bool DarkModeEnabled { get; set; } = true;
+
+        public string YouTubeStub { get; set; } = "https://www.youtube.com/watch?v=";
+
+        /// <summary>
+        /// In lieu of future development letting you choose your preferred standard. 
+        /// </summary>
+        public RatingStandard RatingStandard { get; set; } = RatingStandard.ESRB;
+
     }
 }

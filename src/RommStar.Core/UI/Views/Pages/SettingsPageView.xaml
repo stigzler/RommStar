@@ -49,6 +49,11 @@
             </ui:TabItemHelper.Icon>
             <Grid Margin="10">
                 <StackPanel>
+
+                    <ui:SettingsCard Header="Youtube Stub" Description="Prefix text used to construct the final youtube url from the RomM video key"  >
+                        <TextBox Text="{Binding PluginSettings.YouTubeStub, Mode=TwoWay}"/>
+                    </ui:SettingsCard>
+
                     <ucs:ExtendedSyncSettingsView ExtendedSyncSettings="{Binding PluginSettings.GlobalExtendedSyncSettings, Mode=TwoWay}"/>
                 </StackPanel>
             </Grid>

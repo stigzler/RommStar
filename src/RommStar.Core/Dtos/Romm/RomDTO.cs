@@ -25,13 +25,29 @@ namespace RommStar.Core.Dtos.Romm
         public bool?
                             HasSimpleSingleFile { get; set; }
 
+        /// <summary>
+        /// This is the rommId local to the Romm Sever and used in API calls
+        /// There is no universal, canon Id in romm (it doesn't have it's own db)
+        /// </summary>
+        [JsonPropertyName("id")]
+        public int?
+                            Id { get; set; }
+
         [JsonPropertyName("is_identified")]
         public bool?
                             IsIdentified { get; set; }
 
+        [JsonPropertyName("languages")]
+        public List<string>?
+                            Languages { get; set; }
+
         [JsonPropertyName("launchbox_id")]
         public int?
                             LaunchboxId { get; set; }
+
+        [JsonPropertyName("metadatum")]
+        public RomMetadatumDTO?
+                            Metadatum { get; set; }
 
         [JsonPropertyName("missing_from_fs")]
         public bool?
@@ -41,41 +57,26 @@ namespace RommStar.Core.Dtos.Romm
         /// Romm.Name (Romm's specific Rom name)
         /// </summary>
         [JsonPropertyName("name")]
-        public string?
+        public string
                             Name { get; set; }
-
-        /// <summary>
-        /// This is the rommId local to the Romm Sever and used in API calls
-        /// There is no universal, canon Id in romm (it doesn't have it's own db)
-        /// </summary>
-        [JsonPropertyName("id")]
-        public int?
-                            Id { get; set; }
+        [JsonPropertyName("regions")]
+        public List<string>?
+                            Regions { get; set; }
 
         [JsonPropertyName("ss_id")]
         public int?
                             ScreenscraperId { get; set; }
 
+        [JsonPropertyName("sibling_roms")]
+        public List<SiblingRomDTO>?
+                            SiblingRoms { get; set; }
+
         [JsonPropertyName("summary")]
-        public string?
+        public string
                             Summary { get; set; }
 
-        [JsonPropertyName("metadatum")]
-        public RomMetadatumDTO? 
-                            Metadatum { get; set; }
-
-        [JsonPropertyName("regions")]
-        public List<string>? 
-                            Regions { get; set; }
-
-        [JsonPropertyName("languages")]
-        public List<string>? 
-                            Languages { get; set; }
-
-        [JsonPropertyName("sibling_roms")]
-        public List<SiblingRomDTO>? 
-                            SiblingRoms { get; set; }   
-
-
+        [JsonPropertyName("youtube_video_id")]
+        public string 
+                            YoutubeVideoId { get; set; }      
     }
 }
