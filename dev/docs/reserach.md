@@ -126,6 +126,46 @@ public void OnGameExited()
 
 The order of these is important. Above method derived by trial and error (think the folder watch service can interfere producing exceptions in any other order)
 
+## Romset standards
+
+### No-Intro and Redump
+
+Use same standard.
+
+To get 'Disc' for lb:
+
+For both, media types restricted to:
+
+**Disc|Part|Side|Tape|Disk|Card**
+
+These 6 cover 99.5% of all filenames
+
+### TOSEC
+
+Title (Year)(Publisher)[Extras][Flags]
+
+Instead of (Disk 1), TOSEC uses a (Media X of Y) pattern for explicit multi-part counts, or standard strings for media orientations.
+
+According to official TNC documentation, the absolute standard uses these exact patterns:
+
+Counting Layout: (Disk 1 of 4), (Disc 3 of 6), (Tape 2 of 2)
+
+Double-Digit Padding: If a game has 10 or more disks, TOSEC strictly forces double-digit padding: (Disk 06 of 13).
+
+Compound Spacing/Side Layouts: TOSEC allows combining media counts and physical sides into a single block: (Tape 2 of 2 Side B) or simple (Side A).
+
+Range Sets: Multiple disks stored inside one virtual archive image file are noted with hyphens: (Part 1-2 of 3).
+
+```text
+Sid Meier's Civilization v1.0 (1991)(MicroProse)(M4)(Disk 1 of 4).adf
+International Karate + (1988)(System 3)(Side A).idx
+Grand Prix (1991)(MicroProse)(Track Disk).adf
+```
+
+Tosec restricts media to:
+
+**Disc|Disk|Part|Tape|Side|File**
+
 ## Architecture
 
 GPT-5:

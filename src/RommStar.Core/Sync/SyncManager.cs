@@ -255,6 +255,7 @@ namespace RommStar.Core.Sync
         // =========================================================================
         // MACRO SEQUENTIAL PIPELINE PROCESSOR (Paging Stream Integration)
         // =========================================================================
+
         private async Task StartPlatformQueueProcessorAsync()
         {
             while (await _platformQueue.Reader.WaitToReadAsync())
@@ -283,8 +284,11 @@ namespace RommStar.Core.Sync
 
                     var chosenProfile = installRoms ? InstallProfile : CatalogProfile;
 
+                    // Tracks standard master game mappings for processing
                     var processedGamesLookup = new Dictionary<int, IGame>();
-                    var siblingQueue = new List<(RomDTO SiblingRom, int ParentRomId)>();
+
+                    // NEW: Groups sibling variants by their common lowest Group Root ID
+                    var siblingClusters = new Dictionary<int, List<RomDTO>>();
 
                     do
                     {
@@ -318,9 +322,7 @@ namespace RommStar.Core.Sync
                             bool hasSiblings = rom.SiblingRoms != null && rom.SiblingRoms.Count > 0;
                             bool isMultiDiscLayout = rom.HasMultipleFiles == true;
 
-                            // --- STRATEGY A: SELECTIVE JUST-IN-TIME HYDRATION ---
-                            // Hydrate if: We need files for immediate download OR it's a multi-disc directory structure.
-                            // Notice that single-file sibling variants don't trigger hydration here if doing a metadata sync!
+                            // --- SELECTIVE JUST-IN-TIME HYDRATION ---
                             bool needsHydration = installRoms || isMultiDiscLayout;
 
                             var detailedRom = rom;
@@ -346,9 +348,8 @@ namespace RommStar.Core.Sync
                             // =========================================================================
                             if (detailedRom.HasMultipleFiles == true && hasFiles)
                             {
-                                // TODO: update this logic to encompass other scenarios
-                                var primaryFile = detailedRom.Files.FirstOrDefault(f => !string.IsNullOrEmpty(f.FileName) 
-                                && f.FileName.Contains("Disc 1", StringComparison.OrdinalIgnoreCase))
+                                // Find Disc 1 or fall back to the first available file entry
+                                var primaryFile = detailedRom.Files.FirstOrDefault(f => !string.IsNullOrEmpty(f.FileName) && f.FileName.Contains("Disc 1", StringComparison.OrdinalIgnoreCase))
                                                   ?? detailedRom.Files.First();
 
                                 if (platformTask.UpsertIGame)
@@ -356,7 +357,8 @@ namespace RommStar.Core.Sync
                                     targetedGame = await _launchboxService.SyncRommDto(detailedRom);
                                     if (targetedGame != null && installRoms && !string.IsNullOrEmpty(primaryFile.FileName))
                                     {
-                                        targetedGame.ApplicationPath = Path.Combine(targetDirectory, primaryFile.FileName);
+                                        // For on-demand profiles, assign the plugin installation placeholder string
+                                        targetedGame.ApplicationPath = Constants.romPlaceholder;
                                     }
                                 }
 
@@ -366,7 +368,17 @@ namespace RommStar.Core.Sync
 
                                     if (platformTask.UpsertIGame && targetedGame != null)
                                     {
-                                        _launchboxService.AddOrUpdateAdditionalApplication(targetedGame, fileEntry, targetDirectory);
+                                        // If this item is the designated primary file, point its path to the placeholder
+                                        bool isPrimaryDisc = (fileEntry.Id == primaryFile.Id || fileEntry.FileName == primaryFile.FileName);
+
+                                        _launchboxService.AddOrUpdateAdditionalApplication(
+                                            targetedGame,
+                                            fileEntry,
+                                            targetDirectory,
+                                            customAppName: null,
+                                            usePlaceholderPath: isPrimaryDisc
+                                        );
+                                        //_launchboxService.AddOrUpdateAdditionalApplication(targetedGame, fileEntry, targetDirectory);
                                     }
 
                                     if (installRoms)
@@ -374,56 +386,33 @@ namespace RommStar.Core.Sync
                                         EnqueueRomDownloadJob(platformTask, currentSnapshot, detailedRom.Id ?? 0, fileEntry, targetDirectory);
                                     }
                                 }
+
+                                if (targetedGame != null && detailedRom.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRom.Id.Value))
+                                {
+                                    processedGamesLookup.Add(detailedRom.Id.Value, targetedGame);
+                                }
+
+                                if (platformTask.DownloadMediaFiles)
+                                {
+                                    ScheduleMediaDownloads(detailedRom, platformTask, chosenProfile, currentSnapshot);
+                                }
                             }
                             // =========================================================================
-                            // CASE 2: SIBLING ROM REGION / VERSION GROUPS
+                            // CASE 2: SIBLING ROM REGION / VERSION GROUPS (Pass 1 Capture)
                             // =========================================================================
                             else if (hasSiblings)
                             {
-                                bool isExplicitMaster = detailedRom.RomUserData?.IsMainSibling ?? false;
-                                int lowestGroupId = Math.Min(detailedRom.Id ?? 0, detailedRom.SiblingRoms.Select(s => s.Id ?? 0).Min());
+                                // Calculate the absolute lowest root identity mapping across this collection
+                                int clusterKey = Math.Min(detailedRom.Id ?? 0, detailedRom.SiblingRoms.Select(s => s.Id ?? 0).Min());
 
-                                if (!isExplicitMaster && (detailedRom.Id ?? 0) > lowestGroupId)
+                                if (!siblingClusters.ContainsKey(clusterKey))
                                 {
-                                    siblingQueue.Add((detailedRom, lowestGroupId));
-                                    continue;
+                                    siblingClusters[clusterKey] = new List<RomDTO>();
                                 }
 
-                                // Aggregate Master ID + Sibling IDs into a comma-separated tracking string
-                                var romIdsList = new List<int> { detailedRom.Id ?? 0 };
-                                romIdsList.AddRange(detailedRom.SiblingRoms.Select(s => s.Id ?? 0));
-                                string aggregatedRomIdsCsv = string.Join(",", romIdsList);
-
-                                if (platformTask.UpsertIGame)
-                                {
-                                    targetedGame = await _launchboxService.SyncRommDto(detailedRom, aggregatedRomIdsCsv);
-                                }
-
-                                // Use hydrated files if present, fallback to top-level property otherwise
-                                if (hasFiles)
-                                {
-                                    foreach (var masterFile in detailedRom.Files)
-                                    {
-                                        if (string.IsNullOrEmpty(masterFile.FileName)) continue;
-
-                                        if (platformTask.UpsertIGame && targetedGame != null && string.IsNullOrEmpty(targetedGame.ApplicationPath))
-                                        {
-                                            targetedGame.ApplicationPath = Path.Combine(targetDirectory, masterFile.FileName);
-                                        }
-
-                                        if (installRoms)
-                                        {
-                                            EnqueueRomDownloadJob(platformTask, currentSnapshot, detailedRom.Id ?? 0, masterFile, targetDirectory);
-                                        }
-                                    }
-                                }
-                                else if (!string.IsNullOrEmpty(detailedRom.RommFilename))
-                                {
-                                    if (platformTask.UpsertIGame && targetedGame != null && string.IsNullOrEmpty(targetedGame.ApplicationPath))
-                                    {
-                                        targetedGame.ApplicationPath = Path.Combine(targetDirectory, detailedRom.RommFilename);
-                                    }
-                                }
+                                siblingClusters[clusterKey].Add(detailedRom);
+                                // Postpone processing until all pages are fully stored in memory!
+                                continue;
                             }
                             // =========================================================================
                             // CASE 3: STANDARD SINGLE-FILE GAMES
@@ -442,7 +431,11 @@ namespace RommStar.Core.Sync
                                     {
                                         if (platformTask.UpsertIGame && targetedGame != null)
                                         {
-                                            targetedGame.ApplicationPath = Path.Combine(targetDirectory, singleFile.FileName);
+                                            // CRITICAL FIX: Always keep it as a placeholder to light up the Install button 
+                                            // unless we are explicitly running a profile that downloads the file right now.
+                                            targetedGame.ApplicationPath = installRoms
+                                                ? Path.Combine(targetDirectory, singleFile.FileName)
+                                                : Constants.romPlaceholder;
                                         }
 
                                         if (installRoms)
@@ -455,19 +448,22 @@ namespace RommStar.Core.Sync
                                 {
                                     if (platformTask.UpsertIGame && targetedGame != null)
                                     {
-                                        targetedGame.ApplicationPath = Path.Combine(targetDirectory, detailedRom.RommFilename);
+                                        // CRITICAL FIX: Same logic for the filename fallback path
+                                        targetedGame.ApplicationPath = installRoms
+                                            ? Path.Combine(targetDirectory, detailedRom.RommFilename)
+                                            : Constants.romPlaceholder;
                                     }
                                 }
-                            }
 
-                            if (targetedGame != null && detailedRom.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRom.Id.Value))
-                            {
-                                processedGamesLookup.Add(detailedRom.Id.Value, targetedGame);
-                            }
+                                if (targetedGame != null && detailedRom.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRom.Id.Value))
+                                {
+                                    processedGamesLookup.Add(detailedRom.Id.Value, targetedGame);
+                                }
 
-                            if (platformTask.DownloadMediaFiles)
-                            {
-                                ScheduleMediaDownloads(detailedRom, platformTask, chosenProfile, currentSnapshot);
+                                if (platformTask.DownloadMediaFiles)
+                                {
+                                    ScheduleMediaDownloads(detailedRom, platformTask, chosenProfile, currentSnapshot);
+                                }
                             }
                         }
 
@@ -483,58 +479,149 @@ namespace RommStar.Core.Sync
                     }
 
                     // =========================================================================
-                    // LATE-BIND DEFERRED SIBLINGS (Pass 2)
+                    // LATE-BIND RESOLUTION FOR SIBLINGS (Pass 2 Processing)
                     // =========================================================================
-                    foreach (var (siblingRom, parentRomId) in siblingQueue)
+                    foreach (var cluster in siblingClusters.Values)
                     {
                         if (platformTask.Cts.Token.IsCancellationRequested) break;
 
-                        // For deferred sibling variants, hydrate their specific file targets if we are running an active download profile
-                        var detailedSibling = siblingRom;
-                        if (installRoms && (siblingRom.Files == null || siblingRom.Files.Count == 0))
+                        // 1. Identify the Master Title using explicit flags or an arbitrary ID fallback
+                        var masterRom = cluster.FirstOrDefault(r => r.RomUserData?.IsMainSibling == true)
+                                        ?? cluster.OrderBy(r => r.Id).First();
+
+                        // 2. Isolate variants from the group
+                        var variantRoms = cluster.Where(r => r.Id != masterRom.Id).ToList();
+
+                        // 3. Compile a comprehensive context tracking list of all server IDs within this group
+                        var allGroupIds = cluster.Select(r => r.Id ?? 0).Distinct().ToList();
+                        string aggregatedRomIdsCsv = string.Join(",", allGroupIds);
+
+                        string basePlatformPath = Path.Combine("C:\\LaunchBox\\Games", platformTask.LaunchBoxPlatformName);
+                        string targetDirectory = Path.Combine(basePlatformPath, masterRom.Name);
+
+                        IGame masterGameInstance = null;
+
+                        // 4. Sync the Master entry to LaunchBox
+                        if (platformTask.UpsertIGame)
                         {
-                            var detailResult = await _rommService.GetRomDetailsAsync(currentSnapshot, siblingRom.Id ?? 0, platformTask.Cts.Token);
-                            if (detailResult.IsSuccess && detailResult.Data != null)
+                            masterGameInstance = await _launchboxService.SyncRommDto(masterRom, aggregatedRomIdsCsv);
+                        }
+
+                        bool masterHasFiles = masterRom.Files != null && masterRom.Files.Count > 0;
+
+                        if (masterHasFiles)
+                        {
+                            foreach (var masterFile in masterRom.Files)
                             {
-                                detailedSibling = detailResult.Data;
+                                if (string.IsNullOrEmpty(masterFile.FileName)) continue;
+
+                                if (platformTask.UpsertIGame && masterGameInstance != null && string.IsNullOrEmpty(masterGameInstance.ApplicationPath))
+                                {
+                                    masterGameInstance.ApplicationPath = Path.Combine(targetDirectory, masterFile.FileName);
+                                }
+
+                                if (installRoms)
+                                {
+                                    EnqueueRomDownloadJob(platformTask, currentSnapshot, masterRom.Id ?? 0, masterFile, targetDirectory);
+                                }
+                            }
+                        }
+                        else if (!string.IsNullOrEmpty(masterRom.RommFilename))
+                        {
+                            if (platformTask.UpsertIGame && masterGameInstance != null && string.IsNullOrEmpty(masterGameInstance.ApplicationPath))
+                            {
+                                masterGameInstance.ApplicationPath = Path.Combine(targetDirectory, masterRom.RommFilename);
                             }
                         }
 
-                        if (processedGamesLookup.TryGetValue(parentRomId, out IGame masterGameInstance))
+                        if (masterGameInstance != null && masterRom.Id.HasValue)
                         {
-                            string basePlatformPath = Path.Combine("C:\\LaunchBox\\Games", platformTask.LaunchBoxPlatformName);
-                            string targetDirectory = Path.Combine(basePlatformPath, masterGameInstance.Title);
+                            processedGamesLookup[masterRom.Id.Value] = masterGameInstance;
+                        }
 
-                            if (detailedSibling.Files != null && detailedSibling.Files.Count > 0)
+                        if (platformTask.DownloadMediaFiles)
+                        {
+                            ScheduleMediaDownloads(masterRom, platformTask, chosenProfile, currentSnapshot);
+                        }
+
+                        // =========================================================================
+                        // NEW STEP 4.5: ALSO INJECT MASTER AS AN ADDITIONAL APPLICATION VARIANT
+                        // This ensure Launchbox identifies the game as having multi-versions
+                        // =========================================================================
+                        if (platformTask.UpsertIGame && masterGameInstance != null)
+                        {
+                            if (masterHasFiles)
                             {
-                                foreach (var fileEntry in detailedSibling.Files)
+                                foreach (var masterFile in masterRom.Files)
                                 {
-                                    if (string.IsNullOrEmpty(fileEntry.FileName)) continue;
-
-                                    if (platformTask.UpsertIGame)
-                                    {
-                                        string variantLabel = $"Play Version: {Path.GetFileNameWithoutExtension(fileEntry.FileName)}";
-                                        _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, fileEntry, targetDirectory, variantLabel);
-                                    }
-
-                                    if (installRoms)
-                                    {
-                                        EnqueueRomDownloadJob(platformTask, currentSnapshot, detailedSibling.Id ?? 0, fileEntry, targetDirectory);
-                                    }
+                                    if (string.IsNullOrEmpty(masterFile.FileName)) continue;
+                                    string masterLabel = $"Play Version: {Path.GetFileNameWithoutExtension(masterFile.FileName)}";
+                                    _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, masterFile, targetDirectory, masterLabel);
                                 }
                             }
-                            else if (!string.IsNullOrEmpty(detailedSibling.RommFilename))
+                            else if (!string.IsNullOrEmpty(masterRom.RommFilename))
                             {
-                                if (platformTask.UpsertIGame)
+                                var masterPlaceholderFileDto = new RomFileDTO { FileName = masterRom.RommFilename };
+                                string masterLabel = $"Play Version: {Path.GetFileNameWithoutExtension(masterRom.RommFilename)}";
+                                _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, masterPlaceholderFileDto, targetDirectory, masterLabel);
+                            }
+                        }
+
+                        // =========================================================================
+                        // 5. Append Variant items to the freshly minted master record
+                        // =========================================================================
+                        foreach (var variantRom in variantRoms)
+                        {
+                            if (platformTask.Cts.Token.IsCancellationRequested) break;
+
+                            var detailedVariant = variantRom;
+
+                            // Hydrate file definitions if we are running an active download profile
+                            if (installRoms && (variantRom.Files == null || variantRom.Files.Count == 0))
+                            {
+                                var detailResult = await _rommService.GetRomDetailsAsync(currentSnapshot, variantRom.Id ?? 0, platformTask.Cts.Token);
+                                if (detailResult.IsSuccess && detailResult.Data != null)
                                 {
-                                    var placeholderFileDto = new RomFileDTO { FileName = detailedSibling.RommFilename };
-                                    string variantLabel = $"Play Version: {Path.GetFileNameWithoutExtension(detailedSibling.RommFilename)}";
-                                    _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, placeholderFileDto, targetDirectory, variantLabel);
+                                    detailedVariant = detailResult.Data;
+                                }
+                            }
+
+                            bool variantHasFiles = detailedVariant.Files != null && detailedVariant.Files.Count > 0;
+
+                            if (masterGameInstance != null)
+                            {
+                                if (variantHasFiles)
+                                {
+                                    foreach (var fileEntry in detailedVariant.Files)
+                                    {
+                                        if (string.IsNullOrEmpty(fileEntry.FileName)) continue;
+
+                                        if (platformTask.UpsertIGame)
+                                        {
+                                            string variantLabel = $"Play Version: {Path.GetFileNameWithoutExtension(fileEntry.FileName)}";
+                                            _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, fileEntry, targetDirectory, variantLabel);
+                                        }
+
+                                        if (installRoms)
+                                        {
+                                            EnqueueRomDownloadJob(platformTask, currentSnapshot, detailedVariant.Id ?? 0, fileEntry, targetDirectory);
+                                        }
+                                    }
+                                }
+                                else if (!string.IsNullOrEmpty(detailedVariant.RommFilename))
+                                {
+                                    if (platformTask.UpsertIGame)
+                                    {
+                                        var placeholderFileDto = new RomFileDTO { FileName = detailedVariant.RommFilename };
+                                        string variantLabel = $"Play Version: {Path.GetFileNameWithoutExtension(detailedVariant.RommFilename)}";
+                                        _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, placeholderFileDto, targetDirectory, variantLabel);
+                                    }
                                 }
                             }
                         }
                     }
 
+                    // Enforce download queue tracking restrictions
                     while (_activeFileCounters.TryGetValue(platformTask.Id, out int fileCount) && fileCount > 0)
                     {
                         if (platformTask.Cts.Token.IsCancellationRequested) break;
@@ -559,8 +646,6 @@ namespace RommStar.Core.Sync
                 }
             }
         }
-
-
 
         /// <summary>
         /// Centralized wrapper ensuring identical Job formatting logic across all execution patterns

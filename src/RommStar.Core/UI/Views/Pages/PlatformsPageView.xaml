@@ -163,7 +163,7 @@
                     </ListView>
                 </Border>
 
-                <!-- Bottom Launchbox Notify bar and Buttons -->
+                <!-- Bottom Launchbox Platforms Notify bar and Buttons -->
                 <StackPanel Grid.Row="3">
                     <ui:InfoBar IsClosable="True" IsIconVisible="True" Margin="0,0,10,10" CornerRadius="6"
                                             IsOpen="{Binding LaunchboxPlatformsInfoBar.IsOpen, Mode=TwoWay}"

@@ -15,6 +15,7 @@ using System.Data;
 using System.IO;
 
 using System.Text;
+using Unbroken.LaunchBox.Plugins;
 
 namespace RommStar.Core.UI.ViewModels.Pages
 {
@@ -206,13 +207,23 @@ namespace RommStar.Core.UI.ViewModels.Pages
             // remove unsafe filename chars + trim
             votiNewPlatformName = Core.Helpers.StringsHelper.SanitizeFileName(votiNewPlatformName).Trim();
 
-            // On blank, or platform name already existing (must be unique in lb), return
+            // On blank, or platform name already existing (must be unique in lb), return error
+            // Check rommStar cached platforms
             if (string.IsNullOrWhiteSpace(votiNewPlatformName) ||
                 LaunchboxPlatformItems.Any(lpi => lpi.LaunchboxPlatformName.ToLower() == votiNewPlatformName.ToLower()))
             {
                 SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error", "Platform name was null or already exists. It has to be unique.");
                 return;
             }
+
+            // need to do a check of the actual LB database in case Auto-import cause re-creation 
+            // of the platform without rommstar/user knowing (bloody auto import!)
+            if (PluginHelper.DataManager.GetPlatformByName(votiNewPlatformName) != null)
+            {
+                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error", "Platform name exists in Launchbox backend database. Launchbox Auto-import can sometimes re-create Platforms even after their removal if roms still exist in the platforms folder (may not be visible in Launchbox).");
+                return;
+            }
+
 
             // Success!
             _launchboxService.CreateNewPlatform(votiNewPlatformName);

@@ -1,6 +1,7 @@
 ﻿using RommStar.Core.Dtos;
 using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Extensions;
+using RommStar.Core.Helpers;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Mappers;
 using RommStar.Core.Models;
@@ -238,19 +239,31 @@ namespace RommStar.Core.Services
         }
 
 
-        public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory, string customAppName = null)
+        public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory, string customAppName = null, bool usePlaceholderPath = false)
         {
             if (parentGame == null || fileDto == null || string.IsNullOrEmpty(fileDto.FileName)) return;
 
-            string cleanAppPath = Path.Combine(targetDirectory, fileDto.FileName);
+            // Determine the database lookup path based on whether a virtual placeholder override is requested
+            string cleanAppPath = usePlaceholderPath
+                ? Constants.romPlaceholder
+                : Path.Combine(targetDirectory, fileDto.FileName);
 
             var existingApps = parentGame.GetAllAdditionalApplications();
             var app = existingApps.FirstOrDefault(a => a.ApplicationPath == cleanAppPath);
+
+            var tags = TagHelper.ParseFilename(fileDto.FileName);
 
             if (app == null)
             {
                 app = parentGame.AddNewAdditionalApplication();
                 app.ApplicationPath = cleanAppPath;
+                app.Version = tags.Version;
+                app.Disc = tags.DiscNumber;
+                app.SideA = tags.IsSideA;
+                app.SideB = tags.IsSideB;
+                app.Region = tags.Region;
+                app.Priority = (tags.DiscNumber != null) ? (int)tags.DiscNumber : 0;
+                //app.Version = 
             }
 
             //TODO: implement emulator logic here (from IPLatform?)
@@ -259,6 +272,7 @@ namespace RommStar.Core.Services
 
             // If a specific version name was provided (e.g. from sibling tags), use it
             // TODO: need to implement some logic here to not just branch on "Disc"
+            // Also other AdditionalApplication field computations needed here (eg. calculate disc number, side etc)
             if (!string.IsNullOrEmpty(customAppName))
             {
                 app.Name = customAppName;
@@ -272,6 +286,7 @@ namespace RommStar.Core.Services
                 app.Name = $"Play Variant: {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
             }
         }
+
 
         /// <summary>
         ///
