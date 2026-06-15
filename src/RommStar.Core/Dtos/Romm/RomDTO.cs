@@ -77,6 +77,12 @@ namespace RommStar.Core.Dtos.Romm
 
         [JsonPropertyName("youtube_video_id")]
         public string 
-                            YoutubeVideoId { get; set; }      
+                            YoutubeVideoId { get; set; }
+
+        [JsonPropertyName("rom_user")]
+        public RomUserDTO? 
+                            RomUserData { get; set; }
+
+
     }
 }
