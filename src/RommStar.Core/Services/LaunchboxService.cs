@@ -89,7 +89,7 @@ namespace RommStar.Core.Services
 
                 if (gameCustomFields != null)
                 {
-                    var romIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomId.ToString());
+                    var romIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
                     var serverIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
                     var protectMetadataCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
 
@@ -109,27 +109,22 @@ namespace RommStar.Core.Services
         }
 
 
-        public async Task<bool> SyncRommDto(RomDTO rommDTO)
+        public async Task<IGame> SyncRommDto(RomDTO rommDTO, string customRomIdsCsv = null)
         {
-            bool? hasMatchingLaunchboxId = _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId);
-            bool? hasMatchingRommId = _platformRommIds.Contains(rommDTO.Id);
-            bool? hasMatchingServerId = _platformServerIds.Contains(_operativeServerId);
+            bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue && _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
+            bool hasMatchingRommId = rommDTO.Id.HasValue && _platformRommIds.Contains(rommDTO.Id.Value);
+            bool hasMatchingServerId = !string.IsNullOrEmpty(_operativeServerId) &&
+                                       (_platformServerIds.Contains(_operativeServerId) || _platformHelperMap.Any(m => m.RommServerId == _operativeServerId));
 
             MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId);
-
-            // This determines what action needs to happen from the permutations of all 5 booleans: Ignore, Update, Insert, InsertAndDelete
             MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
-
-            // Need to determine if IGame object is existing one from LB, or a new one. Also, what to retrieve it by. 
 
             IGame game = null;
 
             if (syncAction == MetadataSyncAction.Update)
             {
-                // UPDATE existing IGame -------------------------------------------------
                 MetadataSyncHelperMap metadataSyncHelperMap;
                 string launchboxLocalId;
-
 
                 if (hasMatchingRommId == true && hasMatchingServerId == true)
                 {
@@ -140,8 +135,18 @@ namespace RommStar.Core.Services
                     metadataSyncHelperMap = _platformHelperMap.Single(pg => pg.LbDatabaseId == rommDTO.LaunchboxId);
                 }
                 launchboxLocalId = metadataSyncHelperMap.LocalId;
-
                 game = PluginHelper.DataManager.GetGameById(launchboxLocalId);
+
+                // Update Romm ID Tracking Custom Field on existing games if a new context list is provided
+                if (game != null && !string.IsNullOrEmpty(customRomIdsCsv))
+                {
+                    var existingFields = game.GetAllCustomFields();
+                    var targetField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
+                    if (targetField != null)
+                    {
+                        targetField.Value = customRomIdsCsv;
+                    }
+                }
 
                 var localAltNames = game.GetAllAlternateNames();
                 foreach (var altName in rommDTO.AlternativeNames.Distinct())
@@ -151,21 +156,20 @@ namespace RommStar.Core.Services
                         var newAltName = game.AddNewAlternateName();
                         newAltName.Name = altName;
                     }
-                    // TODO: Also has Region field - but don't think I can marry romm api response to this
                 }
             }
             else if (syncAction == MetadataSyncAction.Insert)
             {
-                // INSERT new IGame -------------------------------------------------
                 game = PluginHelper.DataManager.AddNewGame(rommDTO.Name);
                 game.Installed = false;
                 game.ApplicationPath = Constants.romPlaceholder;
 
-                // Add RommStar Custom fields
+                // Use custom aggregated CSV string if provided (Scenario 2), otherwise default to standard singular ID string
+                string finalRomIdsValue = !string.IsNullOrEmpty(customRomIdsCsv) ? customRomIdsCsv : Convert.ToString(rommDTO.Id);
 
                 var romIdCustomField = game.AddNewCustomField();
-                romIdCustomField.Name = CustomFieldTypes.Romm_RomId.ToString();
-                romIdCustomField.Value = Convert.ToString(rommDTO.Id);
+                romIdCustomField.Name = CustomFieldTypes.Romm_RomIds.ToString();
+                romIdCustomField.Value = finalRomIdsValue;
 
                 var serverIdCustomField = game.AddNewCustomField();
                 serverIdCustomField.Name = CustomFieldTypes.Romm_ServerId.ToString();
@@ -175,7 +179,6 @@ namespace RommStar.Core.Services
                 protectMetadataCustomField.Name = CustomFieldTypes.Romm_ProtectMetadata.ToString();
                 protectMetadataCustomField.Value = "false";
 
-                // Add alternate names (Mapper can't do this).
                 foreach (var altName in rommDTO.AlternativeNames.Distinct())
                 {
                     if (altName != rommDTO.Name)
@@ -183,25 +186,22 @@ namespace RommStar.Core.Services
                         var newAltName = game.AddNewAlternateName();
                         newAltName.Name = altName;
                     }
-                    // TODO: Also has Region field - but don't think I can marry romm api response to this
                 }
-
-                // now install a placeholder file in 
-
             }
 
-            game.Platform = _operationalPlatform.Name;
-
-            switch (syncAction)
+            if (game != null)
             {
-                case MetadataSyncAction.Insert or MetadataSyncAction.Update:
-                    _romMapper.RommRomDtoToIGame(rommDTO, game);
-                    break;
+                game.Platform = _operationalPlatform.Name;
+
+                switch (syncAction)
+                {
+                    case MetadataSyncAction.Insert or MetadataSyncAction.Update:
+                        _romMapper.RommRomDtoToIGame(rommDTO, game);
+                        break;
+                }
             }
 
-            //ToDO: need to addAlternative game names (RomDTO.AlternativeNames) to each Igame. 
-
-            return false;
+            return game;
         }
 
 
@@ -235,6 +235,42 @@ namespace RommStar.Core.Services
         {
             var newPlatform = PluginHelper.DataManager.AddNewPlatform(platformName);
             PluginHelper.DataManager.Save();
+        }
+
+
+        public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory, string customAppName = null)
+        {
+            if (parentGame == null || fileDto == null || string.IsNullOrEmpty(fileDto.FileName)) return;
+
+            string cleanAppPath = Path.Combine(targetDirectory, fileDto.FileName);
+
+            var existingApps = parentGame.GetAllAdditionalApplications();
+            var app = existingApps.FirstOrDefault(a => a.ApplicationPath == cleanAppPath);
+
+            if (app == null)
+            {
+                app = parentGame.AddNewAdditionalApplication();
+                app.ApplicationPath = cleanAppPath;
+            }
+
+            //TODO: implement emulator logic here (from IPLatform?)
+            //app.UseEmulator = true;
+            //app.HasCloudSynced = true;
+
+            // If a specific version name was provided (e.g. from sibling tags), use it
+            // TODO: need to implement some logic here to not just branch on "Disc"
+            if (!string.IsNullOrEmpty(customAppName))
+            {
+                app.Name = customAppName;
+            }
+            else if (fileDto.FileName.Contains("Disc", StringComparison.OrdinalIgnoreCase))
+            {
+                app.Name = $"Play {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
+            }
+            else
+            {
+                app.Name = $"Play Variant: {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
+            }
         }
 
         /// <summary>

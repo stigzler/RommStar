@@ -112,6 +112,30 @@ namespace RommStar.Core.Services
             }
         }
 
+        public async Task<RommApiResponse<RomDTO>> GetRomDetailsAsync(RommServer server, int romId, CancellationToken externalToken = default)
+        {
+            string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/roms/{romId}";
+
+            var response = await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
+            if (!response.IsSuccess)
+            {
+                return RommApiResponse<RomDTO>.Fail(response.FailureReason, response.ExceptionMessage);
+            }
+
+            try
+            {
+                using var contentStream = await response.HttpResponse.Content.ReadAsStreamAsync();
+                var romDetail = await JsonSerializer.DeserializeAsync<RomDTO>(contentStream, _jsonOptions);
+                response.HttpResponse?.Dispose();
+                return RommApiResponse<RomDTO>.SuccessWithData(response.HttpResponse!, romDetail ?? new RomDTO());
+            }
+            catch (Exception ex)
+            {
+                response.HttpResponse?.Dispose();
+                return RommApiResponse<RomDTO>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
+            }
+        }
+
         // =========================================================================
         // CENTRALIZED PLUMBING (Timeout Gateway)
         // =========================================================================

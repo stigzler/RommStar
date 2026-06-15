@@ -13,6 +13,14 @@ namespace RommStar.Core.Dtos.Romm
         public List<string>?
                             AlternativeNames { get; set; }
 
+        [JsonPropertyName("files")]
+        public List<RomFileDTO>? 
+                            Files { get; set; }
+
+        [JsonPropertyName("fs_name")]
+        public string 
+                            RommFilename { get; set; }    
+
         [JsonPropertyName("has_multiple_files")]
         public bool?
                             HasMultipleFiles { get; set; }
@@ -59,9 +67,14 @@ namespace RommStar.Core.Dtos.Romm
         [JsonPropertyName("name")]
         public string
                             Name { get; set; }
+
         [JsonPropertyName("regions")]
         public List<string>?
                             Regions { get; set; }
+
+        [JsonPropertyName("rom_user")]
+        public RomUserDTO?
+                            RomUserData { get; set; }
 
         [JsonPropertyName("ss_id")]
         public int?
@@ -71,6 +84,11 @@ namespace RommStar.Core.Dtos.Romm
         public List<SiblingRomDTO>?
                             SiblingRoms { get; set; }
 
+        [JsonPropertyName("slug")]
+        public string? 
+                            Slug { get; set; }
+
+
         [JsonPropertyName("summary")]
         public string
                             Summary { get; set; }
@@ -78,11 +96,5 @@ namespace RommStar.Core.Dtos.Romm
         [JsonPropertyName("youtube_video_id")]
         public string 
                             YoutubeVideoId { get; set; }
-
-        [JsonPropertyName("rom_user")]
-        public RomUserDTO? 
-                            RomUserData { get; set; }
-
-
     }
 }
