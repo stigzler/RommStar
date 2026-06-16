@@ -13,13 +13,13 @@ namespace RommStar.Core.Dtos.Romm
         public List<string>?
                             AlternativeNames { get; set; }
 
-        [JsonPropertyName("files")]
-        public List<RomFileDTO>? 
-                            Files { get; set; }
+        [JsonPropertyName("merged_screenshots")]
+        public List<string>?
+                    MergedScreenshots { get; set; }
 
-        [JsonPropertyName("fs_name")]
-        public string 
-                            RommFilename { get; set; }    
+        [JsonPropertyName("files")]
+        public List<RomFileDTO>?
+                            Files { get; set; }
 
         [JsonPropertyName("has_multiple_files")]
         public bool?
@@ -53,6 +53,22 @@ namespace RommStar.Core.Dtos.Romm
         public int?
                             LaunchboxId { get; set; }
 
+        [JsonPropertyName("path_cover_large")]
+        public string?
+                            MediaBoxFront { get; set; }
+
+        [JsonPropertyName("path_cover_small")]
+        public string?
+                            MediaBoxFrontSmall { get; set; }
+
+        [JsonPropertyName("path_manual")]
+        public string?
+                            MediaManual { get; set; }
+
+        [JsonPropertyName("path_video")]
+        public string?
+                            MediaVideo { get; set; }
+
         [JsonPropertyName("metadatum")]
         public RomMetadatumDTO?
                             Metadatum { get; set; }
@@ -72,9 +88,16 @@ namespace RommStar.Core.Dtos.Romm
         public List<string>?
                             Regions { get; set; }
 
+        [JsonPropertyName("fs_name")]
+        public string
+                            RommFilename { get; set; }
         [JsonPropertyName("rom_user")]
         public RomUserDTO?
                             RomUserData { get; set; }
+
+        [JsonPropertyName("ss_metadata")]
+        public RomScreenscraperMetadataDTO?
+                            ScreenscrapeMetadata { get; set; }
 
         [JsonPropertyName("ss_id")]
         public int?
@@ -85,16 +108,16 @@ namespace RommStar.Core.Dtos.Romm
                             SiblingRoms { get; set; }
 
         [JsonPropertyName("slug")]
-        public string? 
+        public string?
                             Slug { get; set; }
 
 
         [JsonPropertyName("summary")]
-        public string
+        public string?
                             Summary { get; set; }
 
         [JsonPropertyName("youtube_video_id")]
-        public string 
+        public string?
                             YoutubeVideoId { get; set; }
     }
 }
