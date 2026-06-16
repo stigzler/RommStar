@@ -36,6 +36,8 @@ namespace RommStar.Core.Sync
 
         private readonly LaunchboxService _launchboxService;
 
+        private readonly SettingsService _settingsService;
+
         /// <summary>
         /// Channel pipelines handling FIFO operations natively across background threads
         /// </summary>
@@ -53,14 +55,8 @@ namespace RommStar.Core.Sync
         /// </summary>
         public ObservableCollection<PlatformSyncJob> ActiveSyncJobs { get; } = new();
 
-        /// <summary>
-        /// Media Profiles configuration sets
-        /// </summary>
-        public MediaSelectionProfile CatalogMediaProfile { get; set; } = new() { BoxFront = true, Screenshots = true };
 
-        public MediaSelectionProfile InstallMediaProfile { get; set; } = new() { BoxFront = true, Box3D = true, Videos = true, Manuals = true, Music = true };
-
-        public SyncManager(RommServer initialServer, RommService rommService, LaunchboxService launchboxService)
+        public SyncManager(RommServer initialServer, RommService rommService, LaunchboxService launchboxService, SettingsService settingsService)
         {
             // Thread-safe client initialization without global default authorization headers
             _client = new HttpClient();
@@ -72,6 +68,7 @@ namespace RommStar.Core.Sync
 
             _rommService = rommService;
             _launchboxService = launchboxService;
+            _settingsService = settingsService;
         }
 
         public event Action<PlatformSyncJob>? OnSyncCompletedNotification;
@@ -217,18 +214,18 @@ namespace RommStar.Core.Sync
             // TODO: Reinstate from new DTOs
             //if (profile.BoxFront && !string.IsNullOrEmpty(romDto.BoxFrontUrl))
             //{
-            EnqueueFileDownload(new DownloadJob
-            {
-                JobId = task.Id, // Link media download job to Guid
-                JobType = DownloadJobType.Media,
-                //RelativeUrl = romDto.BoxFrontUrl,
-                RelativeUrl = "romDto.BoxFrontUrl",
-                DestinationPath = Path.Combine("C:\\LaunchBox\\Images", task.LaunchBoxPlatformName, "Box - Front", $"{rom.Name}.png"),
-                LaunchBoxPlatformName = task.LaunchBoxPlatformName,
-                ServerContext = server,
-                UiCard = task.UiCard,
-                CancellationToken = task.Cts.Token
-            });
+            //EnqueueFileDownload(new DownloadJob
+            //{
+            //    JobId = task.Id, // Link media download job to Guid
+            //    JobType = DownloadJobType.Media,
+            //    //RelativeUrl = romDto.BoxFrontUrl,
+            //    RelativeUrl = "romDto.BoxFrontUrl",
+            //    DestinationPath = Path.Combine("C:\\LaunchBox\\Images", task.LaunchBoxPlatformName, "Box - Front", $"{rom.Name}.png"),
+            //    LaunchBoxPlatformName = task.LaunchBoxPlatformName,
+            //    ServerContext = server,
+            //    UiCard = task.UiCard,
+            //    CancellationToken = task.Cts.Token
+            //});
             //}
             // Replicate block cleanly for Box3D, Videos, Manuals, etc.
         }
@@ -301,7 +298,10 @@ namespace RommStar.Core.Sync
                         || platformTask.SyncSettings.SyncProfile == SyncProfileTypes.DownloadRom;
 
                     // determine which profile to use (install = minimal media - eg boxart; Catalg = full (eg when game installed)
-                    var chosenProfile = installRoms ? InstallMediaProfile : CatalogMediaProfile;
+                    // REPLACE WITH THIS:
+                    var chosenProfile = installRoms
+                        ? _settingsService.Settings.InstallMediaProfile
+                        : _settingsService.Settings.SyncMediaProfile;
 
                     // IGame creation complicated - essentially a two-pass process. This used in tracking which have already been added
                     var processedGamesLookup = new Dictionary<int, IGame>();

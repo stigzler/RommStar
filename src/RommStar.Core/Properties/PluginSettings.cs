@@ -32,9 +32,19 @@ namespace RommStar.Core.Properties
         public string YouTubeStub { get; set; } = "https://www.youtube.com/watch?v=";
 
         /// <summary>
-        /// In lieu of future development letting you choose your preferred standard. 
+        /// In lieu of future development letting you choose your preferred standard. Not in UI
         /// </summary>
         public RatingStandard RatingStandard { get; set; } = RatingStandard.ESRB;
+
+        /// <summary>
+        /// Selected media items to pull during background metadata synchronizations.
+        /// </summary>
+        public MediaSelectionProfile SyncMediaProfile { get; set; } = new();
+
+        /// <summary>
+        /// Selected media items to pull when performing an on-demand game installation.
+        /// </summary>
+        public MediaSelectionProfile InstallMediaProfile { get; set; } = new();
 
     }
 }

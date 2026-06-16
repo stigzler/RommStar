@@ -137,7 +137,9 @@ namespace RommStar.Core.UI.ViewModels.Pages
             new LaunchboxService(new RomMapper(new SettingsService(new CryptoService()))),
             new RommService(),
             new LoggingService(),
-            new SyncManager(new RommServer(), new RommService(), new LaunchboxService(new RomMapper(new SettingsService(new CryptoService()))))
+            new SyncManager(new RommServer(), new RommService(), 
+                new LaunchboxService(new RomMapper(new SettingsService(new CryptoService()))) // urgh. boy, thas uuuggllleeeeee! 🤮
+                , new SettingsService(new CryptoService()))
             )
         {
             // any test data
