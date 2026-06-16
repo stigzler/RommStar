@@ -33,7 +33,6 @@ namespace RommStar.Core.Sync
 
         public string LaunchBoxPlatformName { get; set; } = string.Empty;
         public string ServerName { get; set; } = string.Empty;
-
         public double ProgressPercentage => TotalItems == 0 ? 0 : ((double)ProcessedItems / TotalItems) * 100;
     }
 }

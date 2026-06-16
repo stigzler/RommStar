@@ -16,10 +16,11 @@ namespace RommStar.Core.Dtos
         public string SortTitleOrTitle { get; set; }
         public string ScrapeAs { get; set; }
         public bool DisableAutoImport { get; set; }
+        public string RomFolder  { get; set; }
 
-        public LaunchboxPlatformItemVM ToLaunchboxPlatformItem()
-        {
-            return new LaunchboxPlatformItemVM(Name);
-        }
+        //public LaunchboxPlatformItemVM ToLaunchboxPlatformItem()
+        //{
+        //    return new LaunchboxPlatformItemVM(Name);
+        //}
     }
 }

@@ -1,19 +1,12 @@
 ﻿using RommStar.Core.Dtos;
 using RommStar.Core.Dtos.Romm;
-using RommStar.Core.Extensions;
 using RommStar.Core.Helpers;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Mappers;
 using RommStar.Core.Models;
 using RommStar.Core.Sync;
-using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.IO;
-using System.Linq;
-using System.Windows.Media.Media3D;
 using System.Xml.Linq;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
@@ -96,7 +89,9 @@ namespace RommStar.Core.Services
 
                     gameIdMap.RommId = (romIdCustomField != null) ? Convert.ToInt32(romIdCustomField.Value) : null;
                     gameIdMap.RommServerId = (serverIdCustomField != null) ? serverIdCustomField.Value : null;
-                    gameIdMap.ProtectMetadata = (protectMetadataCustomField != null) ? Convert.ToBoolean(protectMetadataCustomField.Value) : null;
+
+                    bool.TryParse(protectMetadataCustomField?.Value, out var boolResult);
+                    gameIdMap.ProtectMetadata = boolResult;
                 }
 
                 _platformHelperMap.Add(gameIdMap);
@@ -114,6 +109,7 @@ namespace RommStar.Core.Services
         {
             bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue && _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
             bool hasMatchingRommId = rommDTO.Id.HasValue && _platformRommIds.Contains(rommDTO.Id.Value);
+            
             bool hasMatchingServerId = !string.IsNullOrEmpty(_operativeServerId) &&
                                        (_platformServerIds.Contains(_operativeServerId) || _platformHelperMap.Any(m => m.RommServerId == _operativeServerId));
 
@@ -121,6 +117,8 @@ namespace RommStar.Core.Services
             MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
 
             IGame game = null;
+            bool metadataProtected = false;
+
 
             if (syncAction == MetadataSyncAction.Update)
             {
@@ -135,17 +133,33 @@ namespace RommStar.Core.Services
                 {
                     metadataSyncHelperMap = _platformHelperMap.Single(pg => pg.LbDatabaseId == rommDTO.LaunchboxId);
                 }
+
                 launchboxLocalId = metadataSyncHelperMap.LocalId;
                 game = PluginHelper.DataManager.GetGameById(launchboxLocalId);
+
+                // Get RommStar IGame.CustomFields if exist
+                var existingFields = game.GetAllCustomFields();
+
+                // test if metadata flagge as protected. If so, set flag
+                var romProtectMetadataField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
+                if (romProtectMetadataField != null)
+                    bool.TryParse(existingFields?.FirstOrDefault(gcf =>
+                                                            gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString()).Value,
+                                                            out metadataProtected);
+                {
+
+
+                    //metadataProtected = Convert.ToBoolean(existingFields?.FirstOrDefault(gcf =>
+                    //                                        gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString()));
+                }
 
                 // Update Romm ID Tracking Custom Field on existing games if a new context list is provided
                 if (game != null && !string.IsNullOrEmpty(customRomIdsCsv))
                 {
-                    var existingFields = game.GetAllCustomFields();
-                    var targetField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
-                    if (targetField != null)
+                    var romIdsField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
+                    if (romIdsField != null)
                     {
-                        targetField.Value = customRomIdsCsv;
+                        romIdsField.Value = customRomIdsCsv;
                     }
                 }
 
@@ -196,8 +210,13 @@ namespace RommStar.Core.Services
 
                 switch (syncAction)
                 {
-                    case MetadataSyncAction.Insert or MetadataSyncAction.Update:
+                    // This actually does the lb database IGame population.
+                    case MetadataSyncAction.Insert:
                         _romMapper.RommRomDtoToIGame(rommDTO, game);
+                        break;
+                    case MetadataSyncAction.Update:
+                        if (!metadataProtected)
+                            _romMapper.RommRomDtoToIGame(rommDTO, game);
                         break;
                 }
             }
@@ -208,7 +227,7 @@ namespace RommStar.Core.Services
 
         public List<LaunchboxPlatformDTO> GetPlatforms()
         {
-            var livePlatforms = PluginHelper.DataManager.GetAllPlatforms();
+            IPlatform[] livePlatforms = PluginHelper.DataManager.GetAllPlatforms();
             if (livePlatforms == null) return new List<LaunchboxPlatformDTO>();
 
             return livePlatforms.Select(p => new LaunchboxPlatformDTO
@@ -216,6 +235,7 @@ namespace RommStar.Core.Services
                 Name = p.Name,
                 ScrapeAs = p.ScrapeAs,
                 SortTitle = p.SortTitle,
+                RomFolder = p.Folder
                 // If you need NestedName or SortTitleOrTitle, calculate them cleanly here
             })
             .OrderBy(p => p.Name)

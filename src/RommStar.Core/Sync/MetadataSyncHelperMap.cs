@@ -39,7 +39,7 @@ namespace RommStar.Core.Sync
         /// <summary>
         /// Used in adding/testing IGame custom fields
         /// </summary>
-        public bool? ProtectMetadata { get; set; }
+        public bool ProtectMetadata { get; set; } = false;
 
         public MetadataSyncHelperMap(string localId)
         {

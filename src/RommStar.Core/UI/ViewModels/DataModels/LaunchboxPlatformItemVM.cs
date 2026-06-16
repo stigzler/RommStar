@@ -25,6 +25,14 @@ public partial class LaunchboxPlatformItemVM : ObservableObject
         _launchboxPlatformName = string.Empty;
 
     [ObservableProperty]
+    private string
+        _launchboxPlatformRomFolder = string.Empty;
+
+    [ObservableProperty]
+    private string
+        _romFolder = string.Empty;
+
+    [ObservableProperty]
     private ObservableCollection<PlatformDTO>
         _matchedRommPlatforms = new ObservableCollection<PlatformDTO>();
 
@@ -46,15 +54,29 @@ public partial class LaunchboxPlatformItemVM : ObservableObject
     private List<String>
         _errors = new List<string>();
 
-    //public int MappedRommPlatformsCount => MatchedRommPlatforms.Count();
+    partial void OnLaunchboxPlatformRomFolderChanged(string value)
+    {
+        if (String.IsNullOrEmpty(value))
+        {
+            LaunchboxPlatformRomFolder = $"Games\\{LaunchboxPlatformName}";
+        }
+    }
 
     public LaunchboxPlatformItemVM()
     {
     }
 
-    public LaunchboxPlatformItemVM(string name)
+    public LaunchboxPlatformItemVM(string name, string launchboxPlatformRomFolder)
     {
         LaunchboxPlatformName = name;
+
+        // This controls for launchbox's odd behavior with blank rom folder names
+        // (he must have hardcoded null > the path logic below. Naughty.)
+        if (String.IsNullOrEmpty(launchboxPlatformRomFolder))
+        {
+            launchboxPlatformRomFolder = $"Games\\{LaunchboxPlatformName}";
+        }
+        LaunchboxPlatformRomFolder = launchboxPlatformRomFolder;
     }
 
     public void RefreshIcon()

@@ -5,11 +5,19 @@ namespace RommStar.Core.Models
     /// </summary>
     public class MediaSelectionProfile
     {
-        public bool BoxFront { get; set; }
+        public bool Bezel { get; set; }
         public bool Box3D { get; set; }
-        public bool Screenshots { get; set; }
-        public bool Manuals { get; set; }
-        public bool Videos { get; set; }
+        public bool BoxBack { get; set; }
+        public bool BoxFront { get; set; } = true;
+        public bool FanArt { get; set; }
+        public bool Logo { get; set; }
+        public bool Manual { get; set; }
+        public bool Marquee { get; set; }
+        public bool MixImage { get; set; }
         public bool Music { get; set; }
+        public bool PhysicalMedia { get; set; }
+        public bool Screenshot { get; set; }
+        public bool TitleScreen { get; set; }       
+        public bool Video { get; set; }
     }
 }

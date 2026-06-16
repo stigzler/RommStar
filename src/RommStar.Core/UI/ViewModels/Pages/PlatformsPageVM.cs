@@ -308,7 +308,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             foreach (var liveLbPlatform in liveLbPlatformDtos)
             {
-                LaunchboxPlatformItemVM newLaunchboxPlatformItemVM = new LaunchboxPlatformItemVM(liveLbPlatform.Name);
+                LaunchboxPlatformItemVM newLaunchboxPlatformItemVM = new LaunchboxPlatformItemVM(liveLbPlatform.Name, liveLbPlatform.RomFolder);
 
                 string votiIconPath = _launchboxService.GetPlatformIconPath(liveLbPlatform.Name);
 
@@ -640,7 +640,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             if (SelectedPlatform.ExtendedSyncSettings.ApplySettings)
                 resolvedExtSyncSettings = SelectedPlatform.ExtendedSyncSettings;
 
-            _syncManager?.QueuePlatformSync(SelectedPlatform.LaunchboxPlatformName,
+            _syncManager?.QueuePlatformSync(SelectedPlatform.LaunchboxPlatformName, SelectedPlatform.LaunchboxPlatformRomFolder,
                                             rommPlatformIds,
                                             resolvedExtSyncSettings,
                                             SelectedPlatform.AssignedServerItem.RommServer);

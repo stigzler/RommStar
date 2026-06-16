@@ -2,10 +2,17 @@
 
 ## Key Points that User MUST know
 
+### For RommStar
+
 - If using Launchbox scrape in Romm, **MUST** use "Local" (as the local LB Game db uses the db3 ids for launchboxdatabaseId). If uses "Cloud" - will get very mismatched results!
 - User MUST be careful about romm auto-import to avoid contension over metadata scrapes.
 - It is better to have the romm server in a 'canon' state (ie. all games are 'sealed' and no deleting re-adding will take place). Game CAN be added to the server platform, but not existing rejigged.
 - Your rom sets matter!! RommStar discerns things like multi-disk games form the filenames. Make sure you use standards (list which rommstar recognises). You can do this by hand later via edit metadata.
+
+### For RomM Server maintainers
+
+- Use Screenscraper. This gets lots more media items (clear logo etc) that can populate your launchbox clients more fully.
+-
 
 App could check settings and warn user at some point: relevant settings:
 
