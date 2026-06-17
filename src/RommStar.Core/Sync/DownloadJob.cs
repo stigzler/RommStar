@@ -13,6 +13,9 @@ namespace RommStar.Core.Sync
         /// </summary>
         public Guid JobId { get; set; }
         public DownloadJobType JobType { get; set; }
+
+        public MediaType? MediaType { get; set; }
+        public string RomName { get; set; }
         public string RelativeUrl { get; set; } = string.Empty;
         public string DestinationPath { get; set; } = string.Empty;
         public string LaunchBoxPlatformName { get; set; } = string.Empty;

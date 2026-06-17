@@ -7,6 +7,7 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Runtime.Intrinsics.Arm;
 using System.Threading.Channels;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
@@ -302,6 +303,8 @@ namespace RommStar.Core.Sync
                 {
                     JobId = task.Id,
                     JobType = DownloadJobType.Media,
+                    MediaType = item.MediaType,
+                    RomName = rom.Name,
                     RelativeUrl = item.DownloadUrl,
                     DestinationPath = item.TargetLocalPath,
                     LaunchBoxPlatformName = task.PlatformName,
@@ -329,9 +332,26 @@ namespace RommStar.Core.Sync
                     bool success = await StreamFileFromNetworkAsync(job.RelativeUrl, job.DestinationPath, job.ServerContext, job.CancellationToken);
 
                     if (!success && job.UiCard != null && !job.CancellationToken.IsCancellationRequested)
+                    {
                         job.UiCard.ErrorCount++;
+
+                        // Check if we have a specific media type, otherwise fallback to "Media" or "ROM"
+                        string typeLabel = job.JobType == DownloadJobType.Rom ? "ROM"
+                                           : (!string.IsNullOrEmpty(job.MediaType.ToString()) ? job.MediaType.ToString() : "Media");
+
+                        job.UiCard.AddLog($"Failed downloading {typeLabel} ({Path.GetFileName(job.DestinationPath)}) for '{job.RomName}'", PlatformSyncJob.LogType.Error);
+                    }
                     else if (success)
+                    {
                         job.OnSuccessCallback?.Invoke();
+
+                        // Check if we have a specific media type, otherwise fallback to "Media" or "ROM"
+                        string typeLabel = job.JobType == DownloadJobType.Rom ? "ROM"
+                                           : (!string.IsNullOrEmpty(job.MediaType.ToString()) ? job.MediaType.ToString() : "Media");
+
+                        job.UiCard.AddLog($"Downloaded {typeLabel} ({Path.GetFileName(job.DestinationPath)}) for '{job.RomName}'", PlatformSyncJob.LogType.Success);
+                    }
+
 
                     if (job.UiCard != null) job.UiCard.ProcessedItems++;
                     _activeFileCounters.AddOrUpdate(job.JobId, 0, (key, current) => current - 1);
@@ -491,10 +511,22 @@ namespace RommStar.Core.Sync
                                     if (platformTask.UpsertIGame)
                                     {
                                         targetedGame = await _launchboxService.SyncRommDto(detailedRomDto);
-                                        if (targetedGame != null && installRoms && !string.IsNullOrEmpty(primaryFile.FileName))
+
+                                        if (targetedGame != null)
                                         {
-                                            // For on-demand profiles, assign the plugin installation placeholder string ("Installation Required" or similar)
-                                            targetedGame.ApplicationPath = Constants.romPlaceholder;
+                                            // 1. Handle ApplicationPath logic securely
+                                            if (installRoms && !string.IsNullOrEmpty(primaryFile.FileName))
+                                            {
+                                                targetedGame.ApplicationPath = Constants.romPlaceholder;
+                                            }
+
+                                            // 2. Log Success properly regardless of the profile type
+                                            platformTask.UiCard.AddLog($"Successfully synced metadata for multi-disc game '{detailedRomDto.Name}'", PlatformSyncJob.LogType.Process);
+                                        }
+                                        else
+                                        {
+                                            // Triggers ONLY if SyncRommDto completely fails / returns null
+                                            platformTask.UiCard.AddLog($"Failed to process metadata for '{detailedRomDto.Name}' in LaunchBox database", PlatformSyncJob.LogType.Error);
                                         }
                                     }
 
@@ -518,7 +550,7 @@ namespace RommStar.Core.Sync
 
                                         if (installRoms)
                                         {
-                                            EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, fileEntry, targetDirectory);
+                                            EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, fileEntry, targetDirectory, detailedRomDto.Name);
                                         }
                                     }
 
@@ -557,6 +589,15 @@ namespace RommStar.Core.Sync
                                     if (platformTask.UpsertIGame)
                                     {
                                         targetedGame = await _launchboxService.SyncRommDto(detailedRomDto);
+
+                                        if (targetedGame != null)
+                                        {
+                                            platformTask.UiCard.AddLog($"Successfully synced metadata for '{detailedRomDto.Name}'", PlatformSyncJob.LogType.Process);
+                                        }
+                                        else
+                                        {
+                                            platformTask.UiCard.AddLog($"Failed to process metadata for '{detailedRomDto.Name}' in LaunchBox database", PlatformSyncJob.LogType.Error);
+                                        }
                                     }
 
                                     if (hasFiles)
@@ -575,7 +616,7 @@ namespace RommStar.Core.Sync
 
                                             if (installRoms)
                                             {
-                                                EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, singleFile, targetDirectory);
+                                                EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, singleFile, targetDirectory, detailedRomDto.Name);
                                             }
                                         }
                                     }
@@ -646,6 +687,15 @@ namespace RommStar.Core.Sync
                             if (platformTask.UpsertIGame)
                             {
                                 masterGameInstance = await _launchboxService.SyncRommDto(masterRom, aggregatedRomIdsCsv);
+
+                                if (masterGameInstance != null)
+                                {
+                                    platformTask.UiCard.AddLog($"Successfully synced multi-version group master metadata for '{masterRom.Name}'", PlatformSyncJob.LogType.Process);
+                                }
+                                else
+                                {
+                                    platformTask.UiCard.AddLog($"Failed to process multi-version group metadata for '{masterRom.Name}'", PlatformSyncJob.LogType.Error);
+                                }
                             }
 
                             bool masterHasFiles = masterRom.Files != null && masterRom.Files.Count > 0;
@@ -663,7 +713,7 @@ namespace RommStar.Core.Sync
 
                                     if (installRoms)
                                     {
-                                        EnqueueRomDownloadJob(platformTask, currentServer, masterRom.Id ?? 0, masterFile, targetDirectory);
+                                        EnqueueRomDownloadJob(platformTask, currentServer, masterRom.Id ?? 0, masterFile, targetDirectory, masterRom.Name);
                                     }
                                 }
                             }
@@ -745,7 +795,7 @@ namespace RommStar.Core.Sync
 
                                             if (installRoms)
                                             {
-                                                EnqueueRomDownloadJob(platformTask, currentServer, detailedVariant.Id ?? 0, fileEntry, targetDirectory);
+                                                EnqueueRomDownloadJob(platformTask, currentServer, detailedVariant.Id ?? 0, fileEntry, targetDirectory, detailedVariant.Name);
                                             }
                                         }
                                     }
@@ -779,7 +829,7 @@ namespace RommStar.Core.Sync
                         jobStopwatch.Stop();
                         string totalDuration = FormatElapsedTime(jobStopwatch.Elapsed);
 
-                       throw new Exception("Test Exception");
+                        //throw new Exception("Test Exception");
 
                         if (platformTask.Cts.Token.IsCancellationRequested)
                         {
@@ -790,11 +840,8 @@ namespace RommStar.Core.Sync
                         {
                             platformTask.UiCard.Status = platformTask.UiCard.ErrorCount > 0 ? SyncStatus.CompletedWithErrors : SyncStatus.Completed;
                             OnSyncCompletedNotification?.Invoke(platformTask.UiCard);
-                            platformTask.UiCard.AddLog($"SyncManager completed successfully in {totalDuration}", PlatformSyncJob.LogType.Process);
+                            platformTask.UiCard.AddLog($"SyncManager completed successfully in {totalDuration}", PlatformSyncJob.LogType.Success);
                         }
-
- 
-
                     }
                     catch (Exception ex)
                     {
@@ -815,7 +862,7 @@ namespace RommStar.Core.Sync
                         // FIX: Ensure cleaning dictionaries always fires to prevent data leaks across sync retry bounds
                         _activeFileCounters.TryRemove(platformTask.Id, out _);
                         _activeTokens.TryRemove(platformTask.Id, out _);
-                    }                    
+                    }
 
                     _activeFileCounters.TryRemove(platformTask.Id, out _);
                     _activeTokens.TryRemove(platformTask.Id, out _);
@@ -827,12 +874,13 @@ namespace RommStar.Core.Sync
         /// Centralized wrapper ensuring identical Job formatting logic across all execution patterns
         /// </summary>
         private void EnqueueRomDownloadJob(PlatformSyncTask platformTask, RommServer currentSnapshot,
-            int romId, RomFileDTO fileDto, string targetDirectory)
+            int romId, RomFileDTO fileDto, string targetDirectory, string romName)
         {
             EnqueueFileDownload(new DownloadJob
             {
                 JobId = platformTask.Id,
                 JobType = DownloadJobType.Rom,
+                RomName = romName,
                 LaunchBoxPlatformName = platformTask.PlatformName,
                 ServerContext = currentSnapshot,
                 UiCard = platformTask.UiCard,
