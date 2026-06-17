@@ -26,6 +26,8 @@ namespace RommStar.Core.Services
 
         private bool _deleteOldServerRoms = true;
 
+        private string? _emulatorId = null;
+
         private RomMapper _romMapper;
 
 
@@ -60,12 +62,13 @@ namespace RommStar.Core.Services
         }
 
 
-        public bool SetupGameUpserts(string platformName, string serverId, ExtendedSyncSettings syncSettings)
+        public bool SetupGameUpserts(string platformName, string emulatorID, string serverId, ExtendedSyncSettings syncSettings)
         {
             _operationalPlatform = PluginHelper.DataManager.GetPlatformByName(platformName);
             _operativeServerId = serverId;
             _overwriteMetadata = syncSettings.OverwriteMetadata;
             _deleteOldServerRoms = syncSettings.DeleteOldServerRoms;
+            _emulatorId = emulatorID;
 
             _platformLbGameDatabaseIds.Clear();
             _platformRommIds.Clear();
@@ -114,8 +117,17 @@ namespace RommStar.Core.Services
         }
 
 
-        public async Task<IGame> SyncRommDto(RomDTO rommDTO, string customRomIdsCsv = null)
+        public async Task<(IGame Game, MetadataSyncAction Action)> SyncRommDto(RomDTO rommDTO, string customRomIdsCsv = null)
         {
+            // =========================================================================
+            // TEMPORARY TESTING: 1 in 10 chance to simulate a metadata failure
+            // =========================================================================
+            if (Random.Shared.Next(1, 11) == 1)
+            {
+                // Return null to fake a catastrophic failure/timeout mapping database entries
+                return (null, MetadataSyncAction.Update);
+            }
+
             bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue && _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
 
             bool hasMatchingServerId = !string.IsNullOrEmpty(_operativeServerId) &&
@@ -128,7 +140,6 @@ namespace RommStar.Core.Services
 
             IGame game = null;
             bool metadataProtected = false;
-
 
             if (syncAction == MetadataSyncAction.Update)
             {
@@ -182,6 +193,8 @@ namespace RommStar.Core.Services
                     }
                 }
             }
+
+
             else if (syncAction == MetadataSyncAction.Insert)
             {
                 game = PluginHelper.DataManager.AddNewGame(rommDTO.Name);
@@ -216,6 +229,7 @@ namespace RommStar.Core.Services
             if (game != null)
             {
                 game.Platform = _operationalPlatform.Name;
+                game.EmulatorId = _emulatorId;
 
                 switch (syncAction)
                 {
@@ -230,9 +244,23 @@ namespace RommStar.Core.Services
                 }
             }
 
-            return game;
+            return (game, syncAction);
         }
 
+        public string GetPlatformDefaultEmulatorID(string platformName)
+        {
+            foreach (IEmulator emu in PluginHelper.DataManager.GetAllEmulators())
+            {
+                IEmulatorPlatform[] emulatorPlatforms = emu.GetAllEmulatorPlatforms()
+                    .Where(ep => ep.Platform == platformName).ToArray();
+
+                IEmulatorPlatform defaultEmulatorPlatform = emulatorPlatforms?.FirstOrDefault(ep => ep.IsDefault);
+
+                if (defaultEmulatorPlatform != null) return defaultEmulatorPlatform.EmulatorId;
+                else if (emulatorPlatforms.Count() > 0) return emulatorPlatforms[0].EmulatorId;
+            }
+            return null;
+        }
 
         public List<LaunchboxPlatformDTO> GetPlatforms()
         {

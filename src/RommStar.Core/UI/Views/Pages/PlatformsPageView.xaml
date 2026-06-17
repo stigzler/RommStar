@@ -13,7 +13,7 @@
       xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
       xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:sync="clr-namespace:RommStar.Core.Sync"
-    xmlns:ucs="clr-namespace:RommStar.Core.UI.Views.UserControls"
+      xmlns:ucs="clr-namespace:RommStar.Core.UI.Views.UserControls"
       d:DataContext="{d:DesignInstance Type=vms:Pages.PlatformsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
@@ -195,7 +195,9 @@
                                 <ui:MenuFlyout Placement="TopEdgeAlignedLeft">
 
                                     <!-- Add New Launchbox PLatform -->
-                                    <MenuItem Header="Add New Launchbox Platform" Command="{Binding AddNewLaunchboxPlatformCommand}">
+                                    <!-- Note: removed feature: encourages users to add new platforms via Launchbox -->
+                                    <MenuItem Header="Add New Launchbox Platform" Command="{Binding AddNewLaunchboxPlatformCommand}"
+                                              Visibility="Collapsed">
                                         <MenuItem.Icon>
                                             <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}" />
                                         </MenuItem.Icon>
@@ -210,8 +212,10 @@
                                     </MenuItem>
 
                                     <!-- Delete Launchbox PLatform -->
+                                    <!-- Note: removed feature: encourages users to add new platforms via Launchbox -->
                                     <MenuItem Header="Delete Launchbox Platform" IsEnabled="{Binding SelectedPlatform, Converter={StaticResource NullToBoolConverter}}"
-                                              Command="{Binding DeleteSelectedLaunchboxPlatformCommand}">
+                                              Command="{Binding DeleteSelectedLaunchboxPlatformCommand}"
+                                              Visibility="Collapsed">
                                         <MenuItem.Icon>
                                             <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Delete}" />
                                         </MenuItem.Icon>

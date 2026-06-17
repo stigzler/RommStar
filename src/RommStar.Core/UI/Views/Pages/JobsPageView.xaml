@@ -1,13 +1,14 @@
-﻿<Page x:Class="RommStar.Core.UI.Views.Pages.JobsPageView"
+﻿<ui:Page x:Class="RommStar.Core.UI.Views.Pages.JobsPageView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:local="clr-namespace:RommStar.Core.UI.Views.Pages"
-      xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels"
+      xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels.Pages"
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
       xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
-
+      xmlns:helpers="clr-namespace:RommStar.Core.UI.Helpers"
+    xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
       d:DataContext="{d:DesignInstance Type=vm:JobsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
@@ -16,15 +17,30 @@
       UseLayoutRounding="True"
       SnapsToDevicePixels="True"
       Title="Sync Jobs">
+
+    <ui:Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:XamlControlsResources />
+                <ui:ThemeResources AccentColor="#553e98" />
+            </ResourceDictionary.MergedDictionaries>
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
+            <converters:NotZeroVisibilityConverter x:Key="NotZeroVisibilityConverter" />
+        </ResourceDictionary>
+    </ui:Page.Resources>
+
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
+
         <Button Grid.Row="0" Content="Start Test Jobs" Command="{Binding StartSyncJobCommand}" Margin="5" />
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Style="{DynamicResource DefaultScrollViewerStyle}">
-            <ItemsControl ItemsSource="{Binding ActiveJobs}" Padding="5">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" 
+                      Style="{DynamicResource DefaultScrollViewerStyle}">
+            <ItemsControl ItemsSource="{Binding ActiveJobs}" Padding="15,10,0,0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border x:Name="JobCard"
@@ -35,42 +51,48 @@
                                 Background="{DynamicResource SystemControlPageBackgroundChromeLowBrush}"
                                 BorderBrush="{DynamicResource SystemControlCornerRadiusBrush}">
 
-                            <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                                    <StackPanel Grid.Column="0">
-                                        <WrapPanel>
-                                            <TextBlock Text="{Binding LaunchBoxPlatformName}"
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="auto"/>
+                                    <RowDefinition Height="auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Job Progress info -->
+                                <StackPanel Grid.Column="0" Grid.Row="0">
+                                    <WrapPanel>
+                                        <TextBlock Text="{Binding LaunchBoxPlatformName}"
                                                        FontWeight="SemiBold"
                                                        FontSize="14" />
 
-                                            <TextBlock Text="{Binding Status, StringFormat=' - \{0\}'}"
+                                        <TextBlock Text="{Binding Status, StringFormat=' - \{0\}'}"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center"
                                                        FontSize="12" />
-                                        </WrapPanel>
+                                    </WrapPanel>
 
-                                        <ui:ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
+                                    <ui:ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
                                                         Minimum="0"
                                                         Maximum="100"
                                                         Height="1" Background="#80808080"
                                                         Margin="0,10,0,0" Foreground="Green" MinHeight="5">
-                                        </ui:ProgressBar>
+                                    </ui:ProgressBar>
 
-                                        <TextBlock Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                    <TextBlock Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    FontSize="11"
                                                    Margin="0,6,0,0">
                                             <Run Text="{Binding ProcessedItems, StringFormat='Roms Processed: \{0\}'}" />
                                             <Run Text="{Binding TotalItems, StringFormat='/ \{0\}'}" />
-                                        </TextBlock>
-                                    </StackPanel>
+                                    </TextBlock>
+                                </StackPanel>
 
-                                    <Button Grid.Column="1"
+                                <!-- Cancel Job Button -->
+                                <Button Grid.Column="1" Grid.Row="0"
                                             VerticalAlignment="Top"
                                             Margin="16,0,0,0"
                                             Content="&#xE711;"
@@ -83,23 +105,74 @@
                                             BorderBrush="Transparent"
                                             Command="{Binding DataContext.CancelJobCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                             CommandParameter="{Binding Id}">
-                                        <Button.ToolTip>
-                                            <ToolTip Content="Cancel Sync Task" />
-                                        </Button.ToolTip>
-                                    </Button>
-                                </Grid>
+                                    <Button.ToolTip>
+                                        <ToolTip Content="Cancel Sync Task" />
+                                    </Button.ToolTip>
+                                </Button>
 
-                                <Expander Header="View Process Logs" 
-                                             Margin="0,12,0,0"
-                                             Padding="0"
-                                             HorizontalAlignment="Stretch"
-                                             HorizontalContentAlignment="Stretch">
+                                <Expander Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" Margin="0,5,0,0"
+                                          Padding="0">
 
-                                    <ScrollViewer MaxHeight="180" 
-                                                  VerticalScrollBarVisibility="Auto" 
-                                                  HorizontalScrollBarVisibility="Disabled"
-                                                  Margin="10">
+                                    <Expander.Header>
+                                        <Grid Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Expander}}">
 
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" 
+                                                       Text="View Process Logs" 
+                                                       VerticalAlignment="Center" />
+
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" FlowDirection="RightToLeft"
+                                                        Margin="0,0,30,0">
+                                                <ui:ToggleSwitch Grid.Column="1" Margin="0,0,10,0"
+                                                             OnContent="Logging Success"
+                                                             OffContent="Hiding Success"
+                                                             HorizontalAlignment="Right" 
+                                                             VerticalAlignment="Center"                                                             
+                                                             IsOn="{Binding SupressSuccessLogItems, Mode=TwoWay, Converter={StaticResource InverseBoolConverter}}"/>
+
+                                                <Button Style="{DynamicResource {x:Static ui:ThemeKeys.DefaultButtonStyleKey}}"
+                                                        Command="{Binding CopyJobLogToClipboardCommand}">
+                                                    <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight">
+                                                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Copy_20_Regular}" Margin="0,0,5,0" />
+                                                        <TextBlock ToolTip="Copy Log to Clipboard">Copy</TextBlock>
+                                                    </StackPanel>
+                                                </Button>
+
+                                                <!-- Errors Count -->
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.6"
+                                                            Visibility="{Binding ErrorCount, Converter={StaticResource NotZeroVisibilityConverter}}">
+                                                    
+                                                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DismissCircle_20_Regular}" Margin="0,0,5,0" />
+                                                    <TextBlock Text="{Binding ErrorCount}"/>
+                                                    <TextBlock Text=" Errors" Margin="0,0,10,0"/>
+
+                                                </StackPanel>
+
+                                                <!-- Warnings Count -->
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.6"
+                                                            Visibility="{Binding WarningCount, Converter={StaticResource NotZeroVisibilityConverter}}">
+
+                                                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Warning_20_Regular}" Margin="0,0,5,0" />
+                                                    <TextBlock Text="{Binding WarningCount}" />
+                                                    <TextBlock Text=" Warnings" Margin="0,0,10,0" />
+
+                                                </StackPanel>
+
+
+                                            </StackPanel>
+
+                                        </Grid>
+                                    </Expander.Header>
+
+                                    <ScrollViewer MaxHeight="180"
+                                                    VerticalScrollBarVisibility="Auto" 
+                                                    HorizontalScrollBarVisibility="Disabled"
+                                                    Margin="10" Background="#10000000"
+                                                  Padding="10">
                                         <ItemsControl ItemsSource="{Binding SyncLogs}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
@@ -115,7 +188,12 @@
 
                                     </ScrollViewer>
                                 </Expander>
-                            </StackPanel>
+
+
+                            </Grid>
+
+                            <!-- Process Logs -->
+
                         </Border>
 
                         <DataTemplate.Triggers>
@@ -148,5 +226,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
+
     </Grid>
-</Page>
+
+</ui:Page>

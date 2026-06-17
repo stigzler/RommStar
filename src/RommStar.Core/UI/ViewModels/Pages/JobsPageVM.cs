@@ -35,6 +35,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
             //_syncManager?.QueuePlatformSync("Amiga 7000", new List<int>() { 13, 19, 32 }, false);
         }
 
+ 
+
         [RelayCommand]
         private void CancelJob(Guid id)
         {

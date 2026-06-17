@@ -21,28 +21,30 @@ namespace RommStar.Core.Mappers
             RequiredMappingStrategy = RequiredMappingStrategy.None)]
     public partial class RomMapper
     {
-
         private SettingsService _settingsService;
-
         public RomMapper(SettingsService settingsService)
         {
             _settingsService = settingsService;
         }
 
-
-        [MapProperty(nameof(romDto.Name), nameof(iGame.Title))]
-        [MapProperty(nameof(romDto.Summary), nameof(iGame.Notes))]
+        [MapProperty(nameof(romDto.Name), nameof(iGame.Title), Use = nameof(PassthroughMapping))]
+        [MapProperty(nameof(romDto.Summary), nameof(iGame.Notes), Use = nameof(PassthroughMapping))]
         [MapProperty("Metadatum.FirstReleaseDate", nameof(IGame.ReleaseDate))]
         [MapProperty("Metadatum.Genres", nameof(IGame.Genres), Use = nameof(MapBlockingCollection))]
         [MapProperty("Metadatum.GameModes", nameof(IGame.PlayMode), Use = nameof(FlattenToSemicolonString))]
         [MapProperty("Metadatum.Franchises", nameof(IGame.Series), Use = nameof(FlattenToSemicolonString))]
         [MapProperty("Metadatum.AverageRating", nameof(IGame.StarRatingFloat), Use = nameof(MapRatingToFloat))]
-       // [MapProperty("Metadatum.AverageRating", nameof(IGame.StarRating), )]
         [MapProperty("Metadatum.AgeRatings", nameof(IGame.Rating), Use = nameof(MapAgeRating))]
         [MapProperty("Metadatum.PlayerCount", nameof(IGame.MaxPlayers), Use = nameof(MapMaxPlayers))]
         [MapProperty(nameof(romDto.Regions), nameof(IGame.Region), Use = nameof(MapFirstListItem))]
         [MapProperty(nameof(romDto.YoutubeVideoId), nameof(IGame.VideoUrl), Use = nameof(MapYouTubeUrl))]
         public partial void RommRomDtoToIGame(RomDTO romDto, IGame iGame);
+
+        [UserMapping]
+        public string PassthroughMapping(string? value)
+        {
+            return value;
+        }
 
         [UserMapping]
         public string MapYouTubeUrl(string? youtubeVideoId)
@@ -58,16 +60,6 @@ namespace RommStar.Core.Mappers
             // Ensure we handle trimming and slash consistency cleanly
             stub = stub.Trim();
             string videoId = youtubeVideoId.Trim();
-
-            // If the stub ends with a slash and the ID starts with one, fix it up; otherwise concatenate
-            //if (stub.EndsWith('/') && videoId.StartsWith('/'))
-            //{
-            //    return stub + videoId[1..];
-            //}
-            //else if (!stub.EndsWith('/') && !videoId.StartsWith('/') && !string.IsNullOrEmpty(stub))
-            //{
-            //    return $"{stub}/{videoId}";
-            //}
 
             return stub + videoId;
         }

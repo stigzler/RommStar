@@ -20,7 +20,7 @@ namespace RommStar.Core.UI.Views.Pages
     /// <summary>
     /// Interaction logic for JobsPageView.xaml
     /// </summary>
-    public partial class JobsPageView : Page
+    public partial class JobsPageView : iNKORE.UI.WPF.Modern.Controls.Page
     {
         private JobsPageVM ViewModel;
 

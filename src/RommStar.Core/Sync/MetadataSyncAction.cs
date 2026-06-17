@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace RommStar.Core.Sync
 {
-    internal enum MetadataSyncAction
+    public enum MetadataSyncAction
     {
         None, 
         Insert, 

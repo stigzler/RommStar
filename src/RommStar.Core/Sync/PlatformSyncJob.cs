@@ -1,4 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.VisualBasic;
 using Microsoft.Xaml.Behaviors.Layout;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -28,6 +30,9 @@ namespace RommStar.Core.Sync
         [ObservableProperty]
         private int _warningCount;
 
+        [ObservableProperty]
+        private bool _supressSuccessLogItems;
+
         /// <summary>
         /// The unique identifier for this platform sync task, which is the same as the ID of the associated UI card.
         /// This allows for easy correlation between the task and its representation in the UI.
@@ -38,11 +43,26 @@ namespace RommStar.Core.Sync
         public string ServerName { get; set; } = string.Empty;
         public ObservableCollection<string> SyncLogs { get; } = new();
 
+        [RelayCommand]
+        private void CopyJobLogToClipboard()
+        {
+            if (SyncLogs == null || SyncLogs.Count == 0)
+                return;
+
+            // Concatenate all strings in the collection with a newline separator
+            string dataToCopy = string.Join(Environment.NewLine, SyncLogs);
+
+            // Set the string to the clipboard
+            Clipboard.SetText(dataToCopy);
+        }
+
         /// <summary>
         /// Safely appends a formatted line to the log, ensuring it marshals to the LaunchBox UI thread.
         /// </summary>
         public void AddLog(string message, LogType type = LogType.Info)
         {
+            if (SupressSuccessLogItems && type == LogType.Success) return;
+
             string prefix = type switch
             {
                 LogType.Success => "✅",

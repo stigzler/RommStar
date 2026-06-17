@@ -640,20 +640,41 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 return;
             }
 
+            string platformDefaultEmulatorID = _launchboxService.GetPlatformDefaultEmulatorID(SelectedPlatform.LaunchboxPlatformName);
+
+            if (platformDefaultEmulatorID == null)
+            {
+                ContentDialog dialog = new ContentDialog();
+                dialog.Title = "Platform Sync Warning";
+                dialog.Content = $"This Platform has no default emulator associated with it. Games will be created/updated with no link to an emulator so will not boot.\r\n \r\nYou can back out of this and set up an emulator for this Platform in Launchbox.\r\n \r\nAre you sure you wish to continue?";
+                dialog.PrimaryButtonText = "Yes";
+                dialog.SecondaryButtonText = "No/Cancel";
+
+                var result = await dialog.ShowAsync();
+
+                if (result == ContentDialogResult.Secondary) return;
+            }
+
+            
+
             // note: at this stage, this list may include orphaned platforms that have been persisted in user settings,
             // but then deleted later on the romm server.
             List<int> rommPlatformIds = SelectedPlatform.MatchedRommPlatforms.Select(p => p.RommId).ToList();
 
-
             ExtendedSyncSettings resolvedExtSyncSettings = _settingsService.Settings.GlobalExtendedSyncSettings;
+
             if (SelectedPlatform.ExtendedSyncSettings.ApplySettings)
                 resolvedExtSyncSettings = SelectedPlatform.ExtendedSyncSettings;
 
-
             IPlatformFolder[] mediaFolders = platform.GetAllPlatformFolders();
 
+      
+
+
+
+            // Queue PLatform
             _syncManager?.QueuePlatformSync(SelectedPlatform.LaunchboxPlatformName, SelectedPlatform.LaunchboxPlatformRomFolder,
-                mediaFolders, rommPlatformIds, resolvedExtSyncSettings, SelectedPlatform.AssignedServerItem.RommServer);
+                mediaFolders, platformDefaultEmulatorID, rommPlatformIds, resolvedExtSyncSettings, SelectedPlatform.AssignedServerItem.RommServer);
 
         }
 
@@ -662,6 +683,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
         {
             SavePlatformSyncSettings();
         }
+
+   
 
         [RelayCommand]
         private async Task UpdatePlatformIcon()
