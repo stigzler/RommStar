@@ -93,37 +93,96 @@ namespace RommStar.Core.Sync
             }
         }
 
+        /// <summary>
+        /// Turns lb's variable rom path format into standardized one.
+        /// </summary>
+        /// <param name="baseRootDir"></param>
+        /// <param name="rawPath"></param>
+        /// <returns></returns>
+        private string NormalizeRomPath(string baseRootDir, string rawPath)
+        {
+            if (string.IsNullOrWhiteSpace(rawPath)) return baseRootDir;
+
+            // If it's already rooted (e.g., "C:\Games..." or "\\HPServer\Games..."), return it fully evaluated
+            if (Path.IsPathRooted(rawPath))
+            {
+                return Path.GetFullPath(rawPath);
+            }
+
+            // Otherwise combine with LaunchBox root directory and collapse relative elements (..\)
+            string combined = Path.Combine(baseRootDir, rawPath);
+            return Path.GetFullPath(combined);
+        }
+
         // =========================================================================
         // PARALLEL ON-DEMAND BYPASS (Bypasses macro structural sync channel entirely)
         // =========================================================================
         // ToDO: IGAME
-        public async Task ExecuteOnDemandInstallAsync(string lbPlatform, RomDTO rom, RommServer targetServer)
+        public async Task ExecuteOnDemandInstallAsync(string lbPlatform, RomDTO rom, RommServer targetServer, PlatformSyncTask syncTask)
         {
-            var currentSnapshot = targetServer;
-            // string destinationRomPath = Path.Combine("C:\\LaunchBox\\Games", lbPlatform, romDto.FileName); // TODO: Reinstate from new DTOs
+            //var currentSnapshot = targetServer;
+            //var mediaTasks = new List<Task>();
+            //await Task.WhenAll(mediaTasks);
+            if (rom == null || targetServer == null) return;
 
-            // TODO: Reinstate from new DTOs:
-            // 1. Instantly pull down the critical ROM execution payload on a dedicated task lane
-            // bool romSuccess = await StreamFileFromNetworkAsync(romDto.RomUrl, destinationRomPath, currentServer);
-            //if (!romSuccess) return;
+            IPlatform platform = PluginHelper.DataManager.GetPlatformByName(lbPlatform);
 
-            // Target Game update invocation block
-            // targetIGameInstance.Installed = true;
+            // 1. Normalize and resolve the target ROM path
+            string baseRomDir = NormalizeRomPath(Constants.LaunchboxRootDir, platform.Folder); // Ensure this setting property is exposed/passed
+            string targetRomDirectory = (rom.HasMultipleFiles == true || (rom.SiblingRoms != null && rom.SiblingRoms.Count > 0))
+                ? Path.Combine(baseRomDir, rom.Name)
+                : baseRomDir;
 
-            // 2. Scan and stream down heavy Install Profile assets concurrently on the fly
-            var mediaTasks = new List<Task>();
+            // Enqueue or execute the specific ROM file streaming tasks here...
 
-            // TODO: Reinstate from new DTOs:
-            //if (InstallMediaProfile.Videos && !string.IsNullOrEmpty(romDto.VideoUrl))
-            //{
-            //    string videoPath = Path.Combine("C:\\LaunchBox\\Videos", lbPlatform, $"{romDto.Name}.mp4");
-            //    mediaTasks.Add(StreamFileFromNetworkAsync(romDto.VideoUrl, videoPath, currentServer));
-            //}
+            // 2. Process On-Demand Media Downloads if requested
+            bool downloadMedia = syncTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia
+                                 || syncTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia;
 
+            if (downloadMedia)
+            {
+                // Pull the installation-specific media profile footprint
+                var chosenProfile = _settingsService.Settings.InstallMediaProfile;
 
-            // Append other contextual profiles smoothly...
+                // Extract native media folder paths straight from LaunchBox's global data memory
+                var lbMediaFolders = PluginHelper.DataManager.GetPlatformByName(lbPlatform).GetAllPlatformFolders();
 
-            await Task.WhenAll(mediaTasks);
+                string romFilename = !string.IsNullOrEmpty(rom.RommFilename)
+                    ? Path.GetFileNameWithoutExtension(rom.RommFilename)
+                    : rom.Name;
+
+                var mediaManager = new MediaDownloadManager();
+
+                var downloadItems = mediaManager.BuildDownloadItems(
+                    rom: rom,
+                    profile: chosenProfile,
+                    baseUrl: targetServer.BaseUrl,
+                    launchboxPlatformName: lbPlatform,
+                    launchboxMediaFolders: lbMediaFolders,
+                    romFilename: romFilename,
+                    useRomFilenameForMedia: syncTask.SyncSettings.UseRomFilenameForMedia,
+                    forceMediaPriority: syncTask.SyncSettings.ForceMediaPriority
+                );
+
+                var mediaTasks = new List<Task>();
+
+                foreach (var item in downloadItems)
+                {
+                    // Apply the Upstream Overwrite setting check
+                    if (!syncTask.SyncSettings.OverwriteExistingMedia && File.Exists(item.TargetLocalPath))
+                    {
+                        continue;
+                    }
+
+                    // Map standard API path string for the download engine call
+                    string apiRelativeUrl = item.DownloadUrl.Replace(targetServer.BaseUrl, "").TrimStart('/');
+
+                    // Direct parallel execution lane bypass instead of using macro FIFO channels
+                    mediaTasks.Add(StreamFileFromNetworkAsync(apiRelativeUrl, item.TargetLocalPath, targetServer, CancellationToken.None));
+                }
+
+                await Task.WhenAll(mediaTasks);
+            }
         }
 
         // =========================================================================
@@ -212,23 +271,48 @@ namespace RommStar.Core.Sync
 
         private void ScheduleMediaDownloads(RomDTO rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServer server)
         {
-            // TODO: Reinstate from new DTOs
-            //if (profile.BoxFront && !string.IsNullOrEmpty(romDto.BoxFrontUrl))
-            //{
-            //EnqueueFileDownload(new DownloadJob
-            //{
-            //    JobId = task.Id, // Link media download job to Guid
-            //    JobType = DownloadJobType.Media,
-            //    //RelativeUrl = romDto.BoxFrontUrl,
-            //    RelativeUrl = "romDto.BoxFrontUrl",
-            //    DestinationPath = Path.Combine("C:\\LaunchBox\\Images", task.PlatformName, "Box - Front", $"{rom.Name}.png"),
-            //    PlatformName = task.PlatformName,
-            //    ServerContext = server,
-            //    UiCard = task.UiCard,
-            //    CancellationToken = task.Cts.Token
-            //});
-            //}
-            // Replicate block cleanly for Box3D, Videos, Manuals, etc.
+            // Extract extensionless ground-truth filename from your unified RommFilename property
+            string romFilename = !string.IsNullOrEmpty(rom.RommFilename)
+                ? Path.GetFileNameWithoutExtension(rom.RommFilename)
+                : rom.Name;
+
+            var mediaManager = new MediaDownloadManager();
+
+            // Pull configuration toggles from the validated platform task settings
+            bool useRomFilename = task.SyncSettings.UseRomFilenameForMedia;
+            bool forcePriority = task.SyncSettings.ForceMediaPriority;
+
+            var downloadItems = mediaManager.BuildDownloadItems(
+                rom: rom,
+                profile: profile,
+                baseUrl: server.BaseUrl,
+                launchboxPlatformName: task.PlatformName,
+                launchboxMediaFolders: task.PlatformMediaFolders, // Direct IPlatformFolder tracking array
+                romFilename: romFilename,
+                useRomFilenameForMedia: useRomFilename,
+                forceMediaPriority: forcePriority
+            );
+
+            foreach (var item in downloadItems)
+            {
+                // Upstream Overwrite Media Filter Check
+                if (!task.SyncSettings.OverwriteExistingMedia && File.Exists(item.TargetLocalPath))
+                {
+                    continue; // Skip queuing entirely if file exists and overwrite is turned off
+                }
+
+                EnqueueFileDownload(new DownloadJob
+                {
+                    JobId = task.Id,
+                    JobType = DownloadJobType.Media,
+                    RelativeUrl = item.DownloadUrl,
+                    DestinationPath = item.TargetLocalPath,
+                    LaunchBoxPlatformName = task.PlatformName,
+                    ServerContext = server,
+                    UiCard = task.UiCard,
+                    CancellationToken = task.Cts.Token
+                });
+            }
         }
 
         private async Task StartFileQueueProcessorAsync()
@@ -368,7 +452,10 @@ namespace RommStar.Core.Sync
                             bool hasFiles = detailedRomDto.Files != null && detailedRomDto.Files.Count > 0;
                             bool isGroupedLayout = isMultiDiscLayout || hasSiblings;
 
-                            string basePlatformPath = Path.Combine(platformTask.LaunchBoxRomFolder);
+                            //string basePlatformPath = Path.Combine(platformTask.LaunchBoxRomFolder);
+                            //string targetDirectory = isGroupedLayout ? Path.Combine(basePlatformPath, detailedRomDto.Name) : basePlatformPath;
+
+                            string basePlatformPath = NormalizeRomPath(Constants.LaunchboxRootDir, platformTask.LaunchBoxRomFolder);
                             string targetDirectory = isGroupedLayout ? Path.Combine(basePlatformPath, detailedRomDto.Name) : basePlatformPath;
 
                             IGame targetedGame = null;
@@ -526,7 +613,10 @@ namespace RommStar.Core.Sync
                         var allGroupIds = cluster.Select(r => r.Id ?? 0).Distinct().ToList();
                         string aggregatedRomIdsCsv = string.Join(",", allGroupIds);
 
-                        string basePlatformPath = Path.Combine("C:\\LaunchBox\\Games", platformTask.PlatformName);
+                        //string basePlatformPath = Path.Combine("C:\\LaunchBox\\Games", platformTask.PlatformName);
+                        //string targetDirectory = Path.Combine(basePlatformPath, masterRom.Name);
+
+                        string basePlatformPath = NormalizeRomPath(Constants.LaunchboxRootDir, platformTask.LaunchBoxRomFolder);
                         string targetDirectory = Path.Combine(basePlatformPath, masterRom.Name);
 
                         IGame masterGameInstance = null;

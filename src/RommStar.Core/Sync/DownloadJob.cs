@@ -12,7 +12,6 @@ namespace RommStar.Core.Sync
         /// The individual file download needs to know which exact Guid run it belongs to
         /// </summary>
         public Guid JobId { get; set; }
-
         public DownloadJobType JobType { get; set; }
         public string RelativeUrl { get; set; } = string.Empty;
         public string DestinationPath { get; set; } = string.Empty;

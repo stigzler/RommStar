@@ -32,19 +32,19 @@ namespace RommStar.Core.Sync
         private static readonly Dictionary<MediaType, string> LaunchboxTypeMap = new()
         {
             { MediaType.BoxFront, "Box - Front" },
-            { MediaType.Box3D, "Box - Front - 3D" },
+            { MediaType.Box3D, "Box - 3D" },
             { MediaType.BoxBack, "Box - Back" },
             { MediaType.Screenshot, "Screenshot - Gameplay" },
-            { MediaType.TitleScreen, "Screenshot - Title" },
+            { MediaType.TitleScreen, "Screenshot - Game Title" },
             { MediaType.Logo, "Clear Logo" },
             { MediaType.Marquee, "Arcade - Marquee" },
             { MediaType.FanArt, "Fanart - Background" },
-            { MediaType.Bezel, "Arcade - Bezel" },
+            { MediaType.Bezel, "Amazon Background" },
             { MediaType.MixImage, "Box - Front - Reconstructed" },
-            { MediaType.PhysicalMedia, "Cart - Front" },
-            { MediaType.Manual, "Manual" },
+            { MediaType.PhysicalMedia, "Disc" },
+            { MediaType.Manual, "Manuals" },
             { MediaType.Music, "Music" },
-            { MediaType.Video, "Video" }
+            { MediaType.Video, "Videos" }
         };
 
         public MediaDownloadManager() { }
@@ -179,6 +179,8 @@ namespace RommStar.Core.Sync
                     MediaType.BoxFront => Path.Combine("Images", platform, "Box - Front"),
                     MediaType.BoxBack => Path.Combine("Images", platform, "Box - Back"),
                     MediaType.Video => Path.Combine("Videos", platform),
+                    MediaType.Manual => Path.Combine("Manuals", platform),
+                    MediaType.Music => Path.Combine("Music", platform),
                     _ => Path.Combine("Images", platform, "Other")
                 };
                 folderPath = Path.Combine(Constants.LaunchboxRootDir, fallbackSubFolder);

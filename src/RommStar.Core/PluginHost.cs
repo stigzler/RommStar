@@ -200,8 +200,8 @@ namespace RommStar.Core
             // Ensure the Inkore resources are loaded
             //EnsureInkoreResourcesLoaded();
 
-            Tests.MediaDownloadManagerTest();
-            return;
+            //Tests.MediaDownloadManagerTest();
+            //return;
 
             var adminWindow = _serviceProvider.GetRequiredService<MainWindowView>();
 
