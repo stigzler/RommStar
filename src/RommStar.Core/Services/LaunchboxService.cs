@@ -38,7 +38,7 @@ namespace RommStar.Core.Services
         /// Used in conjunction with _platformHelperMap. 
         /// Performant lookup of games with existing RommIds.
         /// </summary>
-        private HashSet<int?> _platformRommIds = new HashSet<int?>();
+        private HashSet<string?> _platformRommIds = new HashSet<string?>();
 
 
         /// <summary>
@@ -81,27 +81,38 @@ namespace RommStar.Core.Services
 
                 var gameCustomFields = game.GetAllCustomFields();
 
-                if (gameCustomFields != null)
+                try
                 {
-                    var romIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
-                    var serverIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
-                    var protectMetadataCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
+                    if (gameCustomFields != null)
+                    {
+                        var romIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
+                        var serverIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
+                        var protectMetadataCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
 
-                    gameIdMap.RommId = (romIdCustomField != null) ? Convert.ToInt32(romIdCustomField.Value) : null;
-                    gameIdMap.RommServerId = (serverIdCustomField != null) ? serverIdCustomField.Value : null;
+                        gameIdMap.RommIds = (romIdCustomField != null) ? romIdCustomField.Value : null;
+                        gameIdMap.RommServerId = (serverIdCustomField != null) ? serverIdCustomField.Value : null;
 
-                    bool.TryParse(protectMetadataCustomField?.Value, out var boolResult);
-                    gameIdMap.ProtectMetadata = boolResult;
+                        bool.TryParse(protectMetadataCustomField?.Value, out var boolResult);
+                        gameIdMap.ProtectMetadata = boolResult;
+                    }
                 }
+                catch (Exception ex)
+                {
+                    var dave = 1;
+
+
+                }
+
 
                 _platformHelperMap.Add(gameIdMap);
             }
 
             _platformLbGameDatabaseIds = _platformHelperMap.Select(phm => phm.LbDatabaseId).Where(id => id != null).ToHashSet();
-            _platformRommIds = _platformHelperMap.Select(phm => phm.RommId).Where(id => id != null).ToHashSet();
+            _platformRommIds = _platformHelperMap.Select(phm => phm.RommIds).Where(id => id != null).ToHashSet();
             _platformServerIds = _platformHelperMap.Select(phm => phm.RommServerId).Where(id => id != null).ToHashSet();
 
             return _operationalPlatform != null;
+
         }
 
 
@@ -109,7 +120,7 @@ namespace RommStar.Core.Services
         {
             bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue && _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
             bool hasMatchingRommId = rommDTO.Id.HasValue && _platformRommIds.Contains(rommDTO.Id.Value);
-            
+
             bool hasMatchingServerId = !string.IsNullOrEmpty(_operativeServerId) &&
                                        (_platformServerIds.Contains(_operativeServerId) || _platformHelperMap.Any(m => m.RommServerId == _operativeServerId));
 
@@ -127,7 +138,7 @@ namespace RommStar.Core.Services
 
                 if (hasMatchingRommId == true && hasMatchingServerId == true)
                 {
-                    metadataSyncHelperMap = _platformHelperMap.Single(pg => pg.RommId == rommDTO.Id && pg.RommServerId == _operativeServerId);
+                    metadataSyncHelperMap = _platformHelperMap.Single(pg => pg.RommIds == rommDTO.Id && pg.RommServerId == _operativeServerId);
                 }
                 else
                 {

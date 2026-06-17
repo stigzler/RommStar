@@ -91,7 +91,6 @@ namespace RommStar.Core.Temp
                 launchboxPlatformName: "Sony Playstation",
                 launchboxMediaFolders: mediaFolders,
                 romFilename: "ff7_disc1_usa", // Clean filename from the platform storage
-                useRomFilenameForMedia: true,  // Use filename instead of Game Title
                 forceMediaPriority: true       // Force append -00 overrides
             );
 

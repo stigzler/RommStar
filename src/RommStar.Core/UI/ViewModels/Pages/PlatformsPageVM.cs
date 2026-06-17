@@ -631,6 +631,15 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             }
 
+            IPlatform platform = PluginHelper.DataManager.GetPlatformByName(SelectedPlatform.LaunchboxPlatformName);
+            if (platform == null)
+            {
+                SetInfoBar(LaunchboxRommPlatformsInfoBar, true,
+                    InfoBarSeverity.Error, "Sync Platform Error", "Platform cannot be retrieved fom the Launchbox database." +
+                    " This can happen if Launchbox and RommStar Platform adds/deletes fall out of sync.");
+                return;
+            }
+
             // note: at this stage, this list may include orphaned platforms that have been persisted in user settings,
             // but then deleted later on the romm server.
             List<int> rommPlatformIds = SelectedPlatform.MatchedRommPlatforms.Select(p => p.RommId).ToList();
@@ -640,7 +649,6 @@ namespace RommStar.Core.UI.ViewModels.Pages
             if (SelectedPlatform.ExtendedSyncSettings.ApplySettings)
                 resolvedExtSyncSettings = SelectedPlatform.ExtendedSyncSettings;
 
-            IPlatform platform = PluginHelper.DataManager.GetPlatformByName(SelectedPlatform.LaunchboxPlatformName);
 
             IPlatformFolder[] mediaFolders = platform.GetAllPlatformFolders();
 

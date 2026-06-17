@@ -160,7 +160,6 @@ namespace RommStar.Core.Sync
                     launchboxPlatformName: lbPlatform,
                     launchboxMediaFolders: lbMediaFolders,
                     romFilename: romFilename,
-                    useRomFilenameForMedia: syncTask.SyncSettings.UseRomFilenameForMedia,
                     forceMediaPriority: syncTask.SyncSettings.ForceMediaPriority
                 );
 
@@ -279,7 +278,6 @@ namespace RommStar.Core.Sync
             var mediaManager = new MediaDownloadManager();
 
             // Pull configuration toggles from the validated platform task settings
-            bool useRomFilename = task.SyncSettings.UseRomFilenameForMedia;
             bool forcePriority = task.SyncSettings.ForceMediaPriority;
 
             var downloadItems = mediaManager.BuildDownloadItems(
@@ -289,7 +287,6 @@ namespace RommStar.Core.Sync
                 launchboxPlatformName: task.PlatformName,
                 launchboxMediaFolders: task.PlatformMediaFolders, // Direct IPlatformFolder tracking array
                 romFilename: romFilename,
-                useRomFilenameForMedia: useRomFilename,
                 forceMediaPriority: forcePriority
             );
 
@@ -791,50 +788,58 @@ namespace RommStar.Core.Sync
             });
         }
 
-
-        private async Task<bool> StreamFileFromNetworkAsync(string relativeUrl, string targetPath, RommServer server,
-            CancellationToken cancellationToken = default)
+        private async Task<bool> StreamFileFromNetworkAsync(string absoluteUrl, string targetPath, RommServer server, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrEmpty(relativeUrl)) return true;
-
-            // TEMP TEST DATA
-            try
-            {
-                // Pass the token to Task.Delay so your test simulated code aborts immediately
-                await Task.Delay(100, cancellationToken);
-                return true;
-            }
-            catch (TaskCanceledException)
-            {
-                return false;
-            }
-            // END TEMP TEST DATA
+            if (string.IsNullOrEmpty(absoluteUrl)) return true;
 
             try
             {
-                string completeUrl = $"{server.BaseUrl.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
-                using var request = new HttpRequestMessage(HttpMethod.Get, completeUrl);
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", server.ApiToken);
+                // 1. Use the absolute URL directly since MediaDownloadManager handles the full pathing
+                using var request = new HttpRequestMessage(HttpMethod.Get, absoluteUrl);
 
-                // Pass cancellationToken to SendAsync to kill connection setup if canceled
+                // 2. Attach your RomM API Bearer Token for authorization
+                if (!string.IsNullOrEmpty(server.ApiToken))
+                {
+                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", server.ApiToken);
+                }
+
+                // 3. Request the stream headers first to handle raw binary data efficiently
                 using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                response.EnsureSuccessStatusCode();
 
+                // Explicitly check for success before touching the disk to prevent creating bad 1KB stubs
+                if (!response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine($"[SyncManager] Download failed with status code {response.StatusCode} for URL: {absoluteUrl}");
+                    return false;
+                }
+
+                // 4. Safely create target subdirectories if they don't exist yet
                 var dir = Path.GetDirectoryName(targetPath);
                 if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
-                using var sourceStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                using var targetStream = File.Open(targetPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                // 5. Open the network content stream and pipe it sequentially to your disk
+                using (var sourceStream = await response.Content.ReadAsStreamAsync(cancellationToken))
+                using (var targetStream = File.Open(targetPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    await sourceStream.CopyToAsync(targetStream, cancellationToken);
+                }
 
-                // Pass cancellationToken to CopyToAsync to kill the stream writing instantly if canceled
-                await sourceStream.CopyToAsync(targetStream, cancellationToken);
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[SyncManager] Download Error: {ex.Message} for target {targetPath}");
+
+                // 6. Cleanup Safeguard: If the download cuts out halfway through, delete the broken/partial file
+                if (File.Exists(targetPath))
+                {
+                    try { File.Delete(targetPath); } catch { /* Ignore secondary cleanup errors */ }
+                }
+
                 return false;
             }
         }
+
         private object SyncWithLaunchBoxDatabaseIfSet(RomDTO rom, string platformName)
         {
             // Check if defaul or platform specific profile indicates launchbox database sync disabled

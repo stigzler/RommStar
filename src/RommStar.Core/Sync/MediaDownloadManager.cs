@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.Sync
@@ -56,7 +57,6 @@ namespace RommStar.Core.Sync
             string launchboxPlatformName,
             IPlatformFolder[] launchboxMediaFolders,
             string romFilename, // Explicitly passed file name (without extension)
-            bool useRomFilenameForMedia,
             bool forceMediaPriority)
         {
             var items = new List<MediaDownloadItem>();
@@ -67,9 +67,7 @@ namespace RommStar.Core.Sync
             string baseResourceEndpoint = $"{baseUrl.TrimEnd('/')}{MediaStubPath}";
 
             // Determine our primary naming token based on UI configuration flag
-            string baseTargetName = useRomFilenameForMedia && !string.IsNullOrWhiteSpace(romFilename)
-                ? romFilename
-                : rom.Name;
+            string baseTargetName = rom.Name;
 
             foreach (var type in profile.EnabledTypes)
             {
@@ -149,14 +147,26 @@ namespace RommStar.Core.Sync
         }
 
         private string ResolveLaunchboxPath(
-            MediaType type,
-            string platform,
-            string filenameOrTitle,
-            string suffix,
-            string extension,
-            IPlatformFolder[] launchboxMediaFolders)
+                            MediaType type,
+                            string platform,
+                            string filenameOrTitle,
+                            string suffix,
+                            string extension,
+                            IPlatformFolder[] launchboxMediaFolders)
         {
             if (string.IsNullOrWhiteSpace(extension)) extension = ".png";
+
+            // 1. Sanitize filenameOrTitle using LaunchBox rules:
+            // This pattern catches all illegal OS chars plus any existing underscores, 
+            // and collapses consecutive matches down to a single underscore.
+            if (!string.IsNullOrEmpty(filenameOrTitle))
+            {
+                filenameOrTitle = Regex.Replace(filenameOrTitle, @"[\\/:*?""<>|']+", "_");
+
+                // Trim any trailing or leading underscores if LaunchBox does so 
+                // (Optional: leave .Trim('_') out if you want to preserve edge case placements)
+                // filenameOrTitle = filenameOrTitle;
+            }
 
             string folderPath = string.Empty;
 

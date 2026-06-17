@@ -70,13 +70,6 @@
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.OverwriteExistingMedia, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Use Rom Filename For Media" Description="Saves images using the rom filename rather than the Game Title. Reccommended setting to TRUE if also downloading Media from RomM">
-            <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ImageCircle_20_Regular}" />
-            </ui:SettingsCard.HeaderIcon>
-            <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.UseRomFilenameForMedia, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        </ui:SettingsCard>
-
         <ui:SettingsCard Grid.Row="0" Header="Force Media Priority" Description="Forces RomM media being used as the primary source by giving it the '-00' suffix. Also preserves any existing Launchbox media.">
             <ui:SettingsCard.HeaderIcon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ImageMultiple_20_Regular}" />

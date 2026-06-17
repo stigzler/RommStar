@@ -24,7 +24,7 @@ namespace RommStar.Core.Sync
         /// <summary>
         /// The Romm RomId (id local to romm server, not canon) for the rom (essentially game)
         /// </summary>
-        public int? RommId { get; set; }
+        public string? RommIds { get; set; }
 
         /// <summary>
         /// The Romm Server Id as set by RommStar
