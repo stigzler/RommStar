@@ -19,16 +19,14 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <!-- e.g., Title Header -->
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <Button Grid.Row="0" Content="Start Test Jobs" Command="{Binding StartSyncJobCommand}" />
+        <Button Grid.Row="0" Content="Start Test Jobs" Command="{Binding StartSyncJobCommand}" Margin="5" />
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Style="{DynamicResource DefaultScrollViewerStyle}">
             <ItemsControl ItemsSource="{Binding ActiveJobs}" Padding="5">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <!-- A standard WPF Border that looks up iNKORE colors at runtime -->
                         <Border x:Name="JobCard"
                                 Margin="0,0,16,12"
                                 Padding="16"
@@ -37,89 +35,113 @@
                                 Background="{DynamicResource SystemControlPageBackgroundChromeLowBrush}"
                                 BorderBrush="{DynamicResource SystemControlCornerRadiusBrush}">
 
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Column="0">
-                                    <WrapPanel>
-                                        <!-- Text colors automatically invert from black to white based on theme -->
-                                        <TextBlock Text="{Binding LaunchBoxPlatformName}"
-                                                   FontWeight="SemiBold"
-                                                   FontSize="14" />
+                                    <StackPanel Grid.Column="0">
+                                        <WrapPanel>
+                                            <TextBlock Text="{Binding LaunchBoxPlatformName}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="14" />
 
-                                        <TextBlock Text="{Binding Status, StringFormat=' - \{0\}'}"
-                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                    Margin="8,0,0,0"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="12" />
-                                    </WrapPanel>
+                                            <TextBlock Text="{Binding Status, StringFormat=' - \{0\}'}"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                       Margin="8,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="12" />
+                                        </WrapPanel>
 
-                                    <!-- Native ProgressBar automatically tints to your iNKORE window accent color -->
-                                    <ui:ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
-                                                 Minimum="0"
-                                                 Maximum="100"
-                                                 Height="1" Background="#80808080"
-                                                 Margin="0,10,0,0" Foreground="Green" MinHeight="5">
-                                    </ui:ProgressBar>
+                                        <ui:ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
+                                                        Minimum="0"
+                                                        Maximum="100"
+                                                        Height="1" Background="#80808080"
+                                                        Margin="0,10,0,0" Foreground="Green" MinHeight="5">
+                                        </ui:ProgressBar>
 
-                                    <TextBlock 
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                               FontSize="11"
-                                               Margin="0,6,0,0" >
-                                        <Run Text="{Binding ProcessedItems, StringFormat='Roms Processed: \{0\}'}" />
-                                        <Run Text="{Binding TotalItems, StringFormat='/ \{0\}'}" />
-                                    </TextBlock>
-                                </StackPanel>
+                                        <TextBlock Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                   FontSize="11"
+                                                   Margin="0,6,0,0">
+                                            <Run Text="{Binding ProcessedItems, StringFormat='Roms Processed: \{0\}'}" />
+                                            <Run Text="{Binding TotalItems, StringFormat='/ \{0\}'}" />
+                                        </TextBlock>
+                                    </StackPanel>
 
-                                <Button Grid.Column="1"
-                                    VerticalAlignment="Top"
-                                    Margin="16,0,0,0"
-                                    Content="&#xE711;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    FontSize="12"
-                                    Width="28"
-                                    Height="28"
-                                    Padding="0"
-                                    Background="Transparent"
-                                    BorderBrush="Transparent"
-                                    Command="{Binding DataContext.CancelJobCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                    CommandParameter="{Binding Id}">
+                                    <Button Grid.Column="1"
+                                            VerticalAlignment="Top"
+                                            Margin="16,0,0,0"
+                                            Content="&#xE711;"
+                                            FontFamily="Segoe MDL2 Assets"
+                                            FontSize="12"
+                                            Width="28"
+                                            Height="28"
+                                            Padding="0"
+                                            Background="Transparent"
+                                            BorderBrush="Transparent"
+                                            Command="{Binding DataContext.CancelJobCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                            CommandParameter="{Binding Id}">
+                                        <Button.ToolTip>
+                                            <ToolTip Content="Cancel Sync Task" />
+                                        </Button.ToolTip>
+                                    </Button>
+                                </Grid>
 
-                                    <!-- ToolTip layout helper for enhanced accessibility feedback states -->
-                                    <Button.ToolTip>
-                                        <ToolTip Content="Cancel Sync Task" />
-                                    </Button.ToolTip>
-                                </Button>
-                            </Grid>
+                                <Expander Header="View Process Logs" 
+                                             Margin="0,12,0,0"
+                                             Padding="0"
+                                             HorizontalAlignment="Stretch"
+                                             HorizontalContentAlignment="Stretch">
+
+                                    <ScrollViewer MaxHeight="180" 
+                                                  VerticalScrollBarVisibility="Auto" 
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  Margin="10">
+
+                                        <ItemsControl ItemsSource="{Binding SyncLogs}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" 
+                                                               FontFamily="Consolas" 
+                                                               FontSize="12" 
+                                                               Margin="0,2"
+                                                               TextWrapping="Wrap"
+                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                    </ScrollViewer>
+                                </Expander>
+                            </StackPanel>
                         </Border>
 
-                        <!-- Dynamic Color Triggers that switch safely for Light & Dark Modes -->
                         <DataTemplate.Triggers>
-                            <!-- 1. Syncing Files State: Green variants -->
                             <DataTrigger Binding="{Binding Status}" Value="SyncingFiles">
-                                <Setter TargetName="JobCard" Property="Background" Value="#80553e98" />
-                                <Setter TargetName="JobCard" Property="BorderBrush" Value="#80371f69" />
+                                <Setter TargetName="JobCard" Value="#80553e98" Property="Background" />
+                                <Setter TargetName="JobCard" Value="#80371f69" Property="BorderBrush" />
                             </DataTrigger>
-
-                            <!-- 2. Queued State: Muted Gray variants -->
                             <DataTrigger Binding="{Binding Status}" Value="Queued">
-                                <Setter TargetName="JobCard" Property="Background" Value="#80424242" />
-                                <Setter TargetName="JobCard" Property="BorderBrush" Value="#802D2D2D" />
+                                <Setter TargetName="JobCard" Value="#80424242" Property="Background" />
+                                <Setter TargetName="JobCard" Value="#802D2D2D" Property="BorderBrush" />
                             </DataTrigger>
-
-                            <!-- 3. Completed State: Green -->
                             <DataTrigger Binding="{Binding Status}" Value="Completed">
-                                <Setter TargetName="JobCard" Property="Background" Value="#40408040" />
-                                <Setter TargetName="JobCard" Property="BorderBrush" Value="#808080" />
+                                <Setter TargetName="JobCard" Value="#40408040" Property="Background" />
+                                <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
                             </DataTrigger>
-
-                            <!-- 4. Cancelled State: Red -->
                             <DataTrigger Binding="{Binding Status}" Value="Cancelled">
-                                <Setter TargetName="JobCard" Property="Background" Value="#40ff0000" />
-                                <Setter TargetName="JobCard" Property="BorderBrush" Value="#808080" />
+                                <Setter TargetName="JobCard" Value="#40ff00ff" Property="Background" />
+                                <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="CompletedWithWarnings">
+                                <Setter TargetName="JobCard" Value="#40ff8000" Property="Background" />
+                                <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}" Value="CompletedWithErrors">
+                                <Setter TargetName="JobCard" Value="#40ff0000" Property="Background" />
+                                <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
                             </DataTrigger>
                         </DataTemplate.Triggers>
                     </DataTemplate>

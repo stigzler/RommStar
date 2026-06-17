@@ -56,5 +56,22 @@ namespace RommStar.Core.Sync
         {
             return LbDatabaseId == other.LbDatabaseId && LocalId == other.LocalId;
         }
+
+        /// <summary>
+        /// Checks if a specific RomM ID exists inside the comma-separated RommIds string.
+        /// </summary>
+        public bool ContainsId(int id)
+        {
+            if (string.IsNullOrEmpty(RommIds)) return false;
+
+            string idStr = id.ToString();
+            string[] splitIds = RommIds.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            for (int i = 0; i < splitIds.Length; i++)
+            {
+                if (splitIds[i].Trim() == idStr) return true;
+            }
+            return false;
+        }
     }
 }
