@@ -16,6 +16,7 @@ using System.IO;
 
 using System.Text;
 using Unbroken.LaunchBox.Plugins;
+using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.UI.ViewModels.Pages
 {
@@ -87,10 +88,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private RommServerItemVM
             _selectedRommServer;
 
-        public ObservableCollection<PlatformDTO> CurrentServerPlatforms
-        {
-            get
-            {
+        public ObservableCollection<PlatformDTO> CurrentServerPlatforms {
+            get {
                 if (SelectedRommServer == null) return new ObservableCollection<PlatformDTO>();
 
                 if (_rommPlatformCache.TryGetValue(SelectedRommServer.RommServer.Id, out var platforms))
@@ -110,10 +109,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
         /// Filtered list of platforms based on search text.
         /// Only renders matching items for better performance.
         /// </summary>
-        public List<PlatformDTO> FilteredServerPlatforms
-        {
-            get
-            {
+        public List<PlatformDTO> FilteredServerPlatforms {
+            get {
                 var allPlatforms = CurrentServerPlatforms;
 
                 if (allPlatforms == null || allPlatforms.Count == 0)
@@ -137,7 +134,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             new LaunchboxService(new RomMapper(new SettingsService(new CryptoService()))),
             new RommService(),
             new LoggingService(),
-            new SyncManager(new RommServer(), new RommService(), 
+            new SyncManager(new RommServer(), new RommService(),
                 new LaunchboxService(new RomMapper(new SettingsService(new CryptoService()))) // urgh. boy, thas uuuggllleeeeee! 🤮
                 , new SettingsService(new CryptoService()))
             )
@@ -310,7 +307,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             foreach (var liveLbPlatform in liveLbPlatformDtos)
             {
-                LaunchboxPlatformItemVM newLaunchboxPlatformItemVM = new LaunchboxPlatformItemVM(liveLbPlatform.Name, liveLbPlatform.RomFolder);
+                LaunchboxPlatformItemVM newLaunchboxPlatformItemVM = new LaunchboxPlatformItemVM(liveLbPlatform.Name,
+                    liveLbPlatform.RomFolder);
 
                 string votiIconPath = _launchboxService.GetPlatformIconPath(liveLbPlatform.Name);
 
@@ -454,7 +452,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
         partial void OnPlatformSearchTextChanged(string value)
         {
         }
-   
+
         partial void OnSelectedPlatformChanged(LaunchboxPlatformItemVM value)
         {
             if (value == null) return;
@@ -636,16 +634,19 @@ namespace RommStar.Core.UI.ViewModels.Pages
             // note: at this stage, this list may include orphaned platforms that have been persisted in user settings,
             // but then deleted later on the romm server.
             List<int> rommPlatformIds = SelectedPlatform.MatchedRommPlatforms.Select(p => p.RommId).ToList();
-   
+
 
             ExtendedSyncSettings resolvedExtSyncSettings = _settingsService.Settings.GlobalExtendedSyncSettings;
             if (SelectedPlatform.ExtendedSyncSettings.ApplySettings)
                 resolvedExtSyncSettings = SelectedPlatform.ExtendedSyncSettings;
 
+            IPlatform platform = PluginHelper.DataManager.GetPlatformByName(SelectedPlatform.LaunchboxPlatformName);
+
+            IPlatformFolder[] mediaFolders = platform.GetAllPlatformFolders();
+
             _syncManager?.QueuePlatformSync(SelectedPlatform.LaunchboxPlatformName, SelectedPlatform.LaunchboxPlatformRomFolder,
-                                            rommPlatformIds,
-                                            resolvedExtSyncSettings,
-                                            SelectedPlatform.AssignedServerItem.RommServer);
+                mediaFolders, rommPlatformIds, resolvedExtSyncSettings, SelectedPlatform.AssignedServerItem.RommServer);
+
         }
 
         [RelayCommand]

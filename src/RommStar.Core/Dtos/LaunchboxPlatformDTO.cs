@@ -18,6 +18,7 @@ namespace RommStar.Core.Dtos
         public bool DisableAutoImport { get; set; }
         public string RomFolder  { get; set; }
 
+
         //public LaunchboxPlatformItemVM ToLaunchboxPlatformItem()
         //{
         //    return new LaunchboxPlatformItemVM(Name);

@@ -4,6 +4,7 @@ using RommStar.Core.Mappers;
 using RommStar.Core.Primitives;
 using RommStar.Core.Services;
 using RommStar.Core.Sync;
+using RommStar.Core.Temp;
 using RommStar.Core.UI.ViewModels.Pages;
 using RommStar.Core.UI.ViewModels.Windows;
 using RommStar.Core.UI.Views;
@@ -177,10 +178,19 @@ namespace RommStar.Core
             _loggingService.Log($"Launchbox event received: {eventType}", LoggingLevel.Verbose);
             switch (eventType)
             {
+                case SystemEventTypes.PluginInitialized:
+                    PluginInitialised();
+                        break;
                 case SystemEventTypes.GameStarting:
                     _loggingService.Log("Game starting event received.");
                     break;
+
             }
+        }
+
+        internal void PluginInitialised()
+        {
+           // Tests.MediaDownloadManagerTest();
         }
 
         private bool _mainWindowInitialised = false;
@@ -189,6 +199,9 @@ namespace RommStar.Core
         {
             // Ensure the Inkore resources are loaded
             //EnsureInkoreResourcesLoaded();
+
+            Tests.MediaDownloadManagerTest();
+            return;
 
             var adminWindow = _serviceProvider.GetRequiredService<MainWindowView>();
 

@@ -28,6 +28,7 @@ public partial class LaunchboxPlatformItemVM : ObservableObject
     private string
         _launchboxPlatformRomFolder = string.Empty;
 
+
     [ObservableProperty]
     private string
         _romFolder = string.Empty;

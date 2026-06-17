@@ -1,6 +1,7 @@
 using RommStar.Core.Models;
 using System.Collections.Generic;
 using System.Threading;
+using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.Sync
 {
@@ -12,17 +13,16 @@ namespace RommStar.Core.Sync
         public CancellationTokenSource Cts { get; set; } = new();
 
         public bool DownloadMediaFiles { get; set; } = false;
-
         public bool DownloadRomFiles { get; set; } = false;
 
         /// <summary>
         /// 2. This references the property on the UiCard above
         /// </summary>
         public Guid Id => UiCard.Id;
-
-        public string LaunchBoxPlatformName { get; set; } = string.Empty;
-
+        public string PlatformName { get; set; } = string.Empty;
         public string LaunchBoxRomFolder { get; set; } = string.Empty;
+
+        public IPlatformFolder[] PlatformMediaFolders { get; set; }
         public List<int> RommPlatformIds { get; set; } = new();
         public ExtendedSyncSettings SyncSettings { get; set; }
 
@@ -30,7 +30,6 @@ namespace RommStar.Core.Sync
         /// Captures the specific server assigned to this run to eliminate cross-talk race conditions
         /// </summary>
         public RommServer TargetServer { get; set; } = null!;
-
         public PlatformSyncJob UiCard { get; set; } = null!;
 
         /// <summary>

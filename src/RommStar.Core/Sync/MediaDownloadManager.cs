@@ -3,6 +3,8 @@ using RommStar.Core.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.Sync
 {
@@ -27,13 +29,35 @@ namespace RommStar.Core.Sync
             { MediaType.Screenshot, rom => rom.MergedScreenshots != null && rom.MergedScreenshots.Count > 0 ? rom.MergedScreenshots[0] : null }
         };
 
+        private static readonly Dictionary<MediaType, string> LaunchboxTypeMap = new()
+        {
+            { MediaType.BoxFront, "Box - Front" },
+            { MediaType.Box3D, "Box - Front - 3D" },
+            { MediaType.BoxBack, "Box - Back" },
+            { MediaType.Screenshot, "Screenshot - Gameplay" },
+            { MediaType.TitleScreen, "Screenshot - Title" },
+            { MediaType.Logo, "Clear Logo" },
+            { MediaType.Marquee, "Arcade - Marquee" },
+            { MediaType.FanArt, "Fanart - Background" },
+            { MediaType.Bezel, "Arcade - Bezel" },
+            { MediaType.MixImage, "Box - Front - Reconstructed" },
+            { MediaType.PhysicalMedia, "Cart - Front" },
+            { MediaType.Manual, "Manual" },
+            { MediaType.Music, "Music" },
+            { MediaType.Video, "Video" }
+        };
+
         public MediaDownloadManager() { }
 
         public List<MediaDownloadItem> BuildDownloadItems(
             RomDTO rom,
             MediaSelectionProfile profile,
             string baseUrl,
-            string launchboxPlatformName)
+            string launchboxPlatformName,
+            IPlatformFolder[] launchboxMediaFolders,
+            string romFilename, // Explicitly passed file name (without extension)
+            bool useRomFilenameForMedia,
+            bool forceMediaPriority)
         {
             var items = new List<MediaDownloadItem>();
 
@@ -41,6 +65,11 @@ namespace RommStar.Core.Sync
                 return items;
 
             string baseResourceEndpoint = $"{baseUrl.TrimEnd('/')}{MediaStubPath}";
+
+            // Determine our primary naming token based on UI configuration flag
+            string baseTargetName = useRomFilenameForMedia && !string.IsNullOrWhiteSpace(romFilename)
+                ? romFilename
+                : rom.Name;
 
             foreach (var type in profile.EnabledTypes)
             {
@@ -52,13 +81,22 @@ namespace RommStar.Core.Sync
                     {
                         if (string.IsNullOrWhiteSpace(screenshotPath)) continue;
 
-                        string suffix = screenshotIndex == 1 ? "" : $"-{screenshotIndex}";
+                        // Multi-asset suffix rule logic combined with force override flag
+                        string suffix = string.Empty;
+                        if (forceMediaPriority)
+                        {
+                            suffix = screenshotIndex == 1 ? "-00" : $"-00_{screenshotIndex}";
+                        }
+                        else
+                        {
+                            suffix = screenshotIndex == 1 ? "" : $"-{screenshotIndex}";
+                        }
 
                         items.Add(new MediaDownloadItem
                         {
                             MediaType = type,
                             DownloadUrl = CleanAndCombineUrl(baseResourceEndpoint, screenshotPath),
-                            TargetLocalPath = ResolveLaunchboxPath(type, launchboxPlatformName, rom.Name, suffix, Path.GetExtension(CleanQueryString(screenshotPath)))
+                            TargetLocalPath = ResolveLaunchboxPath(type, launchboxPlatformName, baseTargetName, suffix, Path.GetExtension(CleanQueryString(screenshotPath)), launchboxMediaFolders)
                         });
                         screenshotIndex++;
                     }
@@ -71,35 +109,32 @@ namespace RommStar.Core.Sync
                 string? relativePath = selector(rom);
                 if (string.IsNullOrWhiteSpace(relativePath)) continue;
 
+                // For single files, apply -00 priority suffix if toggled on
+                string fileSuffix = forceMediaPriority ? "-00" : "";
+
                 items.Add(new MediaDownloadItem
                 {
                     MediaType = type,
                     DownloadUrl = CleanAndCombineUrl(baseResourceEndpoint, relativePath),
-                    TargetLocalPath = ResolveLaunchboxPath(type, launchboxPlatformName, rom.Name, "", Path.GetExtension(CleanQueryString(relativePath)))
+                    TargetLocalPath = ResolveLaunchboxPath(type, launchboxPlatformName, baseTargetName, fileSuffix, Path.GetExtension(CleanQueryString(relativePath)), launchboxMediaFolders)
                 });
             }
 
             return items;
         }
 
-        /// <summary>
-        /// Combines endpoints, strips redundant stubs, clears query stamps, and checks absolute URLs.
-        /// </summary>
         private string CleanAndCombineUrl(string baseEndpoint, string rawPath)
         {
             if (string.IsNullOrWhiteSpace(rawPath)) return string.Empty;
 
-            // 1. Strip absolute protocol bypasses completely
             if (rawPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
                 rawPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
                 return rawPath;
             }
 
-            // 2. Clear out any query cache string parameters (?ts=...)
             rawPath = CleanQueryString(rawPath);
 
-            // 3. FIX: Strip out the duplicate prefix if it exists in the raw property
             if (rawPath.StartsWith(MediaStubPath, StringComparison.OrdinalIgnoreCase))
             {
                 rawPath = rawPath.Substring(MediaStubPath.Length);
@@ -113,31 +148,56 @@ namespace RommStar.Core.Sync
             return path.Contains('?') ? path.Split('?')[0] : path;
         }
 
-        private string ResolveLaunchboxPath(MediaType type, string platform, string gameName, string suffix, string extension)
+        private string ResolveLaunchboxPath(
+            MediaType type,
+            string platform,
+            string filenameOrTitle,
+            string suffix,
+            string extension,
+            IPlatformFolder[] launchboxMediaFolders)
         {
             if (string.IsNullOrWhiteSpace(extension)) extension = ".png";
 
-            string folderName = type switch
-            {
-                MediaType.BoxFront => Path.Combine("Images", platform, "Box - Front"),
-                MediaType.Box3D => Path.Combine("Images", platform, "Box - Front - 3D"),
-                MediaType.BoxBack => Path.Combine("Images", platform, "Box - Back"),
-                MediaType.Screenshot => Path.Combine("Images", platform, "Screenshot - Gameplay"),
-                MediaType.TitleScreen => Path.Combine("Images", platform, "Screenshot - Title"),
-                MediaType.Logo => Path.Combine("Images", platform, "Clear Logo"),
-                MediaType.Marquee => Path.Combine("Images", platform, "Arcade - Marquee"),
-                MediaType.FanArt => Path.Combine("Images", platform, "Fanart - Background"),
-                MediaType.Bezel => Path.Combine("Images", platform, "Arcade - Bezel"),
-                MediaType.MixImage => Path.Combine("Images", platform, "Front - Reconstructed"),
-                MediaType.PhysicalMedia => Path.Combine("Images", platform, "Cart - Front"),
-                MediaType.Manual => Path.Combine("Manuals", platform),
-                MediaType.Music => Path.Combine("Music", platform),
-                MediaType.Video => Path.Combine("Videos", platform),
-                _ => Path.Combine("Images", platform, "Other")
-            };
+            string folderPath = string.Empty;
 
-            string targetDir = Path.Combine(Constants.LaunchboxRootDir, folderName);
-            return Path.Combine(targetDir, $"{gameName}{suffix}{extension}");
+            if (LaunchboxTypeMap.TryGetValue(type, out string lbTypeStr) && launchboxMediaFolders != null)
+            {
+                var matchedFolder = launchboxMediaFolders.FirstOrDefault(f =>
+                    string.Equals(f.MediaType, lbTypeStr, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(f.Platform, platform, StringComparison.OrdinalIgnoreCase));
+
+                if (matchedFolder != null)
+                {
+                    folderPath = matchedFolder.FolderPath;
+                }
+            }
+
+            if (string.IsNullOrEmpty(folderPath))
+            {
+                string fallbackSubFolder = type switch
+                {
+                    MediaType.BoxFront => Path.Combine("Images", platform, "Box - Front"),
+                    MediaType.BoxBack => Path.Combine("Images", platform, "Box - Back"),
+                    MediaType.Video => Path.Combine("Videos", platform),
+                    _ => Path.Combine("Images", platform, "Other")
+                };
+                folderPath = Path.Combine(Constants.LaunchboxRootDir, fallbackSubFolder);
+            }
+            else
+            {
+                folderPath = NormalizeFolderPath(Constants.LaunchboxRootDir, folderPath);
+            }
+
+            return Path.Combine(folderPath, $"{filenameOrTitle}{suffix}{extension}");
+        }
+
+        private string NormalizeFolderPath(string baseRootDir, string rawPath)
+        {
+            if (string.IsNullOrWhiteSpace(rawPath)) return baseRootDir;
+            if (Path.IsPathRooted(rawPath)) return Path.GetFullPath(rawPath);
+
+            string combined = Path.Combine(baseRootDir, rawPath);
+            return Path.GetFullPath(combined);
         }
     }
 }

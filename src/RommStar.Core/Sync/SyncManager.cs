@@ -129,7 +129,7 @@ namespace RommStar.Core.Sync
         // =========================================================================
         // MACRO MANAGEMENT: ENQUEUE PLATFORM RUN
         // =========================================================================
-        public void QueuePlatformSync(string lbPlatformName, string lbPlatformRomFolder, List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer)
+        public void QueuePlatformSync(string lbPlatformName, string lbPlatformRomFolder, IPlatformFolder[] lbMediaFolders, List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer)
         {
             var uiJobCard = new PlatformSyncJob
             {
@@ -145,8 +145,9 @@ namespace RommStar.Core.Sync
 
             var task = new PlatformSyncTask
             {
-                LaunchBoxPlatformName = lbPlatformName,
+                PlatformName = lbPlatformName,
                 LaunchBoxRomFolder = lbPlatformRomFolder,
+                PlatformMediaFolders = lbMediaFolders,
                 RommPlatformIds = rommPlatformIds,
                 UiCard = uiJobCard,
                 TargetServer = targetServer,
@@ -157,9 +158,9 @@ namespace RommStar.Core.Sync
                         || syncSettings.SyncProfile == SyncProfileTypes.DownloadRom,
 
                 UpsertIGame = (syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
-                || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
-                || syncSettings.SyncProfile == SyncProfileTypes.CreateGame
-                || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia),
+                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
+                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame
+                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia),
 
                 DownloadMediaFiles = syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia
                                         || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
@@ -220,8 +221,8 @@ namespace RommStar.Core.Sync
             //    JobType = DownloadJobType.Media,
             //    //RelativeUrl = romDto.BoxFrontUrl,
             //    RelativeUrl = "romDto.BoxFrontUrl",
-            //    DestinationPath = Path.Combine("C:\\LaunchBox\\Images", task.LaunchBoxPlatformName, "Box - Front", $"{rom.Name}.png"),
-            //    LaunchBoxPlatformName = task.LaunchBoxPlatformName,
+            //    DestinationPath = Path.Combine("C:\\LaunchBox\\Images", task.PlatformName, "Box - Front", $"{rom.Name}.png"),
+            //    PlatformName = task.PlatformName,
             //    ServerContext = server,
             //    UiCard = task.UiCard,
             //    CancellationToken = task.Cts.Token
@@ -278,7 +279,7 @@ namespace RommStar.Core.Sync
                     }
 
                     // Setup LaunchboxService for this SyncJob setup
-                    _launchboxService.SetupGameUpserts(platformTask.LaunchBoxPlatformName, platformTask.TargetServer.Id.ToString(), platformTask.SyncSettings);
+                    _launchboxService.SetupGameUpserts(platformTask.PlatformName, platformTask.TargetServer.Id.ToString(), platformTask.SyncSettings);
 
                     platformTask.UiCard.Status = SyncStatus.ProcessingMetadata;
 
@@ -296,6 +297,11 @@ namespace RommStar.Core.Sync
                     var installRoms = platformTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
                         || platformTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
                         || platformTask.SyncSettings.SyncProfile == SyncProfileTypes.DownloadRom;
+
+
+                    //var installMedia = platformTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia
+                    //    || platformTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia;
+
 
                     // determine which profile to use (install = minimal media - eg boxart; Catalg = full (eg when game installed)
                     // REPLACE WITH THIS:
@@ -520,7 +526,7 @@ namespace RommStar.Core.Sync
                         var allGroupIds = cluster.Select(r => r.Id ?? 0).Distinct().ToList();
                         string aggregatedRomIdsCsv = string.Join(",", allGroupIds);
 
-                        string basePlatformPath = Path.Combine("C:\\LaunchBox\\Games", platformTask.LaunchBoxPlatformName);
+                        string basePlatformPath = Path.Combine("C:\\LaunchBox\\Games", platformTask.PlatformName);
                         string targetDirectory = Path.Combine(basePlatformPath, masterRom.Name);
 
                         IGame masterGameInstance = null;
@@ -685,7 +691,7 @@ namespace RommStar.Core.Sync
             {
                 JobId = platformTask.Id,
                 JobType = DownloadJobType.Rom,
-                LaunchBoxPlatformName = platformTask.LaunchBoxPlatformName,
+                LaunchBoxPlatformName = platformTask.PlatformName,
                 ServerContext = currentSnapshot,
                 UiCard = platformTask.UiCard,
                 CancellationToken = platformTask.Cts.Token,

@@ -17,6 +17,11 @@ namespace RommStar.Core.Models
         public bool ApplySettings { get; set; } = false;
         public SyncProfileTypes SyncProfile { get; set; } = SyncProfileTypes.CreateGame_DownloadMedia;
         public bool OverwriteMetadata { get; set; } = true;
+        public bool OverwriteExistingMedia { get; set; } = true;
+        public bool ForceMediaPriority { get; set; } = true;
+
+        public bool UseRomFilenameForMedia { get; set; } = true;
+
 
         /// <summary>
         /// If local launchbox platform contains roms from a previously assigned server, these are deleted. 

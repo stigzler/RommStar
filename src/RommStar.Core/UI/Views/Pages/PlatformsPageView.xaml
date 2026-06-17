@@ -455,10 +455,10 @@
                                                         BorderBrush="#80000000" BorderThickness="1"
                                                 CornerRadius="14" Padding="10,4" Margin="0,0,8,8">
                                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding RommName}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                        <TextBlock Text="{Binding RommName}" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="White"/>
                                                         <TextBlock Text="{Binding IsOrphaned}" VerticalAlignment="Center" Margin="0,0,8,0" />
                                                         <!-- x:Name not needed here; DataContext carries the DTO via button.DataContext -->
-                                                        <Button Content="✕"
+                                                        <Button Content="✕" Foreground="White"
                                                                 Command="{Binding DataContext.RemoveRommPlatformFromMapCommand, ElementName=PlatformsPage}"
                                                                 CommandParameter="{Binding .}"
                                                         Padding="0" Width="16" Height="16"
@@ -472,24 +472,41 @@
                                 </Grid>
                             </Grid>
 
-                            <Expander Grid.Row="4" x:Name="AdvancedSettingsExpander"                                       
-                                            MaxHeight="450"      
-                                      Header="Advanced Settings"  Margin="0,0,5,10" Background="#10000000" Padding="10" 
+                            <Expander Grid.Row="4" x:Name="AdvancedSettingsExpander"                                   
+                                        MaxHeight="450"      
+                                       Margin="0,0,5,10" Background="#10000000" Padding="10"
                                       BorderBrush="#80808080" BorderThickness="1" ExpandDirection="Up" IsExpanded="False"
-                                      Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
+                                      Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}"
+                                      HorizontalContentAlignment="Stretch" >
+                                <Expander.Header>
+                                    <Grid HorizontalAlignment="Left" 
+                                          Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Expander}}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="Advanced Settings" VerticalAlignment="Center"/>
+
+                                        <ui:ToggleSwitch Grid.Column="1" x:Name="HeaderToggle" Margin="0"
+                                                         VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                         IsOn="{Binding SelectedPlatform.ExtendedSyncSettings.ApplySettings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Grid>
+                                </Expander.Header>
                                 <Grid >
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="auto" />
                                         <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
 
-                                    <ui:SettingsCard Grid.Row="0" Header="Apply Advanced Settings" Description="These settings will overide the global defaults in Settings for thisw Platform.">
+                                    <ui:SettingsCard Grid.Row="0" Header="Apply Advanced Settings" Description="These settings will overide the global defaults in Settings for this Platform.">
                                         <ui:ToggleSwitch IsOn="{Binding SelectedPlatform.ExtendedSyncSettings.ApplySettings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                     </ui:SettingsCard>
 
                                     <ScrollViewer Grid.Row="1" >
                                         <ucs:ExtendedSyncSettingsView  ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="0,0,15,0"
-                                                ExtendedSyncSettings="{Binding SelectedPlatform.ExtendedSyncSettings, Mode=TwoWay}"/>
+                                                ExtendedSyncSettings="{Binding SelectedPlatform.ExtendedSyncSettings, Mode=TwoWay}"
+                                                IsEnabled="{Binding SelectedPlatform.ExtendedSyncSettings.ApplySettings}"/>
                                     </ScrollViewer>
 
                                 </Grid>

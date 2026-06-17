@@ -15,7 +15,7 @@ namespace RommStar.Tests
         public void Test_BuildDownloadItems_FF7_Visualizer()
         {
             // Force set a directory dummy path so Path.Combine doesn't crash or go blank in a test context
-            Constants.LaunchboxRootDir = @"C:\LaunchBox";
+            //Constants.LaunchboxRootDir = @"C:\LaunchBox";
 
             // 1. Arrange: Create a fake game DTO mimicking real RomM structural data
             var mockRom = new RomDTO
@@ -25,10 +25,10 @@ namespace RommStar.Tests
                 MediaVideo = "roms/445/8864/video/video.mp4",
                 MediaBoxFront = "/assets/romm/resources/roms/445/8864/cover/big.png?ts=2026-06-16 13:49:16",
                 MergedScreenshots = new List<string>
-        {
-            "/assets/romm/resources/roms/445/8864/screenshots/0.jpg",
-            "/assets/romm/resources/roms/445/8864/screenshots/1.jpg"
-        },
+                        {
+                            "/assets/romm/resources/roms/445/8864/screenshots/0.jpg",
+                            "/assets/romm/resources/roms/445/8864/screenshots/1.jpg"
+                        },
                 ScreenscrapeMetadata = new RomScreenscraperMetadataDTO
                 {
                     MediaBox3D = "roms/445/8864/box3d/box3d.png",
