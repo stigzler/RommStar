@@ -16,6 +16,8 @@ namespace RommStar.Core
 
         internal static readonly string PluginRootDir = Path.Combine(LaunchboxRootDir, @"Plugins\RommStar");
 
+        internal static readonly string KillGameLaunchExe = Path.Combine(LaunchboxRootDir, @"Plugins\RommStar\RommStar.DummyEmulator.exe");
+
         /// <summary>
         /// This has to be relevant to launchbox root to ensure multi-version rom games show the 
         /// multi version badge 🤷

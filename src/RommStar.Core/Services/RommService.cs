@@ -79,6 +79,20 @@ namespace RommStar.Core.Services
 
         }
 
+        public async Task DownloadRoms(RommServer server, List<int> romIds, string filename = "rommDownload.zip",
+            CancellationToken externalToken = default)
+        {
+            StringBuilder endpointUrl = new($"{server.BaseUrl.TrimEnd('/')}/api/roms/download?");
+
+            endpointUrl.Append($"rom_ids={string.Join(',', romIds.Select(i => i.ToString()))}");
+            endpointUrl.Append($"filename={filename}");
+
+            var response = await SendRequestAsync(HttpMethod.Get, endpointUrl.ToString(), server, externalToken);
+
+
+
+        }
+
         public async Task<RommApiResponse<RomCollectionDTO>> GetRomCollectionAsync(RommServer server, List<int> platformIds, int offset,
                                 CancellationToken externalToken = default)
         {
