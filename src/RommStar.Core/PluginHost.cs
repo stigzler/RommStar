@@ -29,10 +29,14 @@ namespace RommStar.Core
         private static readonly object _padlock = new object();
         private static PluginHost? _instance;
 
-        private readonly LoggingService _loggingService;
         private readonly IServiceProvider _serviceProvider;
+
+
+        private readonly LoggingService _loggingService;
         private readonly SettingsService _settingsService;
-        private ProgressBar _installProgressBar;
+        private readonly LaunchService _launchService;
+
+
         string _lastEmulatorApplicationPath;
         IEmulator _lastGameLaunchEmulator;
         private bool _mainWindowInitialised = false;
@@ -403,7 +407,6 @@ namespace RommStar.Core
         // Use this pattern in your event handlers
         private void UpdatePlayButtonUi(IGame game)
         {
-            // 1. We use 'Background' priority to ensure we run AFTER the main layout pass
             Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
                 var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
@@ -415,69 +418,92 @@ namespace RommStar.Core
                 var parent = VisualTreeHelper.GetParent(playButton) as Panel;
                 if (parent == null) return;
 
-                var scrollViewer = FindScrollVisualParent<ScrollViewer>(parent);
+                // 1. FIND OR CREATE (Only add to the visual tree ONCE)
+                var overlayContainer = parent.Children.OfType<Border>().FirstOrDefault(x => x.Tag as string == "InstallingOverlay");
 
-                // 2. THIS IS THE KEY: We create a handler that suppresses auto-scroll requests.
-                // We will attach this to the ScrollViewer only for the duration of this method.
-                void SuppressScroll(object sender, RequestBringIntoViewEventArgs e)
+                if (overlayContainer == null)
                 {
-                    e.Handled = true; // Tell the UI system: "I've handled this, don't scroll."
-                }
-
-                if (scrollViewer != null)
-                    scrollViewer.RequestBringIntoView += SuppressScroll;
-
-                try
-                {
-                    // --- YOUR LOGIC STARTS HERE ---
-
-                    // Find or Create Overlay
-                    var overlayContainer = parent.Children.OfType<Border>().FirstOrDefault(x => x.Tag as string == "InstallingOverlay");
-
-                    if (overlayContainer == null && game.Status == "Installing")
+                    overlayContainer = new Border
                     {
-                        overlayContainer = new Border
-                        {
-                            Tag = "InstallingOverlay",
-                            Height = playButton.ActualHeight,
-                            Width = playButton.ActualWidth,
-                            Margin = playButton.Margin,
-                            HorizontalAlignment = playButton.HorizontalAlignment,
-                            VerticalAlignment = playButton.VerticalAlignment,
-                            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#803183E1")),
-                            BorderThickness = new Thickness(1),
-                            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#d03183E1")),
-                            Focusable = false, // Keep focus off this so it doesn't auto-scroll
-                        };
+                        Tag = "InstallingOverlay",
+                        Height = playButton.ActualHeight,
+                        Width = playButton.ActualWidth,
+                        Margin = playButton.Margin,
+                        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#803183E1")),
+                        BorderThickness = new Thickness(1),
+                        BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#d03183E1")),
+                        Focusable = false,
+                        Opacity = 0, // Hidden by default
+                        IsHitTestVisible = false
+                    };
 
-                        var innerGrid = new Grid();
-                        innerGrid.Children.Add(new ProgressBar { IsIndeterminate = true, Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#a03183E1")) });
-                        innerGrid.Children.Add(new TextBlock { Text = "INSTALLING", Foreground = Brushes.White, FontWeight = FontWeights.Bold, FontSize = 25, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false });
-                        overlayContainer.Child = innerGrid;
-
-                        parent.Children.Add(overlayContainer);
-                    }
-
-                    // Toggle Visibility
-                    bool isInstalling = (game.Status == "Installing");
-                    playButton.Visibility = isInstalling ? Visibility.Collapsed : Visibility.Visible;
-
-                    if (overlayContainer != null)
+                    // FIX: Use StackPanel for layout
+                    var stackPanel = new StackPanel
                     {
-                        overlayContainer.Visibility = isInstalling ? Visibility.Visible : Visibility.Collapsed;
-                    }
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
 
-                    // --- END LOGIC ---
+                    stackPanel.Children.Add(CreateSpinner());
+                    stackPanel.Children.Add(new TextBlock
+                    {
+                        Text = "INSTALLING",
+                        Foreground = Brushes.White,
+                        FontWeight = FontWeights.Bold,
+                        FontSize = 25,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(5, 0, 0, 0) // Space between spinner and text
+                    });
+
+                    overlayContainer.Child = stackPanel;
+                    parent.Children.Add(overlayContainer);
                 }
-                finally
-                {
-                    // 3. IMPORTANT: Always detach the handler!
-                    // If you don't do this, normal scrolling will stop working entirely.
-                    if (scrollViewer != null)
-                        scrollViewer.RequestBringIntoView -= SuppressScroll;
-                }
+
+                // 2. TOGGLE (Don't collapse, just change Opacity)
+                bool isInstalling = (game.Status == "Installing");
+
+                playButton.Opacity = isInstalling ? 0 : 1;
+                playButton.IsHitTestVisible = !isInstalling;
+
+                overlayContainer.Opacity = isInstalling ? 1 : 0;
+                overlayContainer.IsHitTestVisible = isInstalling;
 
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
+
+        private FrameworkElement CreateSpinner()
+        {
+            // A simple arc path
+            var spinner = new System.Windows.Shapes.Path
+            {
+                Data = Geometry.Parse("M 10,0 A 10,10 0 1 1 0,10"),
+                Stroke = Brushes.White,
+                StrokeThickness = 3,
+                Width = 20,
+                Height = 20,
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                Stretch = Stretch.Uniform,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 10, 0)
+            };
+
+            // Apply rotation
+            var rotate = new RotateTransform();
+            spinner.RenderTransform = rotate;
+
+            // Animate rotation (Uses GPU-accelerated composition)
+            // The constructor for DoubleAnimation defaults to linear interpolation automatically
+            var anim = new System.Windows.Media.Animation.DoubleAnimation(0, 360, new Duration(TimeSpan.FromSeconds(1)))
+            {
+                RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever
+            };
+
+            rotate.BeginAnimation(RotateTransform.AngleProperty, anim);
+
+            return spinner;
+        }
+
     }
 }
