@@ -32,6 +32,7 @@ namespace RommStar.Core
         private readonly LoggingService _loggingService;
         private readonly IServiceProvider _serviceProvider;
         private readonly SettingsService _settingsService;
+        private ProgressBar _installProgressBar;
         string _lastEmulatorApplicationPath;
         IEmulator _lastGameLaunchEmulator;
         private bool _mainWindowInitialised = false;
@@ -71,107 +72,66 @@ namespace RommStar.Core
             _loggingService.Log("Settings:");
             _loggingService.Log($"  LogLevel: {_settingsService.Settings.LoggingLevel.ToString()}");
         }
-
-        private ProgressBar _installProgressBar;
-
-        private void ToggleUiState(Button playButton, bool isInstalling, string statusText = "")
+        public T FindButtonByCommand<T>(DependencyObject parent, string commandName) where T : DependencyObject
         {
-            var parent = VisualTreeHelper.GetParent(playButton) as Panel;
-            if (parent == null) return;
-
-            // 1. Ensure the ProgressBar exists
-            if (_installProgressBar == null)
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
             {
-                _installProgressBar = new ProgressBar
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+
+                // Check if this child is a Button
+                if (child is Button btn)
                 {
-                    Name = "InstallingProgressBar",
-                    Height = playButton.ActualHeight,
-                    Width = playButton.ActualWidth,
-                    Margin = playButton.Margin,
-                    HorizontalAlignment = playButton.HorizontalAlignment,
-                    VerticalAlignment = playButton.VerticalAlignment,
-                    IsIndeterminate = true // Set to continuous for now
-                };
-                // Add it to the same parent as the button
-                parent.Children.Add(_installProgressBar);
-            }
+                    // Check if the command binding path matches
+                    var binding = BindingOperations.GetBinding(btn, Button.CommandProperty);
+                    if (binding != null && binding.Path.Path == commandName)
+                    {
+                        return (T)child;
+                    }
+                }
 
-            // 2. Perform the swap
-            if (isInstalling)
-            {
-                playButton.Visibility = Visibility.Collapsed;
-                _installProgressBar.Visibility = Visibility.Visible;
-
-                // Optional: Tooltip to show text since ProgressBars don't have built-in text
-                _installProgressBar.ToolTip = statusText;
+                // Recursive search
+                T foundChild = FindButtonByCommand<T>(child, commandName);
+                if (foundChild != null) return foundChild;
             }
-            else
-            {
-                playButton.Visibility = Visibility.Visible;
-                _installProgressBar.Visibility = Visibility.Collapsed;
-            }
+            return null;
         }
 
-        // Use this pattern in your event handlers
-        private void UpdatePlayButtonUi(IGame game)
+        public T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
         {
-            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
             {
-                var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
-                if (view == null) return;
+                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
 
-                var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
-                if (playButton == null) return;
+                // If this child is the type we are looking for, return it
+                if (child != null && child is T)
+                    return (T)child;
 
-                var parent = VisualTreeHelper.GetParent(playButton) as Panel;
-                if (parent == null) return;
+                // Otherwise, keep searching recursively
+                T childOfChild = FindVisualChild<T>(child);
+                if (childOfChild != null)
+                    return childOfChild;
+            }
+            return null;
+        }
 
-                // 1. Find or Create the OVERLAY CONTAINER (The Grid)
-                var overlayContainer = parent.Children.OfType<Grid>().FirstOrDefault(x => x.Tag as string == "InstallingOverlay");
+        public void ResetPlayButton(Button playButton)
+        {
+            var textBlock = FindVisualChild<TextBlock>(playButton);
+            if (textBlock != null)
+            {
+                // This clears your hardcoded "Installing..." override.
+                // WPF immediately falls back to the next priority: the XAML Style/Binding.
+                textBlock.ClearValue(TextBlock.TextProperty);
+            }
 
-                if (overlayContainer == null && game.Status == "Installing")
-                {
-                    // Create the container
-                    overlayContainer = new Grid
-                    {
-                        Tag = "InstallingOverlay",
-                        Height = playButton.ActualHeight,
-                        Width = playButton.ActualWidth,
-                        Margin = playButton.Margin,
-                        HorizontalAlignment = playButton.HorizontalAlignment,
-                        VerticalAlignment = playButton.VerticalAlignment
-                    };
+            // Re-enable the button
+            playButton.IsEnabled = true;
 
-                    // Add the ProgressBar (Bottom layer)
-                    overlayContainer.Children.Add(new ProgressBar
-                    {
-                        IsIndeterminate = true
-                    });
+            playButton.InvalidateVisual();
+            playButton.UpdateLayout();
 
-                    // Add the Text (Top layer)
-                    overlayContainer.Children.Add(new TextBlock
-                    {
-                        Text = "INSTALLING",
-                        Foreground = System.Windows.Media.Brushes.White,
-                        FontWeight = FontWeights.Bold,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        IsHitTestVisible = false // Ensures text doesn't swallow clicks
-                    });
-
-                    parent.Children.Add(overlayContainer);
-                }
-
-                // 2. Toggle Visibility (Now we toggle the container, not just the bar)
-                bool isInstalling = (game.Status == "Installing");
-
-                playButton.Visibility = isInstalling ? Visibility.Collapsed : Visibility.Visible;
-
-                if (overlayContainer != null)
-                {
-                    overlayContainer.Visibility = isInstalling ? Visibility.Visible : Visibility.Collapsed;
-                }
-            }));
+            // Remove your "Trap" if you added one
+            //playButton.PreviewMouseLeftButtonDown -= BlockClick;
         }
 
         internal void LaunchboxEventReceived(string eventType)
@@ -197,7 +157,7 @@ namespace RommStar.Core
                     UpdatePlayButtonUi(selectedGames[0]);
 
                     break;
-                   
+
             }
         }
 
@@ -216,75 +176,11 @@ namespace RommStar.Core
             }
         }
 
-        private void DoPreGameLaunchOperations(IGame game, IEmulator emulator)
-        {
-            // 
-            if (game == null || emulator == null) return;
-
-            // Check that game's emulator has not been set to the KillGameLaunchExe as a 
-            // result of game Installation logic failing
-            if (emulator.ApplicationPath == Constants.KillGameLaunchExe && PluginHelper.StateManager.IsBigBox == false)
-            {
-                // Show in Launchbox
-                MessageBox.Show($"It appears that this game's emulator has been set to an operational file used by RommStar. " +
-                    $"You will need to re-instate the correct Application Path for this emulator: {emulator.Title}",
-                    "RommStar Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-
-            _lastEmulatorApplicationPath = emulator.ApplicationPath; // order important here - beware  emulator.ApplicationPath = Constants.KillGameLaunchExe;
-            _lastGameLaunchEmulator = emulator;
-
-            // Check if Rom Installation required
-            if (game?.Installed == false)
-            {
-                game.Status = "Installing";
-
-                // TODO: Do install stuff
-
-                // Now set the emulator to an essentially empty exe to fake game launch
-                // (No game launch cancel facility in LB sadly)
-                emulator.ApplicationPath = Constants.KillGameLaunchExe;
-            }
-
-        }
-
-        public T FindButtonByCommand<T>(DependencyObject parent, string commandName) where T : DependencyObject
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
-
-                // Check if this child is a Button
-                if (child is Button btn)
-                {
-                    // Check if the command binding path matches
-                    var binding = BindingOperations.GetBinding(btn, Button.CommandProperty);
-                    if (binding != null && binding.Path.Path == commandName)
-                    {
-                        return (T)child;
-                    }
-                }
-
-                // Recursive search
-                T foundChild = FindButtonByCommand<T>(child, commandName);
-                if (foundChild != null) return foundChild;
-            }
-            return null;
-        }
-
-       
-        private Button? PlayButton()
-        {
-            var gameDetailsView = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as DependencyObject;
-            return FindButtonByCommand<Button>(gameDetailsView, "PlayCommand");
-        }
-
-
         internal void OnGameLaunchingEvent(GameLaunchingEvent gameLaunchingEvent, IGame? game = null,
-                                IAdditionalApplication? app = null, IEmulator? emulator = null)
+                                        IAdditionalApplication? app = null, IEmulator? emulator = null)
         {
 
-            var playButton = PlayButton();
+            //var playButton = PlayButton();
 
 
             switch (gameLaunchingEvent)
@@ -292,9 +188,10 @@ namespace RommStar.Core
                 case GameLaunchingEvent.BeforeLaunch:
 
                     DoPreGameLaunchOperations(game, emulator);
+                 
                     break;
 
-                case GameLaunchingEvent.AfterLaunch:                   
+                case GameLaunchingEvent.AfterLaunch:
 
 
                     //if (playButton != null)
@@ -314,7 +211,6 @@ namespace RommStar.Core
                     //    }
                     //}
 
-                    UpdatePlayButtonUi(game);
 
                     break;
 
@@ -323,123 +219,12 @@ namespace RommStar.Core
                     // Deal with any Game install logic implemented in GameLaunchingEvent.BeforeLaunch above
                     RestoreGameLaunchEmulatorExe();
 
-                    ResetPlayButton(playButton);
+                    //ResetPlayButton(playButton);
 
                     break;
             }
 
         }
-
-        public void ResetPlayButton(Button playButton)
-        {
-            var textBlock = FindVisualChild<TextBlock>(playButton);
-            if (textBlock != null)
-            {
-                // This clears your hardcoded "Installing..." override.
-                // WPF immediately falls back to the next priority: the XAML Style/Binding.
-                textBlock.ClearValue(TextBlock.TextProperty);
-            }
-
-            // Re-enable the button
-            playButton.IsEnabled = true;
-
-            playButton.InvalidateVisual();
-            playButton.UpdateLayout();
-
-            // Remove your "Trap" if you added one
-            //playButton.PreviewMouseLeftButtonDown -= BlockClick;
-        }
-
-        public T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
-            {
-                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
-
-                // If this child is the type we are looking for, return it
-                if (child != null && child is T)
-                    return (T)child;
-
-                // Otherwise, keep searching recursively
-                T childOfChild = FindVisualChild<T>(child);
-                if (childOfChild != null)
-                    return childOfChild;
-            }
-            return null;
-        }
-
-
-
-        //public void ForceInstallingState()
-        //{
-        //    // 1. Get the View and extract its DataContext (The hidden ViewModel)
-        //    var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
-        //    if (view == null || view.DataContext == null) return;
-
-        //    var viewModel = view.DataContext;
-
-        //    try
-        //    {
-        //        // 2. Reflect into the ViewModel to find the "Game" property shown in your XAML binding
-        //        PropertyInfo gameProp = viewModel.GetType().GetProperty("Game");
-        //        if (gameProp == null) return;
-
-        //        object internalGameObject = gameProp.GetValue(viewModel);
-        //        if (internalGameObject == null) return;
-
-        //        // 3. Reflect into the internal Game object to find the "InstallState" property
-        //        PropertyInfo installStateProp = internalGameObject.GetType().GetProperty("InstallState");
-        //        if (installStateProp == null) return;
-
-        //        // 4. InstallState is almost certainly an internal Enum. 
-        //        // We use Enum.Parse to convert your target string ("Installing") into that hidden Enum type.
-        //        object installingEnumValue = Enum.Parse(installStateProp.PropertyType, "Installing");
-
-        //        // 5. Inject the state by bypassing read-only restrictions
-        //        if (installStateProp.CanWrite)
-        //        {
-        //            // The property has a public setter (Unlikely, but good to check)
-        //            installStateProp.SetValue(internalGameObject, installingEnumValue);
-        //        }
-        //        else
-        //        {
-        //            // Attempt 1: Look for a private or internal setter
-        //            MethodInfo privateSetter = installStateProp.GetSetMethod(nonPublic: true);
-
-        //            if (privateSetter != null)
-        //            {
-        //                // Force invoke the private setter
-        //                privateSetter.Invoke(internalGameObject, new object[] { installingEnumValue });
-        //            }
-        //            else
-        //            {
-        //                // Attempt 2: Brute force the compiler-generated backing field
-        //                // In C#, auto-properties (like 'public InstallState InstallState { get; private set; }')
-        //                // create a hidden field named "<PropertyName>k__BackingField".
-        //                string backingFieldName = $"<{installStateProp.Name}>k__BackingField";
-
-        //                FieldInfo backingField = internalGameObject.GetType().GetField(
-        //                    backingFieldName,
-        //                    BindingFlags.Instance | BindingFlags.NonPublic);
-
-        //                if (backingField != null)
-        //                {
-        //                    // Forcefully inject the value directly into the hidden field
-        //                    backingField.SetValue(internalGameObject, installingEnumValue);
-        //                }
-        //                else
-        //                {
-        //                    MessageBox.Show("Failed to inject state: No setter or backing field found. It may be a purely calculated property.");
-        //                }
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        // Reflection can throw exceptions if types mismatch or properties change in future LB updates.
-        //        // Log the exception here if needed, or fail silently.
-        //    }
-        //}
 
         internal void PluginInitialised()
         {
@@ -517,6 +302,43 @@ namespace RommStar.Core
             return null;
         }
 
+        private void DoPreGameLaunchOperations(IGame game, IEmulator emulator)
+        {
+            // 
+            if (game == null || emulator == null) return;
+
+            // Check that game's emulator has not been set to the KillGameLaunchExe as a 
+            // result of game Installation logic failing
+            if (emulator.ApplicationPath == Constants.KillGameLaunchExe && PluginHelper.StateManager.IsBigBox == false)
+            {
+                // Show in Launchbox
+                MessageBox.Show($"It appears that this game's emulator has been set to an operational file used by RommStar. " +
+                    $"You will need to re-instate the correct Application Path for this emulator: {emulator.Title}",
+                    "RommStar Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            _lastEmulatorApplicationPath = emulator.ApplicationPath; // order important here - beware  emulator.ApplicationPath = Constants.KillGameLaunchExe;
+            _lastGameLaunchEmulator = emulator;
+
+            // Check if Rom Installation required
+            if (game?.Installed == false)
+            {
+                game.Status = "Installing";
+
+                // TODO: Do install stuff
+
+                // Now set the emulator to an essentially empty exe to fake game launch
+                // (No game launch cancel facility in LB sadly)
+                emulator.ApplicationPath = Constants.KillGameLaunchExe;
+
+                PluginHelper.DataManager.Save();
+                //PluginHelper.LaunchBoxMainViewModel.RefreshData();
+                UpdatePlayButtonUi(game);
+
+            }
+
+        }
+
         private void DoShutdownOperations()
         {
             // Ensure that any manipulation of the last launch Emulator's application path
@@ -542,6 +364,17 @@ namespace RommStar.Core
             //app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.ColorPaletteResources());
             //app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.ResourceDictionaryEx());
         }
+
+        private T FindScrollVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            var parent = VisualTreeHelper.GetParent(child);
+            while (parent != null && !(parent is T))
+            {
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+            return parent as T;
+        }
+
         private async Task LaunchAdminWindow()
         {
             var adminWindow = _serviceProvider.GetRequiredService<MainWindowView>();
@@ -556,6 +389,8 @@ namespace RommStar.Core
                 adminWindow.Show();
         }
 
+
+
         private void RestoreGameLaunchEmulatorExe()
         {
             if (_lastGameLaunchEmulator != null && _lastEmulatorApplicationPath != Constants.KillGameLaunchExe)
@@ -563,6 +398,86 @@ namespace RommStar.Core
                 _lastGameLaunchEmulator.ApplicationPath = _lastEmulatorApplicationPath;
                 PluginHelper.DataManager.Save();
             }
+        }
+
+        // Use this pattern in your event handlers
+        private void UpdatePlayButtonUi(IGame game)
+        {
+            // 1. We use 'Background' priority to ensure we run AFTER the main layout pass
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
+                if (view == null) return;
+
+                var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
+                if (playButton == null) return;
+
+                var parent = VisualTreeHelper.GetParent(playButton) as Panel;
+                if (parent == null) return;
+
+                var scrollViewer = FindScrollVisualParent<ScrollViewer>(parent);
+
+                // 2. THIS IS THE KEY: We create a handler that suppresses auto-scroll requests.
+                // We will attach this to the ScrollViewer only for the duration of this method.
+                void SuppressScroll(object sender, RequestBringIntoViewEventArgs e)
+                {
+                    e.Handled = true; // Tell the UI system: "I've handled this, don't scroll."
+                }
+
+                if (scrollViewer != null)
+                    scrollViewer.RequestBringIntoView += SuppressScroll;
+
+                try
+                {
+                    // --- YOUR LOGIC STARTS HERE ---
+
+                    // Find or Create Overlay
+                    var overlayContainer = parent.Children.OfType<Border>().FirstOrDefault(x => x.Tag as string == "InstallingOverlay");
+
+                    if (overlayContainer == null && game.Status == "Installing")
+                    {
+                        overlayContainer = new Border
+                        {
+                            Tag = "InstallingOverlay",
+                            Height = playButton.ActualHeight,
+                            Width = playButton.ActualWidth,
+                            Margin = playButton.Margin,
+                            HorizontalAlignment = playButton.HorizontalAlignment,
+                            VerticalAlignment = playButton.VerticalAlignment,
+                            Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#803183E1")),
+                            BorderThickness = new Thickness(1),
+                            BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#d03183E1")),
+                            Focusable = false, // Keep focus off this so it doesn't auto-scroll
+                        };
+
+                        var innerGrid = new Grid();
+                        innerGrid.Children.Add(new ProgressBar { IsIndeterminate = true, Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#a03183E1")) });
+                        innerGrid.Children.Add(new TextBlock { Text = "INSTALLING", Foreground = Brushes.White, FontWeight = FontWeights.Bold, FontSize = 25, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false });
+                        overlayContainer.Child = innerGrid;
+
+                        parent.Children.Add(overlayContainer);
+                    }
+
+                    // Toggle Visibility
+                    bool isInstalling = (game.Status == "Installing");
+                    playButton.Visibility = isInstalling ? Visibility.Collapsed : Visibility.Visible;
+
+                    if (overlayContainer != null)
+                    {
+                        overlayContainer.Visibility = isInstalling ? Visibility.Visible : Visibility.Collapsed;
+                    }
+
+                    // --- END LOGIC ---
+                }
+                finally
+                {
+                    // 3. IMPORTANT: Always detach the handler!
+                    // If you don't do this, normal scrolling will stop working entirely.
+                    if (scrollViewer != null)
+                        scrollViewer.RequestBringIntoView -= SuppressScroll;
+                }
+
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
     }
 }
