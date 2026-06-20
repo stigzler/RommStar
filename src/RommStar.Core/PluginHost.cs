@@ -72,6 +72,108 @@ namespace RommStar.Core
             _loggingService.Log($"  LogLevel: {_settingsService.Settings.LoggingLevel.ToString()}");
         }
 
+        private ProgressBar _installProgressBar;
+
+        private void ToggleUiState(Button playButton, bool isInstalling, string statusText = "")
+        {
+            var parent = VisualTreeHelper.GetParent(playButton) as Panel;
+            if (parent == null) return;
+
+            // 1. Ensure the ProgressBar exists
+            if (_installProgressBar == null)
+            {
+                _installProgressBar = new ProgressBar
+                {
+                    Name = "InstallingProgressBar",
+                    Height = playButton.ActualHeight,
+                    Width = playButton.ActualWidth,
+                    Margin = playButton.Margin,
+                    HorizontalAlignment = playButton.HorizontalAlignment,
+                    VerticalAlignment = playButton.VerticalAlignment,
+                    IsIndeterminate = true // Set to continuous for now
+                };
+                // Add it to the same parent as the button
+                parent.Children.Add(_installProgressBar);
+            }
+
+            // 2. Perform the swap
+            if (isInstalling)
+            {
+                playButton.Visibility = Visibility.Collapsed;
+                _installProgressBar.Visibility = Visibility.Visible;
+
+                // Optional: Tooltip to show text since ProgressBars don't have built-in text
+                _installProgressBar.ToolTip = statusText;
+            }
+            else
+            {
+                playButton.Visibility = Visibility.Visible;
+                _installProgressBar.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        // Use this pattern in your event handlers
+        private void UpdatePlayButtonUi(IGame game)
+        {
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
+                if (view == null) return;
+
+                var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
+                if (playButton == null) return;
+
+                var parent = VisualTreeHelper.GetParent(playButton) as Panel;
+                if (parent == null) return;
+
+                // 1. Find or Create the OVERLAY CONTAINER (The Grid)
+                var overlayContainer = parent.Children.OfType<Grid>().FirstOrDefault(x => x.Tag as string == "InstallingOverlay");
+
+                if (overlayContainer == null && game.Status == "Installing")
+                {
+                    // Create the container
+                    overlayContainer = new Grid
+                    {
+                        Tag = "InstallingOverlay",
+                        Height = playButton.ActualHeight,
+                        Width = playButton.ActualWidth,
+                        Margin = playButton.Margin,
+                        HorizontalAlignment = playButton.HorizontalAlignment,
+                        VerticalAlignment = playButton.VerticalAlignment
+                    };
+
+                    // Add the ProgressBar (Bottom layer)
+                    overlayContainer.Children.Add(new ProgressBar
+                    {
+                        IsIndeterminate = true
+                    });
+
+                    // Add the Text (Top layer)
+                    overlayContainer.Children.Add(new TextBlock
+                    {
+                        Text = "INSTALLING",
+                        Foreground = System.Windows.Media.Brushes.White,
+                        FontWeight = FontWeights.Bold,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        IsHitTestVisible = false // Ensures text doesn't swallow clicks
+                    });
+
+                    parent.Children.Add(overlayContainer);
+                }
+
+                // 2. Toggle Visibility (Now we toggle the container, not just the bar)
+                bool isInstalling = (game.Status == "Installing");
+
+                playButton.Visibility = isInstalling ? Visibility.Collapsed : Visibility.Visible;
+
+                if (overlayContainer != null)
+                {
+                    overlayContainer.Visibility = isInstalling ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }));
+        }
+
         internal void LaunchboxEventReceived(string eventType)
         {
             _loggingService.Log($"Launchbox event received: {eventType}", LoggingLevel.Verbose);
@@ -92,10 +194,7 @@ namespace RommStar.Core
                 case SystemEventTypes.SelectionChanged:
                     var selectedGames = PluginHelper.StateManager.GetAllSelectedGames();
                     if (selectedGames.Count() == 0) return;
-                    if (selectedGames[0].Status != "Installing")
-                    {
-                        ResetPlayButton(PlayButton());
-                    }
+                    UpdatePlayButtonUi(selectedGames[0]);
 
                     break;
                    
@@ -198,24 +297,24 @@ namespace RommStar.Core
                 case GameLaunchingEvent.AfterLaunch:                   
 
 
-                    if (playButton != null)
-                    {
-                        playButton.IsEnabled = false;
+                    //if (playButton != null)
+                    //{
+                    //    playButton.IsEnabled = false;
 
-                        var textBlock = FindVisualChild<TextBlock>(playButton);
+                    //    var textBlock = FindVisualChild<TextBlock>(playButton);
 
-                        if (textBlock != null)
-                        {
-                            // Override the text directly
-                            textBlock.Text = "INSTALLING...";
+                    //    if (textBlock != null)
+                    //    {
+                    //        // Override the text directly
+                    //        textBlock.Text = "INSTALLING...";
 
-                            // Force the UI to reflect this change immediately
-                            playButton.InvalidateVisual();
-                            playButton.UpdateLayout();
-                        }
-                    }
+                    //        // Force the UI to reflect this change immediately
+                    //        playButton.InvalidateVisual();
+                    //        playButton.UpdateLayout();
+                    //    }
+                    //}
 
-     
+                    UpdatePlayButtonUi(game);
 
                     break;
 
