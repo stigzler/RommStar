@@ -40,7 +40,7 @@ namespace RommStar.Core.Sync
             { MediaType.Logo, "Clear Logo" },
             { MediaType.Marquee, "Arcade - Marquee" },
             { MediaType.FanArt, "Fanart - Background" },
-            { MediaType.Bezel, "Amazon Background" },
+            //{ MediaType.Bezel, "Amazon Poster" },
             { MediaType.MixImage, "Box - Front - Reconstructed" },
             { MediaType.PhysicalMedia, "Disc" },
             { MediaType.Manual, "Manuals" },

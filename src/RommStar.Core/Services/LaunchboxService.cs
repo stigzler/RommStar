@@ -7,10 +7,12 @@ using RommStar.Core.Models;
 using RommStar.Core.Sync;
 using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Xml.Linq;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
+using Unbroken.LaunchBox.Plugins.RetroAchievements;
 
 namespace RommStar.Core.Services
 {
@@ -122,11 +124,11 @@ namespace RommStar.Core.Services
             // =========================================================================
             // TEMPORARY TESTING: 1 in 10 chance to simulate a metadata failure
             // =========================================================================
-            if (Random.Shared.Next(1, 11) == 1)
-            {
-                // Return null to fake a catastrophic failure/timeout mapping database entries
-                return (null, MetadataSyncAction.Update);
-            }
+            //if (Random.Shared.Next(1, 11) == 1)
+            //{
+            //    // Return null to fake a catastrophic failure/timeout mapping database entries
+            //    return (null, MetadataSyncAction.Update);
+            //}
 
             bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue && _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
 
@@ -136,6 +138,7 @@ namespace RommStar.Core.Services
             bool hasMatchingRommId = rommDTO.Id.HasValue && _platformRommIds.Contains(rommDTO.Id.Value.ToString());
 
             MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId);
+           
             MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
 
             IGame game = null;
@@ -171,7 +174,22 @@ namespace RommStar.Core.Services
                                                             out metadataProtected);
                 }
 
+                // now deal with any Romm metadata in event of launchboxDatabaseId match. Add or update.
+                if (metadataSyncHelperMap.LbDatabaseId != null)
+                {
+                    var rommIdField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
 
+                    if (rommIdField != null)
+                    {
+                        rommIdField.Value = rommDTO.LaunchboxId?.ToString();
+                        var rommServerField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
+                        rommServerField.Value = _operativeServerId;
+                    }
+                    else
+                    {
+                        AddNewRommMetadata(game, rommDTO.LaunchboxId?.ToString());
+                    }
+                }
 
                 // Update Romm ID Tracking Custom Field on existing games if a new context list is provided
                 if (game != null && !string.IsNullOrEmpty(customRomIdsCsv))
@@ -192,6 +210,8 @@ namespace RommStar.Core.Services
                         newAltName.Name = altName;
                     }
                 }
+
+
             }
 
 
@@ -204,17 +224,19 @@ namespace RommStar.Core.Services
                 // Use custom aggregated CSV string if provided (Scenario 2), otherwise default to standard singular ID string
                 string finalRomIdsValue = !string.IsNullOrEmpty(customRomIdsCsv) ? customRomIdsCsv : Convert.ToString(rommDTO.Id);
 
-                var romIdCustomField = game.AddNewCustomField();
-                romIdCustomField.Name = CustomFieldTypes.Romm_RomIds.ToString();
-                romIdCustomField.Value = finalRomIdsValue;
+                AddNewRommMetadata(game, finalRomIdsValue);
 
-                var serverIdCustomField = game.AddNewCustomField();
-                serverIdCustomField.Name = CustomFieldTypes.Romm_ServerId.ToString();
-                serverIdCustomField.Value = _operativeServerId;
+                //var romIdCustomField = game.AddNewCustomField();
+                //romIdCustomField.Name = CustomFieldTypes.Romm_RomIds.ToString();
+                //romIdCustomField.Value = finalRomIdsValue;
 
-                var protectMetadataCustomField = game.AddNewCustomField();
-                protectMetadataCustomField.Name = CustomFieldTypes.Romm_ProtectMetadata.ToString();
-                protectMetadataCustomField.Value = "false";
+                //var serverIdCustomField = game.AddNewCustomField();
+                //serverIdCustomField.Name = CustomFieldTypes.Romm_ServerId.ToString();
+                //serverIdCustomField.Value = _operativeServerId;
+
+                //var protectMetadataCustomField = game.AddNewCustomField();
+                //protectMetadataCustomField.Name = CustomFieldTypes.Romm_ProtectMetadata.ToString();
+                //protectMetadataCustomField.Value = "false";
 
                 foreach (var altName in rommDTO.AlternativeNames.Distinct())
                 {
@@ -245,6 +267,22 @@ namespace RommStar.Core.Services
             }
 
             return (game, syncAction);
+        }
+
+        private void AddNewRommMetadata(IGame game, string finalRomIdsValue)
+        {
+            var romIdCustomField = game.AddNewCustomField();
+            romIdCustomField.Name = CustomFieldTypes.Romm_RomIds.ToString();
+            romIdCustomField.Value = finalRomIdsValue;
+
+            var serverIdCustomField = game.AddNewCustomField();
+            serverIdCustomField.Name = CustomFieldTypes.Romm_ServerId.ToString();
+            serverIdCustomField.Value = _operativeServerId;
+
+            var protectMetadataCustomField = game.AddNewCustomField();
+            protectMetadataCustomField.Name = CustomFieldTypes.Romm_ProtectMetadata.ToString();
+            protectMetadataCustomField.Value = "false";
+
         }
 
         public string GetPlatformDefaultEmulatorID(string platformName)

@@ -336,16 +336,18 @@ namespace RommStar.Core.Sync
                     // =========================================================================
                     // TEMPORARY TESTING: Force 1-in-10 failure rate for media downloads
                     // =========================================================================
-                    if (job.JobType == DownloadJobType.Media && Random.Shared.Next(1, 11) == 1)
-                    {
-                        success = false; // Fake a network failure immediately
-                    }
-                    else
-                    {
-                        // Process normally (including ROMs)
-                        success = await StreamFileFromNetworkAsync(job.RelativeUrl, job.DestinationPath, job.ServerContext, job.CancellationToken);
-                    }
+                    //if (job.JobType == DownloadJobType.Media && Random.Shared.Next(1, 11) == 1)
+                    //{
+                    //    success = false; // Fake a network failure immediately
+                    //}
+                    //else
+                    //{
+                    //    // Process normally (including ROMs)
+                    //    success = await StreamFileFromNetworkAsync(job.RelativeUrl, job.DestinationPath, job.ServerContext, job.CancellationToken);
+                    //}
                     // =========================================================================
+
+                    success = await StreamFileFromNetworkAsync(job.RelativeUrl, job.DestinationPath, job.ServerContext, job.CancellationToken);
 
                     if (!success && job.UiCard != null && !job.CancellationToken.IsCancellationRequested)
                     {
