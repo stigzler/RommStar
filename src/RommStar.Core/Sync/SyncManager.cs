@@ -35,7 +35,7 @@ namespace RommStar.Core.Sync
 
         private readonly RommService _rommService;
 
-        private readonly LaunchboxService _launchboxService;
+        private readonly LaunchboxDataService _launchboxService;
 
         private readonly SettingsService _settingsService;
 
@@ -57,7 +57,7 @@ namespace RommStar.Core.Sync
         public ObservableCollection<PlatformSyncJob> ActiveSyncJobs { get; } = new();
 
 
-        public SyncManager(RommServer initialServer, RommService rommService, LaunchboxService launchboxService, SettingsService settingsService)
+        public SyncManager(RommServer initialServer, RommService rommService, LaunchboxDataService launchboxService, SettingsService settingsService)
         {
             // Thread-safe client initialization without global default authorization headers
             _client = new HttpClient();
@@ -417,7 +417,7 @@ namespace RommStar.Core.Sync
 
                     try
                     {
-                        // Setup LaunchboxService for this SyncJob setup
+                        // Setup LaunchboxDataService for this SyncJob setup
                         _launchboxService.SetupGameUpserts(platformTask.PlatformName, platformTask.EmulatorID, 
                             platformTask.TargetServer.Id.ToString(), platformTask.SyncSettings);
 
@@ -773,14 +773,14 @@ namespace RommStar.Core.Sync
                                     foreach (var masterFile in masterRom.Files)
                                     {
                                         if (string.IsNullOrEmpty(masterFile.FileName)) continue;
-                                        string masterLabel = $"Play Version: {Path.GetFileNameWithoutExtension(masterFile.FileName)}";
+                                        string masterLabel = $"Install: {Path.GetFileNameWithoutExtension(masterFile.FileName)}";
                                         _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, masterFile, targetDirectory, masterLabel);
                                     }
                                 }
                                 else if (!string.IsNullOrEmpty(masterRom.RommFilename))
                                 {
                                     var masterPlaceholderFileDto = new RomFileDTO { FileName = masterRom.RommFilename };
-                                    string masterLabel = $"Play Version: {Path.GetFileNameWithoutExtension(masterRom.RommFilename)}";
+                                    string masterLabel = $"Install: {Path.GetFileNameWithoutExtension(masterRom.RommFilename)}";
                                     _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, masterPlaceholderFileDto, targetDirectory, masterLabel);
                                 }
                             }
@@ -816,7 +816,7 @@ namespace RommStar.Core.Sync
 
                                             if (platformTask.UpsertIGame)
                                             {
-                                                string variantLabel = $"Play Version: {Path.GetFileNameWithoutExtension(fileEntry.FileName)}";
+                                                string variantLabel = $"Install: {Path.GetFileNameWithoutExtension(fileEntry.FileName)}";
                                                 _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, fileEntry, targetDirectory, variantLabel);
                                             }
 
@@ -831,7 +831,7 @@ namespace RommStar.Core.Sync
                                         if (platformTask.UpsertIGame)
                                         {
                                             var placeholderFileDto = new RomFileDTO { FileName = detailedVariant.RommFilename };
-                                            string variantLabel = $"Play Version: {Path.GetFileNameWithoutExtension(detailedVariant.RommFilename)}";
+                                            string variantLabel = $"Install: {Path.GetFileNameWithoutExtension(detailedVariant.RommFilename)}";
                                             _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, placeholderFileDto, targetDirectory, variantLabel);
                                         }
                                     }

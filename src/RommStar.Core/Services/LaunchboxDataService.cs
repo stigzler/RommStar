@@ -16,7 +16,7 @@ using Unbroken.LaunchBox.Plugins.RetroAchievements;
 
 namespace RommStar.Core.Services
 {
-    public class LaunchboxService
+    public class LaunchboxDataService
     {
         public LaunchboxSettings LaunchboxSettings { get; set; } = new LaunchboxSettings();
 
@@ -57,7 +57,7 @@ namespace RommStar.Core.Services
         /// </summary>
         private HashSet<MetadataSyncHelperMap> _platformHelperMap = new HashSet<MetadataSyncHelperMap>();
 
-        public LaunchboxService(RomMapper romMapper)
+        public LaunchboxDataService(RomMapper romMapper)
         {
             _romMapper = romMapper;
             PopulateLaunchboxSettings();
@@ -144,6 +144,10 @@ namespace RommStar.Core.Services
             IGame game = null;
             bool metadataProtected = false;
 
+            // ---------------------------------------------------------
+            // UPDATE IGame
+            // ---------------------------------------------------------
+
             if (syncAction == MetadataSyncAction.Update)
             {
                 MetadataSyncHelperMap metadataSyncHelperMap;
@@ -214,29 +218,21 @@ namespace RommStar.Core.Services
 
             }
 
+            // ---------------------------------------------------------
+            // INSERT IGame
+            // ---------------------------------------------------------
 
             else if (syncAction == MetadataSyncAction.Insert)
             {
                 game = PluginHelper.DataManager.AddNewGame(rommDTO.Name);
                 game.Installed = false;
+                game.Status = "Not Installed";
                 game.ApplicationPath = Constants.romPlaceholder;
 
                 // Use custom aggregated CSV string if provided (Scenario 2), otherwise default to standard singular ID string
                 string finalRomIdsValue = !string.IsNullOrEmpty(customRomIdsCsv) ? customRomIdsCsv : Convert.ToString(rommDTO.Id);
 
-                AddNewRommMetadata(game, finalRomIdsValue);
-
-                //var romIdCustomField = game.AddNewCustomField();
-                //romIdCustomField.Name = CustomFieldTypes.Romm_RomIds.ToString();
-                //romIdCustomField.Value = finalRomIdsValue;
-
-                //var serverIdCustomField = game.AddNewCustomField();
-                //serverIdCustomField.Name = CustomFieldTypes.Romm_ServerId.ToString();
-                //serverIdCustomField.Value = _operativeServerId;
-
-                //var protectMetadataCustomField = game.AddNewCustomField();
-                //protectMetadataCustomField.Name = CustomFieldTypes.Romm_ProtectMetadata.ToString();
-                //protectMetadataCustomField.Value = "false";
+                AddNewRommMetadata(game, finalRomIdsValue);     
 
                 foreach (var altName in rommDTO.AlternativeNames.Distinct())
                 {
@@ -334,7 +330,8 @@ namespace RommStar.Core.Services
         }
 
 
-        public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory, string customAppName = null, bool usePlaceholderPath = false)
+        public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory,
+            string customAppName = null, bool usePlaceholderPath = false)
         {
             if (parentGame == null || fileDto == null || string.IsNullOrEmpty(fileDto.FileName)) return;
 
@@ -358,6 +355,8 @@ namespace RommStar.Core.Services
                 app.SideB = tags.IsSideB;
                 app.Region = tags.Region;
                 app.Priority = (tags.DiscNumber != null) ? (int)tags.DiscNumber : 0;
+                app.Installed = false;
+                app.Status = "Not Installed";
                 //app.Version = 
             }
 
@@ -368,18 +367,20 @@ namespace RommStar.Core.Services
             // If a specific version name was provided (e.g. from sibling tags), use it
             // TODO: need to implement some logic here to not just branch on "Disc"
             // Also other AdditionalApplication field computations needed here (eg. calculate disc number, side etc)
-            if (!string.IsNullOrEmpty(customAppName))
-            {
-                app.Name = customAppName;
-            }
-            else if (fileDto.FileName.Contains("Disc", StringComparison.OrdinalIgnoreCase))
-            {
-                app.Name = $"Play {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
-            }
-            else
-            {
-                app.Name = $"Play Variant: {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
-            }
+            //if (!string.IsNullOrEmpty(customAppName))
+            //{
+            //    app.Name = customAppName;
+            //}
+            //else if (fileDto.FileName.Contains("Disc", StringComparison.OrdinalIgnoreCase))
+            //{
+            //    app.Name = $"Install {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
+            //}
+            //else
+            //{
+            //    app.Name = $"Install {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
+            //}
+
+            app.Name = $"Install: {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
         }
 
 

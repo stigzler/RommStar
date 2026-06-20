@@ -23,7 +23,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
     //todo: re/load server on page navigate to (in case user adds/deletes a server)
     public partial class PlatformsPageVM : ObservableObject, IRecipient<DeleteLaunchboxPlatformItemMessage>
     {
-        private readonly LaunchboxService
+        private readonly LaunchboxDataService
             _launchboxService;
 
         private readonly LoggingService
@@ -131,11 +131,11 @@ namespace RommStar.Core.UI.ViewModels.Pages
         /// </summary>
         public PlatformsPageVM() : this(
             new SettingsService(new CryptoService()),
-            new LaunchboxService(new RomMapper(new SettingsService(new CryptoService()))),
+            new LaunchboxDataService(new RomMapper(new SettingsService(new CryptoService()))),
             new RommService(),
             new LoggingService(),
             new SyncManager(new RommServer(), new RommService(),
-                new LaunchboxService(new RomMapper(new SettingsService(new CryptoService()))) // urgh. boy, thas uuuggllleeeeee! 🤮
+                new LaunchboxDataService(new RomMapper(new SettingsService(new CryptoService()))) // urgh. boy, thas uuuggllleeeeee! 🤮
                 , new SettingsService(new CryptoService()))
             )
         {
@@ -146,7 +146,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             }
         }
 
-        public PlatformsPageVM(SettingsService settingsService, LaunchboxService launchboxService,
+        public PlatformsPageVM(SettingsService settingsService, LaunchboxDataService launchboxService,
             RommService rommService, LoggingService loggingService, SyncManager syncManager)
         {
             _settingsService = settingsService;
