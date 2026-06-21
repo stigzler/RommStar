@@ -3,6 +3,8 @@ using RommStar.Core.Models;
 using RommStar.Core.Primitives;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -147,6 +149,53 @@ namespace RommStar.Core.Services
             {
                 response.HttpResponse?.Dispose();
                 return RommApiResponse<RomDTO>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
+            }
+        }
+
+        public async Task<bool> DownloadRomsToDiskAsync(RommServer server, List<int> romIds, string targetFilePath, CancellationToken externalToken = default)
+        {
+            if (romIds == null || romIds.Count == 0) return false;
+
+            // Build the query parameter string properly
+            string idsParam = string.Join(',', romIds);
+            string filenameParam = Path.GetFileName(targetFilePath);
+
+            string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/roms/download?rom_ids={idsParam}&filename={filenameParam}";
+
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromHours(2)); // Zip downloads can take a long time!
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, externalToken);
+
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Get, endpointUrl);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", server.ApiToken);
+
+                // HttpCompletionOption.ResponseHeadersRead is CRITICAL for large files. 
+                // It prevents HttpClient from buffering the 2GB zip into memory.
+                using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine($"[RommService] ZIP Download failed: {response.StatusCode}");
+                    return false;
+                }
+
+                using (var sourceStream = await response.Content.ReadAsStreamAsync(linkedCts.Token))
+                using (var targetStream = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
+                {
+                    await sourceStream.CopyToAsync(targetStream, linkedCts.Token);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[RommService] ZIP Download Exception: {ex.Message}");
+                if (File.Exists(targetFilePath))
+                {
+                    try { File.Delete(targetFilePath); } catch { }
+                }
+                return false;
             }
         }
 

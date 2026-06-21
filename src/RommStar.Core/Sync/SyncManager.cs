@@ -911,7 +911,7 @@ namespace RommStar.Core.Sync
 
 
             //EnqueueFileDownload(new DownloadJob
-#
+
             //{
             //    JobId = platformTask.Id,
             //    JobType = DownloadJobType.Rom,
@@ -926,7 +926,8 @@ namespace RommStar.Core.Sync
             //});
         }
 
-        private async Task<bool> StreamFileFromNetworkAsync(string absoluteUrl, string targetPath, RommServer server, CancellationToken cancellationToken = default)
+        private async Task<bool> StreamFileFromNetworkAsync(string absoluteUrl, string targetPath, RommServer server,
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(absoluteUrl)) return true;
 

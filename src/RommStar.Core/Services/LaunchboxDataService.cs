@@ -18,7 +18,8 @@ namespace RommStar.Core.Services
 {
     public class LaunchboxDataService
     {
-        public LaunchboxSettings LaunchboxSettings { get; set; } = new LaunchboxSettings();
+        public SettingsService _settingsService { get; set; }
+        public LaunchboxSettings _launchboxSettings { get; set; } = new LaunchboxSettings();
 
         private IPlatform _operationalPlatform;
 
@@ -57,18 +58,61 @@ namespace RommStar.Core.Services
         /// </summary>
         private HashSet<MetadataSyncHelperMap> _platformHelperMap = new HashSet<MetadataSyncHelperMap>();
 
-        public LaunchboxDataService(RomMapper romMapper)
+        public LaunchboxDataService(RomMapper romMapper, SettingsService settingsService)
         {
             _romMapper = romMapper;
+            _settingsService = settingsService;
             PopulateLaunchboxSettings();
         }
 
-        internal Task DownloadAndProcessRoms( varios params)
+        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> batchItems)
         {
+            // 1. TODO: You handle the System.IO.Compression.ZipFile extraction here.
+            // The zip will contain the raw RomM folder structure. Move the files 
+            // to their respective platform folders (e.g. \Games\Sony Playstation\).
 
+            // Get the right settings. First get AdvancedSyncSettings for the platform. batchItems[0] because all are same platform
+            var platformSettings = _settingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss =>
+                            pss.LaunchboxPlatformName == batchItems[0].PlatformName);
+
+            bool individualGameFolders = (platformSettings.ExtendedSyncSettings.ApplySettings) ?
+                platformSettings.ExtendedSyncSettings.UseIndividualGameFolders :
+                 _settingsService.Settings.GlobalExtendedSyncSettings.UseIndividualGameFolders;
+
+            IPlatform platform = PluginHelper.DataManager.GetPlatformByName(batchItems[0].PlatformName);
+
+            foreach (RomQueueItem batchItem in batchItems)
+            {
+
+            }
+
+            // ... your extraction logic ...
+
+            // 2. Update the LaunchBox UI and Database records
+            foreach (var item in batchItems)
+            {
+                var game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                if (game != null)
+                {
+                    // Update the state
+                    game.Installed = true;
+                    game.Status = "Installed";
+
+                    // TODO: Update game.ApplicationPath (and any sibling application paths) + Additional Aplications
+                    // to point to the newly extracted local file paths!
+                    // game.ApplicationPath = newExtractedFilePath;
+                }
+            }
+
+            // Save the DB once after all items in the batch are updated
+            PluginHelper.DataManager.Save();
+
+            // Optional: Refresh the UI if LaunchBox is visible
+            if (PluginHelper.LaunchBoxMainViewModel != null)
+            {
+                PluginHelper.LaunchBoxMainViewModel.RefreshData();
+            }
         }
-
-
 
         public bool SetupGameUpserts(string platformName, string emulatorID, string serverId, ExtendedSyncSettings syncSettings)
         {
@@ -325,7 +369,7 @@ namespace RommStar.Core.Services
             var settings = doc.Root?.Element("Settings");
             if (settings?.Element("PlatformIconPack")?.Value is string iconPack && !string.IsNullOrWhiteSpace(iconPack))
             {
-                LaunchboxSettings.PlatformIconPack = iconPack;
+                _launchboxSettings.PlatformIconPack = iconPack;
             }
         }
 
@@ -378,7 +422,7 @@ namespace RommStar.Core.Services
         public string SaveNewPlatformIcon(string source, string platformName, bool overwrite = false)
         {
             string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
-                LaunchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
+                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
 
             if (File.Exists(votiIconPath) && overwrite == false)
             {
@@ -398,7 +442,7 @@ namespace RommStar.Core.Services
         public string GetPlatformIconPath(string platformName)
         {
             string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
-                LaunchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
+                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
             return votiIconPath;
         }
 

@@ -1,5 +1,6 @@
 ﻿using RommStar.Core.Models;
 using RommStar.Core.Primitives;
+using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +22,13 @@ namespace RommStar.Core.Properties
         /// RommStar logging level
         /// </summary>
         public LoggingLevel LoggingLevel { get; set; } = LoggingLevel.Normal;
+
+        /// <summary>
+        /// User-set space for temporary downloads. Eg: when the Romm API 
+        /// downloads the zipped rom collection files to.
+        /// </summary>
+
+        public List<RomQueueItem> RomDownloadQueue { get; set; } = new();
 
         public ExtendedSyncSettings GlobalExtendedSyncSettings { get; set; } = new()
         {

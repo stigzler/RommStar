@@ -15,7 +15,7 @@ namespace RommStar.Core.Dtos.Romm
 
         [JsonPropertyName("merged_screenshots")]
         public List<string>?
-                    MergedScreenshots { get; set; }
+                            MergedScreenshots { get; set; }
 
         [JsonPropertyName("files")]
         public List<RomFileDTO>?
@@ -32,6 +32,10 @@ namespace RommStar.Core.Dtos.Romm
         [JsonPropertyName("has_simple_single_file")]
         public bool?
                             HasSimpleSingleFile { get; set; }
+
+        [JsonPropertyName("fs_size_bytes")]
+        public long?
+                            CombinedFilesSizeBytes { get; set; }
 
         /// <summary>
         /// This is the rommId local to the Romm Sever and used in API calls

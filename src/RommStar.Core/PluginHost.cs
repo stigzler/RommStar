@@ -137,6 +137,7 @@ namespace RommStar.Core
             services.AddSingleton<RomMapper>();
             services.AddSingleton<LaunchboxDataService>();
             services.AddSingleton<LaunchboxStateService>();
+            services.AddSingleton<RomBatchService>();
 
             // Register initial RommServerConfig & SyncManager
             services.AddSingleton<RommStar.Core.Models.RommServer>(sp => new RommStar.Core.Models.RommServer

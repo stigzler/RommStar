@@ -11,6 +11,7 @@
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)docs\implementation.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\reserach.md" />
+    <None Include="$(MSBuildThisFileDirectory)docs\romDownloader.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\scope.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\userGuideDraft.md" />
     <None Include="$(MSBuildThisFileDirectory)images\xcf\icons64px.xcf" />

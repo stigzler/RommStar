@@ -22,6 +22,7 @@
             </ResourceDictionary.MergedDictionaries>
 
             <converters:SyncProfileConverter x:Key="SyncProfileConverter" />
+            <converters:ByteToGigabyteConverter x:Key="ByteToGigabyteConverter" />
 
             <ObjectDataProvider x:Key="SyncProfileEnum"
                             MethodName="GetValues"
@@ -30,6 +31,7 @@
                     <x:Type TypeName="sync:SyncProfileTypes" />
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
+            
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -53,9 +55,9 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-            
+
         </ui:SettingsCard>
-        
+
         <ui:SettingsCard Grid.Row="0" Header="Overwrite Metadata" Description="If game already exists in Launchbox, overwrite the metadata with that from Romm.">
             <ui:SettingsCard.HeaderIcon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.TextBulletListSquareEdit_20_Regular}" />
@@ -77,7 +79,7 @@
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.ForceMediaPriority, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Remove old server roms." 
+        <ui:SettingsCard Grid.Row="0" Header="Remove Old Server Roms" 
                          Description="If local launchbox platform contains roms from a previously assigned server, these are deleted.">
             <ui:SettingsCard.HeaderIcon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
@@ -85,8 +87,40 @@
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.DeleteOldServerRoms, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </ui:SettingsCard>
 
+        <ui:SettingsCard Grid.Row="0" Header="Individual Game Folders" 
+                         Description="Downloaded roms are placed in their own folders in the Platform Rom Directory">
+            <ui:SettingsCard.HeaderIcon>
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
+            </ui:SettingsCard.HeaderIcon>
+            <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.UseIndividualGameFolders, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </ui:SettingsCard>
 
+        <ui:SettingsCard Grid.Row="0" Header="Temporary Rom Download Path" 
+                        Description="[TBD]">
+            <ui:SettingsCard.HeaderIcon>
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
+            </ui:SettingsCard.HeaderIcon>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0"  Width="auto" MaxWidth="500" Margin="0,0,10,0"
+                         Text="{Binding ExtendedSyncSettings.TempDownloadsPath, ElementName=root, Mode=TwoWay, 
+                                UpdateSourceTrigger=PropertyChanged}" />
+                <Button Grid.Column="1"  Content="Browse" Margin="0,0,10,0"></Button>
+            </Grid>
+        </ui:SettingsCard>
 
-
+        <ui:SettingsCard Grid.Row="0" Header="Bulk Rom Batch Size (GB)" 
+                         Description="[TBD]">
+            <ui:SettingsCard.HeaderIcon>
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
+            </ui:SettingsCard.HeaderIcon>
+            <ui:NumberBox MinWidth="100"                
+                Value="{Binding ExtendedSyncSettings.TargetRomBatchFilesizeBytes, ElementName=root, 
+                Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ByteToGigabyteConverter}}" />
+        </ui:SettingsCard>
+        
     </StackPanel>
 </UserControl>

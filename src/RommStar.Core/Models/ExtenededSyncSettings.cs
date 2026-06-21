@@ -19,6 +19,9 @@ namespace RommStar.Core.Models
         public bool OverwriteMetadata { get; set; } = true;
         public bool OverwriteExistingMedia { get; set; } = true;
         public bool ForceMediaPriority { get; set; } = true;
+        public string TempDownloadsPath { get; set; } = "TemporaryDownloads";
+        public long TargetRomBatchFilesizeBytes { get; set; } = 2; // 2GB
+        public bool UseIndividualGameFolders { get; set; } = false;
 
         /// <summary>
         /// If local launchbox platform contains roms from a previously assigned server, these are deleted. 
