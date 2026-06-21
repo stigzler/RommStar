@@ -341,7 +341,7 @@ namespace RommStar.Core.Services
                 : Path.Combine(targetDirectory, fileDto.FileName);
 
             var existingApps = parentGame.GetAllAdditionalApplications();
-            var app = existingApps.FirstOrDefault(a => a.ApplicationPath == cleanAppPath);
+            var app = existingApps.FirstOrDefault(a => a.Name == customAppName);
 
             var tags = TagHelper.ParseFilename(fileDto.FileName);
 
@@ -357,8 +357,13 @@ namespace RommStar.Core.Services
                 app.Priority = (tags.DiscNumber != null) ? (int)tags.DiscNumber : 0;
                 app.Installed = false;
                 app.Status = "Not Installed";
+                app.Name = customAppName;
+                app.EmulatorId = parentGame.EmulatorId;
+                app.UseEmulator = (parentGame.EmulatorId != null) ? true : false;
                 //app.Version = 
             }
+
+            //app.Name = $"Install: {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
 
             //TODO: implement emulator logic here (from IPLatform?)
             //app.UseEmulator = true;
@@ -380,7 +385,6 @@ namespace RommStar.Core.Services
             //    app.Name = $"Install {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
             //}
 
-            app.Name = $"Install: {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
         }
 
 

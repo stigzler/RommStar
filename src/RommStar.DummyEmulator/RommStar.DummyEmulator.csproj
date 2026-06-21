@@ -6,6 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <BaseOutputPath>C:\Users\stigz\source\repos\0.MyCode\NET\RommStar\src\RommStar.Core\bin</BaseOutputPath>
+    <ApplicationIcon>rommIcon64px.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="rommIcon64px.ico" />
+  </ItemGroup>
 
 </Project>

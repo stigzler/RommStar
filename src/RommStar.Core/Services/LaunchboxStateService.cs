@@ -30,7 +30,7 @@ namespace RommStar.Core.Services
         internal async Task OnGameSelectionChanged()
         {
             var selectedGames = PluginHelper.StateManager.GetAllSelectedGames();
-            if (selectedGames.Count() > 0)
+            if (selectedGames != null && selectedGames.Count() > 0)
             {
                 await LaunchboxViewsHelper.UpdatePlayButtonUi(selectedGames[0]);
             }
@@ -48,7 +48,7 @@ namespace RommStar.Core.Services
         internal async Task OnBeforeLaunch(IGame game, IEmulator emulator, IAdditionalApplication additionalApplication)
         {
             // 
-            if (game == null) return;
+            if (game == null && additionalApplication == null) return;
 
             // Check that game's emulator has not been set to the KillGameLaunchExe as a 
             // result of game Installation logic failing
@@ -72,29 +72,37 @@ namespace RommStar.Core.Services
                 }
             }
 
+            var apps = game.GetAllAdditionalApplications();
 
+            
 
             // Check if Rom Installation required
             // This covers both main roms and sibling roms/additional applications
-            if (game?.Installed == false || additionalApplication?.Installed == false)
-            {      
-                game.Status = "Installing";
-                if (additionalApplication != null)
+            if (game?.Installed == false && game.Status != "Installing")
+            {
+                // Update any additional apps to also read updating
+                foreach (var app in apps)
                 {
-                    additionalApplication.Status = "Installing";
-                    additionalApplication.ApplicationPath = Constants.KillGameLaunchExe;
+                    app.Status = "Installing";
+                    app.ApplicationPath = Constants.KillGameLaunchExe;
                 }
+
+                game.Status = "Installing";
+      
 
                 // TODO: Do install stuff
 
                 // Now set the emulator to an essentially empty exe to fake game launch
                 // (No game launch cancel facility in LB sadly)
-                if (emulator != null) emulator.ApplicationPath = Constants.KillGameLaunchExe;
+                if (emulator != null || apps.Count() > 0) emulator.ApplicationPath = Constants.KillGameLaunchExe;
 
                 //PluginHelper.DataManager.Save();
                 //PluginHelper.LaunchBoxMainViewModel.RefreshData();
                 await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
-
+            }
+            else if (additionalApplication != null && additionalApplication.Status == "Installing")
+            {
+                emulator.ApplicationPath = Constants.KillGameLaunchExe;
             }
 
         }

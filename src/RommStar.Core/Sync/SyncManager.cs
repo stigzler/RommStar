@@ -561,7 +561,7 @@ namespace RommStar.Core.Sync
                                                 targetedGame,
                                                 fileEntry,
                                                 targetDirectory,
-                                                customAppName: null,
+                                                customAppName: Path.GetFileNameWithoutExtension(fileEntry.FileName),
                                                 usePlaceholderPath: isPrimaryDisc
                                             );
                                         }
@@ -773,15 +773,17 @@ namespace RommStar.Core.Sync
                                     foreach (var masterFile in masterRom.Files)
                                     {
                                         if (string.IsNullOrEmpty(masterFile.FileName)) continue;
-                                        string masterLabel = $"Install: {Path.GetFileNameWithoutExtension(masterFile.FileName)}";
-                                        _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, masterFile, targetDirectory, masterLabel);
+                                        string masterLabel = $"{Path.GetFileNameWithoutExtension(masterFile.FileName)}";
+                                        _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, masterFile, 
+                                            targetDirectory, masterLabel);
                                     }
                                 }
                                 else if (!string.IsNullOrEmpty(masterRom.RommFilename))
                                 {
                                     var masterPlaceholderFileDto = new RomFileDTO { FileName = masterRom.RommFilename };
-                                    string masterLabel = $"Install: {Path.GetFileNameWithoutExtension(masterRom.RommFilename)}";
-                                    _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, masterPlaceholderFileDto, targetDirectory, masterLabel);
+                                    string masterLabel = $"{Path.GetFileNameWithoutExtension(masterRom.RommFilename)}";
+                                    _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, masterPlaceholderFileDto, 
+                                        targetDirectory, masterLabel);
                                 }
                             }
 
@@ -816,8 +818,9 @@ namespace RommStar.Core.Sync
 
                                             if (platformTask.UpsertIGame)
                                             {
-                                                string variantLabel = $"Install: {Path.GetFileNameWithoutExtension(fileEntry.FileName)}";
-                                                _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, fileEntry, targetDirectory, variantLabel);
+                                                string variantLabel = $"{Path.GetFileNameWithoutExtension(fileEntry.FileName)}";
+                                                _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, fileEntry, 
+                                                    targetDirectory, variantLabel);
                                             }
 
                                             if (installRoms)
@@ -831,8 +834,9 @@ namespace RommStar.Core.Sync
                                         if (platformTask.UpsertIGame)
                                         {
                                             var placeholderFileDto = new RomFileDTO { FileName = detailedVariant.RommFilename };
-                                            string variantLabel = $"Install: {Path.GetFileNameWithoutExtension(detailedVariant.RommFilename)}";
-                                            _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, placeholderFileDto, targetDirectory, variantLabel);
+                                            string variantLabel = $"{Path.GetFileNameWithoutExtension(detailedVariant.RommFilename)}";
+                                            _launchboxService.AddOrUpdateAdditionalApplication(masterGameInstance, placeholderFileDto, 
+                                                targetDirectory, variantLabel);
                                         }
                                     }
                                 }
