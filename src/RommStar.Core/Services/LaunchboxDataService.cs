@@ -28,7 +28,7 @@ namespace RommStar.Core.Services
 
         private bool _deleteOldServerRoms = true;
 
-        private string? _emulatorId = null;
+        internal string? EmulatorId = null;
 
         private RomMapper _romMapper;
 
@@ -63,6 +63,12 @@ namespace RommStar.Core.Services
             PopulateLaunchboxSettings();
         }
 
+        internal Task DownloadAndProcessRoms( varios params)
+        {
+
+        }
+
+
 
         public bool SetupGameUpserts(string platformName, string emulatorID, string serverId, ExtendedSyncSettings syncSettings)
         {
@@ -70,7 +76,7 @@ namespace RommStar.Core.Services
             _operativeServerId = serverId;
             _overwriteMetadata = syncSettings.OverwriteMetadata;
             _deleteOldServerRoms = syncSettings.DeleteOldServerRoms;
-            _emulatorId = emulatorID;
+            EmulatorId = emulatorID;
 
             _platformLbGameDatabaseIds.Clear();
             _platformRommIds.Clear();
@@ -247,7 +253,7 @@ namespace RommStar.Core.Services
             if (game != null)
             {
                 game.Platform = _operationalPlatform.Name;
-                game.EmulatorId = _emulatorId;
+                game.EmulatorId = EmulatorId;
 
                 switch (syncAction)
                 {
@@ -359,34 +365,9 @@ namespace RommStar.Core.Services
                 app.Status = "Not Installed";
                 app.Name = customAppName;
                 app.EmulatorId = parentGame.EmulatorId;
-                app.UseEmulator = (parentGame.EmulatorId != null) ? true : false;
-                //app.Version = 
-            }
-
-            //app.Name = $"Install: {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
-
-            //TODO: implement emulator logic here (from IPLatform?)
-            //app.UseEmulator = true;
-            //app.HasCloudSynced = true;
-
-            // If a specific version name was provided (e.g. from sibling tags), use it
-            // TODO: need to implement some logic here to not just branch on "Disc"
-            // Also other AdditionalApplication field computations needed here (eg. calculate disc number, side etc)
-            //if (!string.IsNullOrEmpty(customAppName))
-            //{
-            //    app.Name = customAppName;
-            //}
-            //else if (fileDto.FileName.Contains("Disc", StringComparison.OrdinalIgnoreCase))
-            //{
-            //    app.Name = $"Install {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
-            //}
-            //else
-            //{
-            //    app.Name = $"Install {Path.GetFileNameWithoutExtension(fileDto.FileName)}";
-            //}
-
+                app.UseEmulator = (parentGame.EmulatorId != null) ? true : false;        
+            }          
         }
-
 
         /// <summary>
         ///

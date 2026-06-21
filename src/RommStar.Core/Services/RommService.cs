@@ -79,7 +79,7 @@ namespace RommStar.Core.Services
 
         }
 
-        public async Task DownloadRoms(RommServer server, List<int> romIds, string filename = "rommDownload.zip",
+        public async Task DownloadRomsAsync(RommServer server, List<int> romIds, string filename = "rommDownload.zip",
             CancellationToken externalToken = default)
         {
             StringBuilder endpointUrl = new($"{server.BaseUrl.TrimEnd('/')}/api/roms/download?");

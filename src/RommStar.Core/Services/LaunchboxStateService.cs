@@ -17,6 +17,13 @@ namespace RommStar.Core.Services
     /// </summary>
     public class LaunchboxStateService
     {
+        LaunchboxDataService _launchboxDataService;
+
+        public LaunchboxStateService(LaunchboxDataService launchboxDataService)
+        {
+            _launchboxDataService = launchboxDataService;
+        }
+
         string _lastEmulatorApplicationPath;
         IEmulator _lastGameLaunchEmulator;
 
@@ -26,6 +33,12 @@ namespace RommStar.Core.Services
             // as part of the Game Install strategy is restored 
             RestoreGameLaunchEmulatorExe();
         }
+
+        internal async Task DownloadRoms()
+        {
+
+        }
+            
 
         internal async Task OnGameSelectionChanged()
         {
@@ -89,7 +102,7 @@ namespace RommStar.Core.Services
 
                 game.Status = "Installing";
       
-
+                
                 // TODO: Do install stuff
 
                 // Now set the emulator to an essentially empty exe to fake game launch

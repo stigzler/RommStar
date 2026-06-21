@@ -568,7 +568,8 @@ namespace RommStar.Core.Sync
 
                                         if (installRoms)
                                         {
-                                            EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, fileEntry, targetDirectory, detailedRomDto.Name);
+                                            EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, fileEntry, 
+                                                targetDirectory, detailedRomDto.Name);
                                         }
                                     }
 
@@ -641,7 +642,8 @@ namespace RommStar.Core.Sync
 
                                             if (installRoms)
                                             {
-                                                EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, singleFile, targetDirectory, detailedRomDto.Name);
+                                                EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, singleFile, 
+                                                    targetDirectory, detailedRomDto.Name);
                                             }
                                         }
                                     }
@@ -850,7 +852,6 @@ namespace RommStar.Core.Sync
                             await Task.Delay(100);
                         }
 
-
                         PluginHelper.DataManager.Save();
 
                         // Update any LB UIs
@@ -905,19 +906,24 @@ namespace RommStar.Core.Sync
         private void EnqueueRomDownloadJob(PlatformSyncTask platformTask, RommServer currentSnapshot,
             int romId, RomFileDTO fileDto, string targetDirectory, string romName)
         {
-            EnqueueFileDownload(new DownloadJob
-            {
-                JobId = platformTask.Id,
-                JobType = DownloadJobType.Rom,
-                RomName = romName,
-                LaunchBoxPlatformName = platformTask.PlatformName,
-                ServerContext = currentSnapshot,
-                UiCard = platformTask.UiCard,
-                CancellationToken = platformTask.Cts.Token,
-                RelativeUrl = $"/api/v1/roms/{romId}/files/{fileDto.Id}/download",
-                DestinationPath = Path.Combine(targetDirectory, fileDto.FileName),
-                OnSuccessCallback = () => { }
-            });
+            //TODO: needs testing - emulatorId correct for all 4 calls?
+            string emulatorId = _launchboxService.EmulatorId;
+
+
+            //EnqueueFileDownload(new DownloadJob
+#
+            //{
+            //    JobId = platformTask.Id,
+            //    JobType = DownloadJobType.Rom,
+            //    RomName = romName,
+            //    LaunchBoxPlatformName = platformTask.PlatformName,
+            //    ServerContext = currentSnapshot,
+            //    UiCard = platformTask.UiCard,
+            //    CancellationToken = platformTask.Cts.Token,
+            //    RelativeUrl = $"/api/v1/roms/{romId}/files/{fileDto.Id}/download",
+            //    DestinationPath = Path.Combine(targetDirectory, fileDto.FileName),
+            //    OnSuccessCallback = () => { }
+            //});
         }
 
         private async Task<bool> StreamFileFromNetworkAsync(string absoluteUrl, string targetPath, RommServer server, CancellationToken cancellationToken = default)
