@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xaml.Behaviors.Input;
+using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Helpers;
 using RommStar.Core.Models;
 using RommStar.Core.Sync;
@@ -77,7 +78,9 @@ namespace RommStar.Core.Services
                 }
 
                 // 3. Prepare the Download Path (Relative, Absolute, or Network UNC)
-                var activeServer = _settingsService.Settings.RommServers.FirstOrDefault();
+                var serverId = _settingsService.Settings.PlatformSyncSettings.First(pss =>
+                                    pss.LaunchboxPlatformName == game.Platform).RommServerId;
+                var activeServer = _settingsService.Settings.RommServers.FirstOrDefault(s => s.Id == serverId);
                 if (activeServer == null) return; // TODO: Again - indicated installing status needs changing
 
                 // figure if platform using global or specific settings:
@@ -103,6 +106,10 @@ namespace RommStar.Core.Services
                 string zipFilename = $"vip_{game.Id}_{Guid.NewGuid()}.zip";
                 string targetZipPath = Path.Combine(tempDir, zipFilename);
 
+                // 3.5 Get the romm platform stub - use first rom as all same platform
+                RomDTO firstRomDTO = _rommService.GetRomDetailsAsync(activeServer, rommIdsToDownload[0]).Result.Data;
+                string platformStub = firstRomDTO.PlatformStub;      
+
                 // 4. Download immediately to disk
                 bool success = await _rommService.DownloadRomsToDiskAsync(activeServer, rommIdsToDownload, targetZipPath, CancellationToken.None);
 
@@ -113,7 +120,9 @@ namespace RommStar.Core.Services
                     {
                         LaunchboxId = game.Id,
                         PlatformName = game.Platform,
-                        RommIds = rommIdsToDownload
+                        PlatformStub = platformStub,
+                        RommIds = rommIdsToDownload,
+                        GameNameSanitised = StringsHelper.SanitizeFileName(game.Title)
                     };
 
                     await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem });

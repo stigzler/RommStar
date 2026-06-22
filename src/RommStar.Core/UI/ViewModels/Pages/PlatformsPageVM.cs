@@ -126,25 +126,11 @@ namespace RommStar.Core.UI.ViewModels.Pages
             }
         }
 
-        /// <summary>
-        /// Parameterless constructor for the XAML Designer
-        /// </summary>
-        public PlatformsPageVM() : this(
-            new SettingsService(new CryptoService()),
-            new LaunchboxDataService(new RomMapper(new SettingsService(new CryptoService()))),
-            new RommService(),
-            new LoggingService(),
-            new SyncManager(new RommServer(), new RommService(),
-                new LaunchboxDataService(new RomMapper(new SettingsService(new CryptoService()))) // urgh. boy, thas uuuggllleeeeee! 🤮
-                , new SettingsService(new CryptoService()))
-            )
+        public PlatformsPageVM()
         {
-            // any test data
-            if (System.ComponentModel.DesignerProperties.GetIsInDesignMode(new System.Windows.DependencyObject()))
-            {
-                // DisplayPlatforms.Add(new MappedPlatformItemVM("Super Nintendo", false));
-            }
+            
         }
+
 
         public PlatformsPageVM(SettingsService settingsService, LaunchboxDataService launchboxService,
             RommService rommService, LoggingService loggingService, SyncManager syncManager)

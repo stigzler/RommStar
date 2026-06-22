@@ -9,6 +9,8 @@ using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
 using System.IO;
+using System.IO.Compression;
+using System.Web;
 using System.Xml.Linq;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
@@ -67,10 +69,7 @@ namespace RommStar.Core.Services
 
         public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> batchItems)
         {
-            // 1. TODO: You handle the System.IO.Compression.ZipFile extraction here.
-            // The zip will contain the raw RomM folder structure. Move the files 
-            // to their respective platform folders (e.g. \Games\Sony Playstation\).
-
+            // Unzip Roms
             // Get the right settings. First get AdvancedSyncSettings for the platform. batchItems[0] because all are same platform
             var platformSettings = _settingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss =>
                             pss.LaunchboxPlatformName == batchItems[0].PlatformName);
@@ -80,38 +79,102 @@ namespace RommStar.Core.Services
                  _settingsService.Settings.GlobalExtendedSyncSettings.UseIndividualGameFolders;
 
             IPlatform platform = PluginHelper.DataManager.GetPlatformByName(batchItems[0].PlatformName);
-
-            foreach (RomQueueItem batchItem in batchItems)
+            if (platform == null)
             {
-
+                Debug.WriteLine($"[Extraction] Error: Platform '{batchItems[0].PlatformName}' not found in LaunchBox.");
+                return;
             }
 
-            // ... your extraction logic ...
+            string romRoot = FileSystemHelper.ResolvedRompath(platform.Folder, platform.Name);
 
-            // 2. Update the LaunchBox UI and Database records
-            foreach (var item in batchItems)
+            // Build the exact internal folder prefix used by RomM's zip generation engine
+            string expectedPrefix = $"roms/{batchItems[0].PlatformStub}/".Replace('\\', '/');
+
+            // 2. Open the Zip Archive for streaming extraction
+            using (ZipArchive archive = ZipFile.OpenRead(tempZipPath))
             {
-                var game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
-                if (game != null)
+                foreach (ZipArchiveEntry entry in archive.Entries)
                 {
-                    // Update the state
-                    game.Installed = true;
-                    game.Status = "Installed";
+                    // Skip empty entries or pure directory markers (they end with a slash in zip specs)
+                    if (string.IsNullOrEmpty(entry.Name)) continue;
 
-                    // TODO: Update game.ApplicationPath (and any sibling application paths) + Additional Aplications
-                    // to point to the newly extracted local file paths!
-                    // game.ApplicationPath = newExtractedFilePath;
+                    // Normalize path delimiters to forward slashes for reliable zip matching
+                    string entryFullName = entry.FullName.Replace('\\', '/');
+
+                    // Filter out any anomalous files outside the expected platform tree
+                    if (!entryFullName.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    // Strip "roms/[Platform Name]/" to isolate the clean, relative file path
+                    string relativeRomPath = entryFullName.Substring(expectedPrefix.Length);
+
+                    // 3. Resolve Destination Paths
+                    string targetDirectory = romRoot;
+
+                    if (individualGameFolders)
+                    {
+                        RomQueueItem matchingItem = null;
+
+                        // OPTIMIZATION: If this is a VIP on-demand download, the batch only contains 1 item.
+                        if (batchItems.Count == 1)
+                        {
+                            matchingItem = batchItems[0];
+                        }
+                        else
+                        {
+                            // Background Queue Path: Match this specific file entry to its owning game item
+                            matchingItem = FindMatchingBatchItemForFile(batchItems, entry.Name);
+                        }
+
+                        if (matchingItem != null)
+                        {
+                            targetDirectory = Path.Combine(romRoot, matchingItem.GameNameSanitised);
+                        }
+                    }
+
+                    // 4. Safe Atomic Extraction to Disk
+                    string fullDestinationPath = Path.Combine(targetDirectory, relativeRomPath);
+                    string destDirectoryPath = Path.GetDirectoryName(fullDestinationPath);
+
+                    // Build missing subdirectory trees (handles multi-file/multi-disc structures safely)
+                    if (!Directory.Exists(destDirectoryPath))
+                        Directory.CreateDirectory(destDirectoryPath);
+
+                    // Extract and overwrite any stale or corrupted files matching this payload
+                    entry.ExtractToFile(fullDestinationPath, overwrite: true);
                 }
             }
 
-            // Save the DB once after all items in the batch are updated
+            // 5. Finalize State: Flip the LaunchBox database flags to Installed across the batch
+            foreach (var batchItem in batchItems)
+            {
+                var game = PluginHelper.DataManager.GetGameById(batchItem.LaunchboxId);
+                if (game != null)
+                {
+                    game.Installed = true;
+                    game.Status = "Installed";
+                    game.ApplicationPath = $"{romRoot}//{batchItem.} // what here???
+
+                    // Optional TODO: Update game.ApplicationPath here to point directly 
+                    // to the newly extracted primary file if required by your launcher.
+                }
+            }
+
             PluginHelper.DataManager.Save();
 
-            // Optional: Refresh the UI if LaunchBox is visible
             if (PluginHelper.LaunchBoxMainViewModel != null)
-            {
                 PluginHelper.LaunchBoxMainViewModel.RefreshData();
-            }
+        }
+
+        /// <summary>
+        /// Correlates a generic zip entry filename back to its parent queue model inside multi-game background batches.
+        /// </summary>
+        private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipFileName)
+        {
+            return batchItems.FirstOrDefault(item =>
+                zipFileName.Contains(item.GameNameSanitised, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Path.GetFileNameWithoutExtension(zipFileName), item.GameNameSanitised, StringComparison.OrdinalIgnoreCase)
+            );
         }
 
         public bool SetupGameUpserts(string platformName, string emulatorID, string serverId, ExtendedSyncSettings syncSettings)

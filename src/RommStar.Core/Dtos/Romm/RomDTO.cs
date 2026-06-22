@@ -17,6 +17,10 @@ namespace RommStar.Core.Dtos.Romm
         public List<string>?
                             MergedScreenshots { get; set; }
 
+        [JsonPropertyName("platform_slug")]
+        public string? 
+                            PlatformStub { get; set; }
+
         [JsonPropertyName("files")]
         public List<RomFileDTO>?
                             Files { get; set; }

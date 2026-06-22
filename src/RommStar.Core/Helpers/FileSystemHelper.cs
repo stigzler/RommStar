@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.DirectoryServices.ActiveDirectory;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -11,14 +13,6 @@ namespace RommStar.Core.Helpers
     {
         private static readonly string[] SizeSuffixes =
                    { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
-
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool GetDiskFreeSpaceEx(
-            string lpDirectoryName,
-            out ulong lpFreeBytesAvailable,
-            out ulong lpTotalNumberOfBytes,
-            out ulong lpTotalNumberOfFreeBytes);
 
         /// <summary>
         /// Safely retrieves available free space for local directories, mapped drives, and network UNC shares.
@@ -40,6 +34,19 @@ namespace RommStar.Core.Helpers
             }
 
             return long.MaxValue;
+        }
+
+        public static string ResolvedRompath(string directoryPath, string platformName = null)
+        {
+            if (directoryPath == null)
+            {
+                return Path.Combine(Constants.LaunchboxRootDir, "Games", platformName);
+            }
+            else if (directoryPath == $"Games\\{platformName}")
+            {
+                return Path.Combine(Constants.LaunchboxRootDir, directoryPath);
+            }
+            return directoryPath;
         }
 
         public static string SizeSuffix(Int64 value, int decimalPlaces = 1)
@@ -67,5 +74,13 @@ namespace RommStar.Core.Helpers
                 adjustedSize,
                 SizeSuffixes[mag]);
         }
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetDiskFreeSpaceEx(
+            string lpDirectoryName,
+            out ulong lpFreeBytesAvailable,
+            out ulong lpTotalNumberOfBytes,
+            out ulong lpTotalNumberOfFreeBytes);
     }
 }

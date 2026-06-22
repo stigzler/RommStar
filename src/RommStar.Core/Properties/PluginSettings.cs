@@ -32,7 +32,7 @@ namespace RommStar.Core.Properties
 
         public ExtendedSyncSettings GlobalExtendedSyncSettings { get; set; } = new()
         {
-            SyncProfile = Sync.SyncProfileTypes.CreateGame_DownloadMedia
+            SyncProfile = SyncProfileTypes.CreateGame_DownloadMedia
         };
 
         public bool DarkModeEnabled { get; set; } = true;
