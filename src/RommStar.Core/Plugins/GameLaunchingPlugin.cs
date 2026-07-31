@@ -14,7 +14,7 @@ namespace RommStar.Core.Plugins
     {
         public void OnAfterGameLaunched(IGame game, IAdditionalApplication app, IEmulator emulator)
         {
-            PluginHost.Instance.OnGameLaunchingEvent(Launchbox.GameLaunchingEvent.AfterLaunch, game, app, emulator);
+           PluginHost.Instance.OnGameLaunchingEvent(Launchbox.GameLaunchingEvent.AfterLaunch, game, app, emulator);
         }
 
         public void OnBeforeGameLaunching(IGame? game, IAdditionalApplication? app, IEmulator? emulator)

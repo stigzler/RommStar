@@ -185,7 +185,7 @@ namespace RommStar.Core.Services
 
         internal async Task OnBeforeLaunch(IGame game, IEmulator emulator, IAdditionalApplication additionalApplication)
         {
-            // 
+            // At this stage, game may or may not be installed
             if (game == null && additionalApplication == null) return;
 
             // Check that game's emulator has not been set to the KillGameLaunchExe as a 
@@ -204,16 +204,13 @@ namespace RommStar.Core.Services
                 }
                 else
                 {
-                    _lastEmulatorApplicationPath = emulator.ApplicationPath; // order important here - beware  emulator.ApplicationPath = Constants.KillGameLaunchExe;
+                    _lastEmulatorApplicationPath = emulator.ApplicationPath; // order important here - beware emulator.ApplicationPath = Constants.KillGameLaunchExe;
                     _lastGameLaunchEmulator = emulator;
-
                 }
             }
 
             var apps = game.GetAllAdditionalApplications();
-
-            
-
+                       
             // Check if Rom Installation required
             // This covers both main roms and sibling roms/additional applications
             if (game?.Installed == false && game.Status != "Installing")

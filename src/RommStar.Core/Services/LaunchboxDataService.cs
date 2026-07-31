@@ -69,12 +69,14 @@ namespace RommStar.Core.Services
 
         public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> batchItems)
         {
-            // Unzip Roms
-            // Get the right settings. First get AdvancedSyncSettings for the platform. batchItems[0] because all are same platform
+            if (batchItems == null || batchItems.Count == 0) return;
+
+            // 1. Resolve Settings and Platform Roots
             var platformSettings = _settingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss =>
                             pss.LaunchboxPlatformName == batchItems[0].PlatformName);
 
-            bool individualGameFolders = (platformSettings.ExtendedSyncSettings.ApplySettings) ?
+            // Safe null propagation checks in case a platform profile configuration layout is raw or uninitialized
+            bool individualGameFolders = (platformSettings?.ExtendedSyncSettings?.ApplySettings == true) ?
                 platformSettings.ExtendedSyncSettings.UseIndividualGameFolders :
                  _settingsService.Settings.GlobalExtendedSyncSettings.UseIndividualGameFolders;
 
@@ -89,6 +91,9 @@ namespace RommStar.Core.Services
 
             // Build the exact internal folder prefix used by RomM's zip generation engine
             string expectedPrefix = $"roms/{batchItems[0].PlatformStub}/".Replace('\\', '/');
+
+            // Tracks all successfully extracted file paths mapped directly to their corresponding LaunchBox Game ID
+            var extractedFilesMap = new Dictionary<string, List<string>>();
 
             // 2. Open the Zip Archive for streaming extraction
             using (ZipArchive archive = ZipFile.OpenRead(tempZipPath))
@@ -108,28 +113,24 @@ namespace RommStar.Core.Services
                     // Strip "roms/[Platform Name]/" to isolate the clean, relative file path
                     string relativeRomPath = entryFullName.Substring(expectedPrefix.Length);
 
-                    // 3. Resolve Destination Paths
+                    // 3. Resolve Destination Paths and Correlate Game Item
                     string targetDirectory = romRoot;
+                    RomQueueItem matchingItem = null;
 
-                    if (individualGameFolders)
+                    // Resolved outside the directory-flag block to ensure path tracking works globally
+                    if (batchItems.Count == 1)
                     {
-                        RomQueueItem matchingItem = null;
+                        matchingItem = batchItems[0];
+                    }
+                    else
+                    {
+                        // Background Queue Path: Match this specific file entry to its owning game item
+                        matchingItem = FindMatchingBatchItemForFile(batchItems, entry.Name);
+                    }
 
-                        // OPTIMIZATION: If this is a VIP on-demand download, the batch only contains 1 item.
-                        if (batchItems.Count == 1)
-                        {
-                            matchingItem = batchItems[0];
-                        }
-                        else
-                        {
-                            // Background Queue Path: Match this specific file entry to its owning game item
-                            matchingItem = FindMatchingBatchItemForFile(batchItems, entry.Name);
-                        }
-
-                        if (matchingItem != null)
-                        {
-                            targetDirectory = Path.Combine(romRoot, matchingItem.GameNameSanitised);
-                        }
+                    if (individualGameFolders && matchingItem != null)
+                    {
+                        targetDirectory = Path.Combine(romRoot, matchingItem.GameNameSanitised);
                     }
 
                     // 4. Safe Atomic Extraction to Disk
@@ -142,6 +143,16 @@ namespace RommStar.Core.Services
 
                     // Extract and overwrite any stale or corrupted files matching this payload
                     entry.ExtractToFile(fullDestinationPath, overwrite: true);
+
+                    // Map the extracted file to its parent LaunchBox ID tracking set
+                    if (matchingItem != null)
+                    {
+                        if (!extractedFilesMap.ContainsKey(matchingItem.LaunchboxId))
+                        {
+                            extractedFilesMap[matchingItem.LaunchboxId] = new List<string>();
+                        }
+                        extractedFilesMap[matchingItem.LaunchboxId].Add(fullDestinationPath);
+                    }
                 }
             }
 
@@ -149,14 +160,22 @@ namespace RommStar.Core.Services
             foreach (var batchItem in batchItems)
             {
                 var game = PluginHelper.DataManager.GetGameById(batchItem.LaunchboxId);
+
                 if (game != null)
                 {
                     game.Installed = true;
                     game.Status = "Installed";
-                    game.ApplicationPath = $"{romRoot}//{batchItem.} // what here???
 
-                    // Optional TODO: Update game.ApplicationPath here to point directly 
-                    // to the newly extracted primary file if required by your launcher.
+                    // Evaluate what was actually unzipped to locate the correct execution boot file path
+                    if (extractedFilesMap.TryGetValue(batchItem.LaunchboxId, out var unzippedFiles) && unzippedFiles.Count > 0)
+                    {
+                        game.ApplicationPath = GetBestApplicationPath(unzippedFiles);
+                    }
+                    else
+                    {
+                        // Safe defensive fallback in case matching index correlations had string formatting gaps
+                        Debug.WriteLine($"[Extraction] Warning: Unzipped files couldn't correlate directly to LaunchBox Game ID: {batchItem.LaunchboxId}");
+                    }
                 }
             }
 
@@ -165,6 +184,38 @@ namespace RommStar.Core.Services
             if (PluginHelper.LaunchBoxMainViewModel != null)
                 PluginHelper.LaunchBoxMainViewModel.RefreshData();
         }
+
+        /// <summary>
+        /// Evaluates all unzipped file variations targeting a unique game entry and chooses the primary bootable application path.
+        /// </summary>
+        private string GetBestApplicationPath(List<string> filePaths)
+        {
+            if (filePaths.Count == 1) return filePaths[0];
+
+            // Heuristic priority: Target master headers, unified archives, or executable scripts first
+            var priorityExtensions = new[] { ".cue", ".gdi", ".chd", ".m3u", ".ccd", ".exe", ".bat", ".cmd" };
+
+            foreach (var ext in priorityExtensions)
+            {
+                var match = filePaths.FirstOrDefault(f => f.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+                if (match != null) return match;
+            }
+
+            // Secondary cleanup: Filter out common non-playable sidecar documents or asset definitions
+            var sidecarExtensions = new[] { ".txt", ".nfo", ".jpg", ".png", ".srm", ".sav", ".pdf" };
+            var validBootables = filePaths
+                .Where(f => !sidecarExtensions.Any(ext => f.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            if (validBootables.Count > 0)
+            {
+                // Alphabetical ascending sort safely isolates "Disc 1.iso" or "Part 1.bin" as the default execution node
+                return validBootables.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).First();
+            }
+
+            return filePaths[0];
+        }
+
 
         /// <summary>
         /// Correlates a generic zip entry filename back to its parent queue model inside multi-game background batches.
