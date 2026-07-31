@@ -51,12 +51,13 @@ namespace RommStar.Core.Services
         {
             try
             {
-                // 1. Extract the RomM IDs from the custom field
+                // 1. Extract the RomM IDs (csv) from the custom field Romm_RomIds
+                // Note: For games with sibling roms (NOT multi-disk), the one set to Default in Romm is set first in the RomIds list. This used later
                 var rommIdField = game.GetAllCustomFields().FirstOrDefault(f => f.Name == "Romm_RomIds");
                 if (rommIdField == null || string.IsNullOrWhiteSpace(rommIdField.Value))
                 {
                     Debug.WriteLine($"[VIP Install] No romm_RomIds found for {game.Title}. Aborting.");
-                    // TODO - have to return something that indicates stop Installing Status
+                    // TODO: have to return something that indicates stop Installing Status
                     return;
                 }
 
@@ -68,7 +69,7 @@ namespace RommStar.Core.Services
 
                 if (rommIdsToDownload.Count == 0) return; // TODO: Again - indicated installing status needs changing
 
-                // 2. Intercept from the Background Queue (if it's sitting there waiting)
+                // 2. Intercept and remove from the Background Queue (if it's already in the queue but waiting)
                 var queue = _settingsService.Settings.RomDownloadQueue;
                 var existingQueuedItem = queue.FirstOrDefault(q => q.LaunchboxId == game.Id);
                 if (existingQueuedItem != null)
@@ -80,6 +81,7 @@ namespace RommStar.Core.Services
                 // 3. Prepare the Download Path (Relative, Absolute, or Network UNC)
                 var serverId = _settingsService.Settings.PlatformSyncSettings.First(pss =>
                                     pss.LaunchboxPlatformName == game.Platform).RommServerId;
+
                 var activeServer = _settingsService.Settings.RommServers.FirstOrDefault(s => s.Id == serverId);
                 if (activeServer == null) return; // TODO: Again - indicated installing status needs changing
 
@@ -91,13 +93,13 @@ namespace RommStar.Core.Services
                     platExtSyncSetts.TempDownloadsPath :
                     _settingsService.Settings.GlobalExtendedSyncSettings.TempDownloadsPath;
 
-                //return; 
-
                 if (!Path.IsPathRooted(rawPath))
                 {
                     string pluginFolder = Path.GetDirectoryName(typeof(SettingsService).Assembly.Location);
                     rawPath = Path.Combine(pluginFolder, rawPath);
                 }
+
+                // Setup Temp Dir for download
                 string tempDir = Path.GetFullPath(rawPath);
 
                 if (!Directory.Exists(tempDir))
@@ -107,7 +109,10 @@ namespace RommStar.Core.Services
                 string targetZipPath = Path.Combine(tempDir, zipFilename);
 
                 // 3.5 Get the romm platform stub - use first rom as all same platform
-                RomDTO firstRomDTO = _rommService.GetRomDetailsAsync(activeServer, rommIdsToDownload[0]).Result.Data;
+                var apiReturn = await _rommService.GetRomDetailsAsync(activeServer, rommIdsToDownload[0]);
+                if (!apiReturn.IsSuccess) return; // TODO: Need to feedback to user/log somehow.
+
+                RomDTO firstRomDTO = apiReturn.Data;
                 string platformStub = firstRomDTO.PlatformStub;      
 
                 // 4. Download immediately to disk
@@ -122,7 +127,8 @@ namespace RommStar.Core.Services
                         PlatformName = game.Platform,
                         PlatformStub = platformStub,
                         RommIds = rommIdsToDownload,
-                        GameNameSanitised = StringsHelper.SanitizeFileName(game.Title)
+                        GameNameSanitised = StringsHelper.SanitizeFileName(game.Title),
+                        MasterFilename = firstRomDTO.RommFilename
                     };
 
                     await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem });
@@ -146,8 +152,7 @@ namespace RommStar.Core.Services
                 // Ensure LaunchBox is taken out of its "fake launch" state
                 RestoreGameLaunchEmulatorExe();
 
-                // You mentioned not launching the game automatically for now, 
-                // so we just update the UI to allow the user to click Play again.
+                // Change PLay button from "Installing" to "Play"
                 await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
 
                 // Force LaunchBox to save state and refresh
@@ -176,7 +181,7 @@ namespace RommStar.Core.Services
 
         internal void RestoreGameLaunchEmulatorExe()
         {
-            if (_lastGameLaunchEmulator != null && _lastEmulatorApplicationPath != Constants.KillGameLaunchExe)
+            if (_lastGameLaunchEmulator != null && _lastEmulatorApplicationPath != Constants.DummyEmulatorExe)
             {
                 _lastGameLaunchEmulator.ApplicationPath = _lastEmulatorApplicationPath;
                 PluginHelper.DataManager.Save();
@@ -188,11 +193,11 @@ namespace RommStar.Core.Services
             // At this stage, game may or may not be installed
             if (game == null && additionalApplication == null) return;
 
-            // Check that game's emulator has not been set to the KillGameLaunchExe as a 
+            // Check that game's emulator has not been set to the DummyEmulatorExe as a 
             // result of game Installation logic failing
             if (emulator != null)
             {
-                if (emulator.ApplicationPath == Constants.KillGameLaunchExe)
+                if (emulator.ApplicationPath == Constants.DummyEmulatorExe)
                 {
                     if (PluginHelper.StateManager.IsBigBox == false)
                     {
@@ -204,11 +209,12 @@ namespace RommStar.Core.Services
                 }
                 else
                 {
-                    _lastEmulatorApplicationPath = emulator.ApplicationPath; // order important here - beware emulator.ApplicationPath = Constants.KillGameLaunchExe;
+                    _lastEmulatorApplicationPath = emulator.ApplicationPath; // order important here - beware emulator.ApplicationPath = Constants.DummyEmulatorExe;
                     _lastGameLaunchEmulator = emulator;
                 }
             }
 
+            // Additional apps can contain other exe's/alt versions etc
             var apps = game.GetAllAdditionalApplications();
                        
             // Check if Rom Installation required
@@ -219,28 +225,27 @@ namespace RommStar.Core.Services
                 foreach (var app in apps)
                 {
                     app.Status = "Installing";
-                    app.ApplicationPath = Constants.KillGameLaunchExe;
+                    //app.ApplicationPath = Constants.DummyEmulatorExe;
                 }
 
                 game.Status = "Installing";
       
-                                // Now set the emulator to an essentially empty exe to fake game launch
+                // Now set the emulator to an essentially empty exe to fake game launch
                 // (No game launch cancel facility in LB sadly)
-                if (emulator != null || apps.Count() > 0) emulator.ApplicationPath = Constants.KillGameLaunchExe;
+                if (emulator != null || apps.Count() > 0) emulator.ApplicationPath = Constants.DummyEmulatorExe;
 
-                //PluginHelper.DataManager.Save();
-                //PluginHelper.LaunchBoxMainViewModel.RefreshData();
+                // Change Launchbox "Play" button to "Installing" animation.
                 LaunchboxViewsHelper.UpdatePlayButtonUi(game); // no await b/c fire and forget
 
+                // Download ROM and install
                 _ = Task.Run(() => InstallGameOnDemandAsync(game));
-
-
             }
-            else if (additionalApplication != null && additionalApplication.Status == "Installing")
+
+            // This covers user launching AdditionalApp directly form UI whilst game is installing.
+            if (additionalApplication != null && additionalApplication.Installed != true)
             {
-                emulator.ApplicationPath = Constants.KillGameLaunchExe;
+                emulator.ApplicationPath = Constants.DummyEmulatorExe;
             }
-
         }
     }
 }

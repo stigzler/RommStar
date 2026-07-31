@@ -67,30 +67,37 @@ namespace RommStar.Core.Services
             PopulateLaunchboxSettings();
         }
 
-        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> batchItems)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="tempZipPath"></param>
+        /// <param name="romQueueItems">List of game/roms</param>
+        /// <returns></returns>
+        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems)
         {
-            if (batchItems == null || batchItems.Count == 0) return;
+            if (romQueueItems == null || romQueueItems.Count == 0) return;
 
             // 1. Resolve Settings and Platform Roots
             var platformSettings = _settingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss =>
-                            pss.LaunchboxPlatformName == batchItems[0].PlatformName);
+                            pss.LaunchboxPlatformName == romQueueItems[0].PlatformName);
 
             // Safe null propagation checks in case a platform profile configuration layout is raw or uninitialized
             bool individualGameFolders = (platformSettings?.ExtendedSyncSettings?.ApplySettings == true) ?
                 platformSettings.ExtendedSyncSettings.UseIndividualGameFolders :
                  _settingsService.Settings.GlobalExtendedSyncSettings.UseIndividualGameFolders;
 
-            IPlatform platform = PluginHelper.DataManager.GetPlatformByName(batchItems[0].PlatformName);
+            IPlatform platform = PluginHelper.DataManager.GetPlatformByName(romQueueItems[0].PlatformName);
             if (platform == null)
             {
-                Debug.WriteLine($"[Extraction] Error: Platform '{batchItems[0].PlatformName}' not found in LaunchBox.");
+                // Todo: user feedback
+                Debug.WriteLine($"[Extraction] Error: Platform '{romQueueItems[0].PlatformName}' not found in LaunchBox.");
                 return;
             }
 
             string romRoot = FileSystemHelper.ResolvedRompath(platform.Folder, platform.Name);
 
             // Build the exact internal folder prefix used by RomM's zip generation engine
-            string expectedPrefix = $"roms/{batchItems[0].PlatformStub}/".Replace('\\', '/');
+            string expectedPrefix = $"roms/{romQueueItems[0].PlatformStub}/".Replace('\\', '/');
 
             // Tracks all successfully extracted file paths mapped directly to their corresponding LaunchBox Game ID
             var extractedFilesMap = new Dictionary<string, List<string>>();
@@ -118,14 +125,14 @@ namespace RommStar.Core.Services
                     RomQueueItem matchingItem = null;
 
                     // Resolved outside the directory-flag block to ensure path tracking works globally
-                    if (batchItems.Count == 1)
+                    if (romQueueItems.Count == 1)
                     {
-                        matchingItem = batchItems[0];
+                        matchingItem = romQueueItems[0];
                     }
                     else
                     {
                         // Background Queue Path: Match this specific file entry to its owning game item
-                        matchingItem = FindMatchingBatchItemForFile(batchItems, entry.Name);
+                        matchingItem = FindMatchingBatchItemForFile(romQueueItems, entry.Name);
                     }
 
                     if (individualGameFolders && matchingItem != null)
@@ -156,8 +163,8 @@ namespace RommStar.Core.Services
                 }
             }
 
-            // 5. Finalize State: Flip the LaunchBox database flags to Installed across the batch
-            foreach (var batchItem in batchItems)
+            // 5. Update Launchbox Game object
+            foreach (var batchItem in romQueueItems)
             {
                 var game = PluginHelper.DataManager.GetGameById(batchItem.LaunchboxId);
 
@@ -166,10 +173,24 @@ namespace RommStar.Core.Services
                     game.Installed = true;
                     game.Status = "Installed";
 
-                    // Evaluate what was actually unzipped to locate the correct execution boot file path
                     if (extractedFilesMap.TryGetValue(batchItem.LaunchboxId, out var unzippedFiles) && unzippedFiles.Count > 0)
                     {
-                        game.ApplicationPath = GetBestApplicationPath(unzippedFiles);
+                        // Figure what the main application is and set (accommodates multi-version/sibling and multi-disc roms)
+                        string mainApplicationPath = unzippedFiles.FirstOrDefault(path => Path.GetFileName(path)
+                                                    .Equals(batchItem.MasterFilename, StringComparison.OrdinalIgnoreCase));
+
+                        game.ApplicationPath = mainApplicationPath;
+
+                        // Now deal with any multi-rom games
+                        var additionalApps = game.GetAllAdditionalApplications();
+
+                        foreach (var additionalApp in additionalApps)
+                        {
+                            string applicationPath = unzippedFiles.FirstOrDefault(path => Path.GetFileName(path)
+                            .Equals(batchItem.MasterFilename, StringComparison.OrdinalIgnoreCase));
+                            additionalApp.Status = "Installed";
+                            additionalApp.Installed = true;
+                        }
                     }
                     else
                     {
@@ -177,6 +198,8 @@ namespace RommStar.Core.Services
                         Debug.WriteLine($"[Extraction] Warning: Unzipped files couldn't correlate directly to LaunchBox Game ID: {batchItem.LaunchboxId}");
                     }
                 }
+
+
             }
 
             PluginHelper.DataManager.Save();
@@ -302,7 +325,7 @@ namespace RommStar.Core.Services
             bool hasMatchingRommId = rommDTO.Id.HasValue && _platformRommIds.Contains(rommDTO.Id.Value.ToString());
 
             MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId);
-           
+
             MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
 
             IGame game = null;
@@ -396,7 +419,7 @@ namespace RommStar.Core.Services
                 // Use custom aggregated CSV string if provided (Scenario 2), otherwise default to standard singular ID string
                 string finalRomIdsValue = !string.IsNullOrEmpty(customRomIdsCsv) ? customRomIdsCsv : Convert.ToString(rommDTO.Id);
 
-                AddNewRommMetadata(game, finalRomIdsValue);     
+                AddNewRommMetadata(game, finalRomIdsValue);
 
                 foreach (var altName in rommDTO.AlternativeNames.Distinct())
                 {
@@ -512,19 +535,21 @@ namespace RommStar.Core.Services
             if (app == null)
             {
                 app = parentGame.AddNewAdditionalApplication();
-                app.ApplicationPath = cleanAppPath;
-                app.Version = tags.Version;
-                app.Disc = tags.DiscNumber;
-                app.SideA = tags.IsSideA;
-                app.SideB = tags.IsSideB;
-                app.Region = tags.Region;
-                app.Priority = (tags.DiscNumber != null) ? (int)tags.DiscNumber : 0;
-                app.Installed = false;
-                app.Status = "Not Installed";
-                app.Name = customAppName;
-                app.EmulatorId = parentGame.EmulatorId;
-                app.UseEmulator = (parentGame.EmulatorId != null) ? true : false;        
-            }          
+            }
+
+            app.ApplicationPath = cleanAppPath;
+            app.Version = tags.Version;
+            app.Disc = tags.DiscNumber;
+            app.SideA = tags.IsSideA;
+            app.SideB = tags.IsSideB;
+            app.Region = tags.Region;
+            app.Priority = (tags.DiscNumber != null) ? (int)tags.DiscNumber : 0;
+            app.Installed = false;
+            app.Status = "Not Installed";
+            app.Name = customAppName;
+            app.EmulatorId = parentGame.EmulatorId;
+            app.UseEmulator = (parentGame.EmulatorId != null) ? true : false;
+
         }
 
         /// <summary>

@@ -687,6 +687,7 @@ namespace RommStar.Core.Sync
                         // =========================================================================
                         // LATE-BIND RESOLUTION FOR SIBLING SET ROMS (Pass 2 Processing)
                         // =========================================================================
+
                         foreach (var cluster in siblingClusters.Values)
                         {
                             if (platformTask.Cts.Token.IsCancellationRequested) break;
@@ -695,18 +696,23 @@ namespace RommStar.Core.Sync
                             var masterRom = cluster.FirstOrDefault(r => r.RomUserData?.IsMainSibling == true)
                                             ?? cluster.OrderBy(r => r.Id).First();
 
+                            // Sort the list: masterRom first, followed by other items
+                            var sortedCluster = cluster.Where(r => r != masterRom).Prepend(masterRom).ToList();
+
                             // 2. Isolate variants from the group
-                            var variantRoms = cluster.Where(r => r.Id != masterRom.Id).ToList();
+                            var variantRoms = sortedCluster.Where(r => r.Id != masterRom.Id).ToList();
 
                             // 3. Compile a comprehensive context tracking list of all server IDs within this group
-                            var allGroupIds = cluster.Select(r => r.Id ?? 0).Distinct().ToList();
+                            var allGroupIds = sortedCluster.Select(r => r.Id ?? 0).Distinct().ToList();
                             string aggregatedRomIdsCsv = string.Join(",", allGroupIds);
-
+                            
                             //string basePlatformPath = Path.Combine("C:\\LaunchBox\\Games", platformTask.PlatformName);
                             //string targetDirectory = Path.Combine(basePlatformPath, masterRom.Name);
 
                             string basePlatformPath = NormalizeRomPath(Constants.LaunchboxRootDir, platformTask.LaunchBoxRomFolder);
-                            string targetDirectory = Path.Combine(basePlatformPath, masterRom.Name);
+                            //string targetDirectory = Path.Combine(basePlatformPath, masterRom.Name);
+                            string targetDirectory =basePlatformPath;
+
 
                             IGame masterGameInstance = null;
 
