@@ -175,14 +175,28 @@ namespace RommStar.Core.Services
 
                     if (extractedFilesMap.TryGetValue(batchItem.LaunchboxId, out var unzippedFiles) && unzippedFiles.Count > 0)
                     {
-                        // Figure what the main application is and set (accommodates multi-version/sibling and multi-disc roms)
-                        string mainApplicationPath = unzippedFiles.FirstOrDefault(path => Path.GetFileName(path)
-                                                    .Equals(batchItem.MasterFilename, StringComparison.OrdinalIgnoreCase));
 
-                        game.ApplicationPath = mainApplicationPath;
-
-                        // Now deal with any multi-rom games
+                        // Get all additional apps
                         var additionalApps = game.GetAllAdditionalApplications();
+
+                        // switch between multi-file games (eg. Disc 1, Disc 2) or sibling sets - romm api for multi-file games means
+                        // firstRomDTO.RommFilename DOESN'T have a extension (for some bloody reason)
+                        string mainApplicationPath = string.Empty;
+                        if (Path.HasExtension(batchItem.MasterFilename))
+                        {
+                            mainApplicationPath = unzippedFiles.FirstOrDefault(path => Path.GetFileName(path)
+                                                       .Equals(batchItem.MasterFilename, StringComparison.OrdinalIgnoreCase));
+                        }
+                        else
+                        {
+                            mainApplicationPath = additionalApps.FirstOrDefault(a => !string.IsNullOrEmpty(a.ApplicationPath)
+                                                               && (Helpers.TagHelper.ParseFilename(a.ApplicationPath).DiscNumber == 1 ||
+                                                                    Helpers.TagHelper.ParseFilename(a.ApplicationPath).IsSideA)
+                                                                    ).ApplicationPath
+                                                                ?? additionalApps.First().ApplicationPath;
+                        }                                            
+
+                        game.ApplicationPath = mainApplicationPath;              
 
                         foreach (var additionalApp in additionalApps)
                         {

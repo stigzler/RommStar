@@ -38,7 +38,7 @@ namespace RommStar.Core.Helpers
 
         public static string ResolvedRompath(string directoryPath, string platformName = null)
         {
-            if (directoryPath == null)
+            if (string.IsNullOrEmpty(   directoryPath))
             {
                 return Path.Combine(Constants.LaunchboxRootDir, "Games", platformName);
             }

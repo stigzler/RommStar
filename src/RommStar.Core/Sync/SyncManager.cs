@@ -523,7 +523,9 @@ namespace RommStar.Core.Sync
                                 {
                                     // Find Disc/Side/Tape/Cart (etc) 1 or fall back to the first available file entry
                                     var primaryFile = detailedRomDto.Files.FirstOrDefault(f => !string.IsNullOrEmpty(f.FileName)
-                                                        && Helpers.TagHelper.ParseFilename(f.FileName).DiscNumber == 1)
+                                                        && (Helpers.TagHelper.ParseFilename(f.FileName).DiscNumber == 1 || 
+                                                            Helpers.TagHelper.ParseFilename(f.FileName).IsSideA)
+                                                            )
                                                       ?? detailedRomDto.Files.First();
 
                                     if (platformTask.UpsertIGame)
@@ -562,7 +564,8 @@ namespace RommStar.Core.Sync
                                                 fileEntry,
                                                 targetDirectory,
                                                 customAppName: Path.GetFileNameWithoutExtension(fileEntry.FileName),
-                                                usePlaceholderPath: isPrimaryDisc
+                                                false
+                                                //usePlaceholderPath: isPrimaryDisc
                                             );
                                         }
 

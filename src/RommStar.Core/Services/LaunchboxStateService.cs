@@ -131,6 +131,9 @@ namespace RommStar.Core.Services
                         MasterFilename = firstRomDTO.RommFilename
                     };
 
+      
+                    
+
                     await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem });
 
                     // 6. Cleanup the zip file

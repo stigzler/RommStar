@@ -23,7 +23,7 @@ namespace RommStar.Core.Sync
         /// </summary>
         public string MasterFilename { get; set; } = string.Empty;
 
-
+        public bool IsMultiFileGame { get; set; } = false;
 
         /// <summary>
         /// Holds all RomM IDs required for this specific game (siblings, discs, etc.)
