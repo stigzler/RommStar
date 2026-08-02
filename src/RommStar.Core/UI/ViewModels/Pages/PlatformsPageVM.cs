@@ -614,7 +614,6 @@ namespace RommStar.Core.UI.ViewModels.Pages
                     InfoBarSeverity.Error, "Sync Platform Error", "You cannot Sync an orphaned platform as it no longer exists in Launchbox." +
                     " Either recreate it or delete it from the PLatforms list.");
                 return;
-
             }
 
             IPlatform platform = PluginHelper.DataManager.GetPlatformByName(SelectedPlatform.LaunchboxPlatformName);
@@ -625,6 +624,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
                     " This can happen if Launchbox and RommStar Platform adds/deletes fall out of sync.");
                 return;
             }
+
+
 
             string platformDefaultEmulatorID = _launchboxService.GetPlatformDefaultEmulatorID(SelectedPlatform.LaunchboxPlatformName);
 
@@ -641,7 +642,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 if (result == ContentDialogResult.Secondary) return;
             }
 
-            
+            PersistPlatformSyncSettings();
 
             // note: at this stage, this list may include orphaned platforms that have been persisted in user settings,
             // but then deleted later on the romm server.
@@ -653,10 +654,6 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 resolvedExtSyncSettings = SelectedPlatform.ExtendedSyncSettings;
 
             IPlatformFolder[] mediaFolders = platform.GetAllPlatformFolders();
-
-      
-
-
 
             // Queue PLatform
             _syncManager?.QueuePlatformSync(SelectedPlatform.LaunchboxPlatformName, SelectedPlatform.LaunchboxPlatformRomFolder,

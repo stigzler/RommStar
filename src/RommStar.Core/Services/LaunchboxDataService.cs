@@ -429,6 +429,8 @@ namespace RommStar.Core.Services
                 game.Installed = false;
                 game.Status = "Not Installed";
                 game.ApplicationPath = Constants.romPlaceholder;
+                //game.ApplicationPath = $"Plugins\\RommStar\\DummyPath\\{rommDTO.PlatformStub}\\{rommDTO.Name}" ;
+
 
                 // Use custom aggregated CSV string if provided (Scenario 2), otherwise default to standard singular ID string
                 string finalRomIdsValue = !string.IsNullOrEmpty(customRomIdsCsv) ? customRomIdsCsv : Convert.ToString(rommDTO.Id);
