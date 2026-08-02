@@ -39,3 +39,17 @@ Could also check badges:100:
 
 - Enable Rombox badges in Badges>Plugins. GameAttributes>INstalled/Not Installed
 
+## Romm to Launchbox Progress map
+
+| Progress State | NowPlaying | Backlogged | Status |
+| :--- | :---: | :---: | :--- |
+| **Not Started / Unplayed** | ❌ | ❌ | `"Incomplete"` or `null` |
+| **Not Started / Want to Play** | ❌ | ✔️ | `"Incomplete"` or `null` |
+| **Not Started / Won't Play** | ❌ | ❌ | `"Never Playing"` |
+| **Active / In Progress** | ✔️ | ❌ | `"incomplee"` |
+| **Active / Continuous** | ✔️ | ❌ | `null` |
+| **Active / Paused** | ✔️ | ✔️ | `null` |
+| **Done / Beaten** | ❌ | ❌ | `"Finished"` |
+| **Done / Completed** | ❌ | ❌ | `"Completed 100%"` |
+| **Done / Mastered** | - | - | *[Not Used given cannot map to romm]* |
+| **Done / Dropped** | ❌ | ❌ | `"retired"` |

@@ -20,21 +20,15 @@ namespace RommStar.Core.Services
 {
     public class LaunchboxDataService
     {
-        public SettingsService _settingsService { get; set; }
-        public LaunchboxSettings _launchboxSettings { get; set; } = new LaunchboxSettings();
-
-        private IPlatform _operationalPlatform;
-
-        private string? _operativeServerId = null;
-
-        private bool _overwriteMetadata = true;
-
-        private bool _deleteOldServerRoms = true;
-
         internal string? EmulatorId = null;
-
-        private RomMapper _romMapper;
-
+        private bool _deleteOldServerRoms = true;
+        private IPlatform _operationalPlatform;
+        private string? _operativeServerId = null;
+        private bool _overwriteMetadata = true;
+        /// <summary>
+        /// Used in conjunction with _platformLbGameDatabaseIds. Lookup once presence of launchboxDatabaseID Game
+        /// </summary>
+        private HashSet<MetadataSyncHelperMap> _platformHelperMap = new HashSet<MetadataSyncHelperMap>();
 
         /// <summary>
         /// Used in conjunction with _platformHelperMap. 
@@ -48,23 +42,100 @@ namespace RommStar.Core.Services
         /// </summary>
         private HashSet<string> _platformRommIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-
         /// <summary>
         /// Used in conjunction with _platformHelperMap. 
         /// Performant lookup of games with existing ServerIds.
         /// </summary>
         private HashSet<string?> _platformServerIds = new HashSet<string?>();
 
-        /// <summary>
-        /// Used in conjunction with _platformLbGameDatabaseIds. Lookup once presence of launchboxDatabaseID Game
-        /// </summary>
-        private HashSet<MetadataSyncHelperMap> _platformHelperMap = new HashSet<MetadataSyncHelperMap>();
-
+        private RomMapper _romMapper;
+        public LaunchboxSettings _launchboxSettings { get; set; } = new LaunchboxSettings();
+        public SettingsService _settingsService { get; set; }
         public LaunchboxDataService(RomMapper romMapper, SettingsService settingsService)
         {
             _romMapper = romMapper;
             _settingsService = settingsService;
             PopulateLaunchboxSettings();
+        }
+
+        public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory,
+                    string customAppName = null, bool usePlaceholderPath = false)
+        {
+            if (parentGame == null || fileDto == null || string.IsNullOrEmpty(fileDto.FileName)) return;
+
+            // Determine the database lookup path based on whether a virtual placeholder override is requested
+            string cleanAppPath = usePlaceholderPath
+                ? Constants.romPlaceholder
+                : Path.Combine(targetDirectory, fileDto.FileName);
+
+            var existingApps = parentGame.GetAllAdditionalApplications();
+            var app = existingApps.FirstOrDefault(a => a.Name == customAppName);
+
+            var tags = TagHelper.ParseFilename(fileDto.FileName);
+
+            if (app == null)
+            {
+                app = parentGame.AddNewAdditionalApplication();
+            }
+
+            app.ApplicationPath = cleanAppPath;
+            app.Version = tags.Version;
+            app.Disc = tags.DiscNumber;
+            app.SideA = tags.IsSideA;
+            app.SideB = tags.IsSideB;
+            app.Region = tags.Region;
+            app.Priority = (tags.DiscNumber != null) ? (int)tags.DiscNumber : 0;
+            app.Installed = false;
+            app.Status = "Not Installed";
+            app.Name = customAppName;
+            app.EmulatorId = parentGame.EmulatorId;
+            app.UseEmulator = (parentGame.EmulatorId != null) ? true : false;
+
+        }
+
+        public void CreateNewPlatform(string platformName)
+        {
+            var newPlatform = PluginHelper.DataManager.AddNewPlatform(platformName);
+            PluginHelper.DataManager.Save();
+        }
+
+        public string GetPlatformDefaultEmulatorID(string platformName)
+        {
+            foreach (IEmulator emu in PluginHelper.DataManager.GetAllEmulators())
+            {
+                IEmulatorPlatform[] emulatorPlatforms = emu.GetAllEmulatorPlatforms()
+                    .Where(ep => ep.Platform == platformName).ToArray();
+
+                IEmulatorPlatform defaultEmulatorPlatform = emulatorPlatforms?.FirstOrDefault(ep => ep.IsDefault);
+
+                if (defaultEmulatorPlatform != null) return defaultEmulatorPlatform.EmulatorId;
+                else if (emulatorPlatforms.Count() > 0) return emulatorPlatforms[0].EmulatorId;
+            }
+            return null;
+        }
+
+        public string GetPlatformIconPath(string platformName)
+        {
+            string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
+                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
+            return votiIconPath;
+        }
+
+        public List<LaunchboxPlatformDTO> GetPlatforms()
+        {
+            IPlatform[] livePlatforms = PluginHelper.DataManager.GetAllPlatforms();
+            if (livePlatforms == null) return new List<LaunchboxPlatformDTO>();
+
+            return livePlatforms.Select(p => new LaunchboxPlatformDTO
+            {
+                Name = p.Name,
+                ScrapeAs = p.ScrapeAs,
+                SortTitle = p.SortTitle,
+                RomFolder = p.Folder
+                // If you need NestedName or SortTitleOrTitle, calculate them cleanly here
+            })
+            .OrderBy(p => p.Name)
+            .ToList();
         }
 
         /// <summary>
@@ -223,46 +294,29 @@ namespace RommStar.Core.Services
         }
 
         /// <summary>
-        /// Evaluates all unzipped file variations targeting a unique game entry and chooses the primary bootable application path.
+        ///
         /// </summary>
-        private string GetBestApplicationPath(List<string> filePaths)
+        /// <param name="source"></param>
+        /// <param name="platformName">Name in launcbox DB. Not: ScrapeAs, SortTitle etc.</param>
+        /// <returns>Nothing if successful. Error message otherwise</returns>
+        public string SaveNewPlatformIcon(string source, string platformName, bool overwrite = false)
         {
-            if (filePaths.Count == 1) return filePaths[0];
+            string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
+                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
 
-            // Heuristic priority: Target master headers, unified archives, or executable scripts first
-            var priorityExtensions = new[] { ".cue", ".gdi", ".chd", ".m3u", ".ccd", ".exe", ".bat", ".cmd" };
-
-            foreach (var ext in priorityExtensions)
+            if (File.Exists(votiIconPath) && overwrite == false)
             {
-                var match = filePaths.FirstOrDefault(f => f.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
-                if (match != null) return match;
+                return "Platform icon already exists.";
             }
-
-            // Secondary cleanup: Filter out common non-playable sidecar documents or asset definitions
-            var sidecarExtensions = new[] { ".txt", ".nfo", ".jpg", ".png", ".srm", ".sav", ".pdf" };
-            var validBootables = filePaths
-                .Where(f => !sidecarExtensions.Any(ext => f.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-
-            if (validBootables.Count > 0)
+            try
             {
-                // Alphabetical ascending sort safely isolates "Disc 1.iso" or "Part 1.bin" as the default execution node
-                return validBootables.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).First();
+                File.Copy(source, votiIconPath, overwrite);
+                return null;
             }
-
-            return filePaths[0];
-        }
-
-
-        /// <summary>
-        /// Correlates a generic zip entry filename back to its parent queue model inside multi-game background batches.
-        /// </summary>
-        private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipFileName)
-        {
-            return batchItems.FirstOrDefault(item =>
-                zipFileName.Contains(item.GameNameSanitised, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(Path.GetFileNameWithoutExtension(zipFileName), item.GameNameSanitised, StringComparison.OrdinalIgnoreCase)
-            );
+            catch (Exception ex)
+            {
+                return "Failed to save platform icon:" + ex.Message;
+            }
         }
 
         public bool SetupGameUpserts(string platformName, string emulatorID, string serverId, ExtendedSyncSettings syncSettings)
@@ -318,7 +372,6 @@ namespace RommStar.Core.Services
 
             return _operationalPlatform != null;
         }
-
 
         public async Task<(IGame Game, MetadataSyncAction Action)> SyncRommDto(RomDTO rommDTO, string customRomIdsCsv = null)
         {
@@ -382,11 +435,11 @@ namespace RommStar.Core.Services
                 // now deal with any Romm metadata in event of launchboxDatabaseId match. Add or update.
                 if (metadataSyncHelperMap.LbDatabaseId != null)
                 {
-                    var rommIdField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
+                    var rommIdField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
 
                     if (rommIdField != null)
                     {
-                        rommIdField.Value = rommDTO.LaunchboxId?.ToString();
+                        rommIdField.Value = rommDTO.Id.ToString();
                         var rommServerField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
                         rommServerField.Value = _operativeServerId;
                     }
@@ -468,6 +521,24 @@ namespace RommStar.Core.Services
             return (game, syncAction);
         }
 
+        internal async Task<bool> DeletePlatform(string launchboxPlatformName)
+        {
+            try
+            {
+                var platform = PluginHelper.DataManager.GetPlatformByName(launchboxPlatformName);
+                if (platform == null) return false;
+
+                bool success = PluginHelper.DataManager.TryRemovePlatform(platform);
+                if (success) PluginHelper.DataManager.Save();
+
+                return success;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
         private void AddNewRommMetadata(IGame game, string finalRomIdsValue)
         {
             var romIdCustomField = game.AddNewCustomField();
@@ -484,38 +555,47 @@ namespace RommStar.Core.Services
 
         }
 
-        public string GetPlatformDefaultEmulatorID(string platformName)
+        /// <summary>
+        /// Correlates a generic zip entry filename back to its parent queue model inside multi-game background batches.
+        /// </summary>
+        private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipFileName)
         {
-            foreach (IEmulator emu in PluginHelper.DataManager.GetAllEmulators())
+            return batchItems.FirstOrDefault(item =>
+                zipFileName.Contains(item.GameNameSanitised, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Path.GetFileNameWithoutExtension(zipFileName), item.GameNameSanitised, StringComparison.OrdinalIgnoreCase)
+            );
+        }
+
+        /// <summary>
+        /// Evaluates all unzipped file variations targeting a unique game entry and chooses the primary bootable application path.
+        /// </summary>
+        private string GetBestApplicationPath(List<string> filePaths)
+        {
+            if (filePaths.Count == 1) return filePaths[0];
+
+            // Heuristic priority: Target master headers, unified archives, or executable scripts first
+            var priorityExtensions = new[] { ".cue", ".gdi", ".chd", ".m3u", ".ccd", ".exe", ".bat", ".cmd" };
+
+            foreach (var ext in priorityExtensions)
             {
-                IEmulatorPlatform[] emulatorPlatforms = emu.GetAllEmulatorPlatforms()
-                    .Where(ep => ep.Platform == platformName).ToArray();
-
-                IEmulatorPlatform defaultEmulatorPlatform = emulatorPlatforms?.FirstOrDefault(ep => ep.IsDefault);
-
-                if (defaultEmulatorPlatform != null) return defaultEmulatorPlatform.EmulatorId;
-                else if (emulatorPlatforms.Count() > 0) return emulatorPlatforms[0].EmulatorId;
+                var match = filePaths.FirstOrDefault(f => f.EndsWith(ext, StringComparison.OrdinalIgnoreCase));
+                if (match != null) return match;
             }
-            return null;
-        }
 
-        public List<LaunchboxPlatformDTO> GetPlatforms()
-        {
-            IPlatform[] livePlatforms = PluginHelper.DataManager.GetAllPlatforms();
-            if (livePlatforms == null) return new List<LaunchboxPlatformDTO>();
+            // Secondary cleanup: Filter out common non-playable sidecar documents or asset definitions
+            var sidecarExtensions = new[] { ".txt", ".nfo", ".jpg", ".png", ".srm", ".sav", ".pdf" };
+            var validBootables = filePaths
+                .Where(f => !sidecarExtensions.Any(ext => f.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
 
-            return livePlatforms.Select(p => new LaunchboxPlatformDTO
+            if (validBootables.Count > 0)
             {
-                Name = p.Name,
-                ScrapeAs = p.ScrapeAs,
-                SortTitle = p.SortTitle,
-                RomFolder = p.Folder
-                // If you need NestedName or SortTitleOrTitle, calculate them cleanly here
-            })
-            .OrderBy(p => p.Name)
-            .ToList();
-        }
+                // Alphabetical ascending sort safely isolates "Disc 1.iso" or "Part 1.bin" as the default execution node
+                return validBootables.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).First();
+            }
 
+            return filePaths[0];
+        }
         private void PopulateLaunchboxSettings()
         {
             XDocument doc = XDocument.Load(Path.Combine(Constants.LaunchboxRootDir, "Data\\Settings.xml"));
@@ -523,99 +603,6 @@ namespace RommStar.Core.Services
             if (settings?.Element("PlatformIconPack")?.Value is string iconPack && !string.IsNullOrWhiteSpace(iconPack))
             {
                 _launchboxSettings.PlatformIconPack = iconPack;
-            }
-        }
-
-        public void CreateNewPlatform(string platformName)
-        {
-            var newPlatform = PluginHelper.DataManager.AddNewPlatform(platformName);
-            PluginHelper.DataManager.Save();
-        }
-
-
-        public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory,
-            string customAppName = null, bool usePlaceholderPath = false)
-        {
-            if (parentGame == null || fileDto == null || string.IsNullOrEmpty(fileDto.FileName)) return;
-
-            // Determine the database lookup path based on whether a virtual placeholder override is requested
-            string cleanAppPath = usePlaceholderPath
-                ? Constants.romPlaceholder
-                : Path.Combine(targetDirectory, fileDto.FileName);
-
-            var existingApps = parentGame.GetAllAdditionalApplications();
-            var app = existingApps.FirstOrDefault(a => a.Name == customAppName);
-
-            var tags = TagHelper.ParseFilename(fileDto.FileName);
-
-            if (app == null)
-            {
-                app = parentGame.AddNewAdditionalApplication();
-            }
-
-            app.ApplicationPath = cleanAppPath;
-            app.Version = tags.Version;
-            app.Disc = tags.DiscNumber;
-            app.SideA = tags.IsSideA;
-            app.SideB = tags.IsSideB;
-            app.Region = tags.Region;
-            app.Priority = (tags.DiscNumber != null) ? (int)tags.DiscNumber : 0;
-            app.Installed = false;
-            app.Status = "Not Installed";
-            app.Name = customAppName;
-            app.EmulatorId = parentGame.EmulatorId;
-            app.UseEmulator = (parentGame.EmulatorId != null) ? true : false;
-
-        }
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="platformName">Name in launcbox DB. Not: ScrapeAs, SortTitle etc.</param>
-        /// <returns>Nothing if successful. Error message otherwise</returns>
-        public string SaveNewPlatformIcon(string source, string platformName, bool overwrite = false)
-        {
-            string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
-                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
-
-            if (File.Exists(votiIconPath) && overwrite == false)
-            {
-                return "Platform icon already exists.";
-            }
-            try
-            {
-                File.Copy(source, votiIconPath, overwrite);
-                return null;
-            }
-            catch (Exception ex)
-            {
-                return "Failed to save platform icon:" + ex.Message;
-            }
-        }
-
-        public string GetPlatformIconPath(string platformName)
-        {
-            string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
-                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
-            return votiIconPath;
-        }
-
-        internal async Task<bool> DeletePlatform(string launchboxPlatformName)
-        {
-            try
-            {
-                var platform = PluginHelper.DataManager.GetPlatformByName(launchboxPlatformName);
-                if (platform == null) return false;
-
-                bool success = PluginHelper.DataManager.TryRemovePlatform(platform);
-                if (success) PluginHelper.DataManager.Save();
-
-                return success;
-            }
-            catch (Exception ex)
-            {
-                return false;
             }
         }
     }

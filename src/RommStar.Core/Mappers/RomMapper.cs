@@ -29,7 +29,16 @@ namespace RommStar.Core.Mappers
 
         [MapProperty(nameof(romDto.Name), nameof(iGame.Title), Use = nameof(PassthroughMapping))]
         [MapProperty(nameof(romDto.Summary), nameof(iGame.Notes), Use = nameof(PassthroughMapping))]
+        [MapProperty(nameof(romDto.LaunchboxId), nameof(iGame.LaunchBoxDbId))]
+
+
+        [MapProperty("LaunchboxMetadata.WikipediaUrl", nameof(iGame.WikipediaUrl))]
+        [MapProperty("LaunchboxMetadata.ReleaseType", nameof(iGame.ReleaseType))]
+
+        [MapProperty(nameof(romDto.RomUserData), nameof(iGame.Progress), Use = nameof(RommStatusToLaunchboxProgress))]
+
         [MapProperty("Metadatum.FirstReleaseDate", nameof(IGame.ReleaseDate))]
+        [MapProperty("Metadatum.Companies", nameof(IGame.Developer), Use = nameof(FlattenToSemicolonString))]
         [MapProperty("Metadatum.Genres", nameof(IGame.Genres), Use = nameof(MapBlockingCollection))]
         [MapProperty("Metadatum.GameModes", nameof(IGame.PlayMode), Use = nameof(FlattenToSemicolonString))]
         [MapProperty("Metadatum.Franchises", nameof(IGame.Series), Use = nameof(FlattenToSemicolonString))]
@@ -39,6 +48,52 @@ namespace RommStar.Core.Mappers
         [MapProperty(nameof(romDto.Regions), nameof(IGame.Region), Use = nameof(MapFirstListItem))]
         [MapProperty(nameof(romDto.YoutubeVideoId), nameof(IGame.VideoUrl), Use = nameof(MapYouTubeUrl))]
         public partial void RommRomDtoToIGame(RomDTO romDto, IGame iGame);
+
+
+        [UserMapping]
+        public string RommStatusToLaunchboxProgress(RomUserDTO? userDTO)
+        {
+            // Fail-safe if the DTO is completely null
+            if (userDTO == null) return string.Empty;
+
+            // Convert nullable bools to strict true/false for cleaner matching
+            bool nowPlaying = userDTO.NowPlaying ?? false;
+            bool backlogged = userDTO.Backlogged ?? false;
+
+            // Normalize the status string (trimming whitespace prevents accidental mismatches)
+            string? status = userDTO.Status?.Trim();
+
+            // Tuple pattern matching acts exactly like your truth table
+            return (nowPlaying, backlogged, status) switch
+            {
+                // --- ACTIVE STATES ---
+                (true, false, "incomplete") => "Active / In Progress",
+                (true, false, null) => "Active / Continuous",
+                (true, true, null) => "Active / Paused",
+                (true, true, "incomplete") => "Active / Paused",
+
+                // --- DONE STATES ---
+                (false, false, "finished") => "Done / Beaten",
+                (false, false, "completed_100") => "Done / Completed",
+                (false, false, "retired") => "Done / Dropped",
+
+                // --- NOT STARTED STATES ---
+                (false, false, "never_playing") => "Not Started / Won't Play",
+
+                // Want to Play: Backlogged is true, status is either incomplete or null
+                (false, true, "incomplete") => "Not Started / Want to Play",
+                (false, true, null) => "Not Started / Want to Play",
+
+                // Unplayed: Backlogged is false, status is either incomplete or null
+                (false, false, "incomplete") => "Not Started / Unplayed",
+                (false, false, null) => "Not Started / Unplayed",
+
+                // --- FALLBACK ---
+                // If a combination occurs that isn't on the truth table, return empty
+                _ => string.Empty
+            };
+        }
+
 
         [UserMapping]
         public string PassthroughMapping(string? value)
@@ -62,6 +117,8 @@ namespace RommStar.Core.Mappers
             string videoId = youtubeVideoId.Trim();
 
             return stub + videoId;
+
+            
         }
 
 
@@ -184,7 +241,14 @@ namespace RommStar.Core.Mappers
 
             return string.Join("; ", source
                 .Where(item => !string.IsNullOrWhiteSpace(item))
-                .Select(item => item.Trim().Replace(";", ",")));
+                .Select(item => item.Trim().Replace(";", ","))
+                .Distinct());
+        }
+
+        [UserMapping]
+        public string[] StringListToArray(List<string>? source)
+        {
+            return source.ToArray();
         }
 
         /// <summary>

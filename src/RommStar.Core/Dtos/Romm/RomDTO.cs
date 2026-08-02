@@ -13,13 +13,9 @@ namespace RommStar.Core.Dtos.Romm
         public List<string>?
                             AlternativeNames { get; set; }
 
-        [JsonPropertyName("merged_screenshots")]
-        public List<string>?
-                            MergedScreenshots { get; set; }
-
-        [JsonPropertyName("platform_slug")]
-        public string? 
-                            PlatformStub { get; set; }
+        [JsonPropertyName("fs_size_bytes")]
+        public long?
+                            CombinedFilesSizeBytes { get; set; }
 
         [JsonPropertyName("files")]
         public List<RomFileDTO>?
@@ -36,10 +32,6 @@ namespace RommStar.Core.Dtos.Romm
         [JsonPropertyName("has_simple_single_file")]
         public bool?
                             HasSimpleSingleFile { get; set; }
-
-        [JsonPropertyName("fs_size_bytes")]
-        public long?
-                            CombinedFilesSizeBytes { get; set; }
 
         /// <summary>
         /// This is the rommId local to the Romm Sever and used in API calls
@@ -61,6 +53,10 @@ namespace RommStar.Core.Dtos.Romm
         public int?
                             LaunchboxId { get; set; }
 
+        [JsonPropertyName("launchbox_metadata")]
+        public RommLaunchboxMetadataDTO?
+                            LaunchboxMetadata { get; set; }
+
         [JsonPropertyName("path_cover_large")]
         public string?
                             MediaBoxFront { get; set; }
@@ -77,6 +73,10 @@ namespace RommStar.Core.Dtos.Romm
         public string?
                             MediaVideo { get; set; }
 
+        [JsonPropertyName("merged_screenshots")]
+        public List<string>?
+                            MergedScreenshots { get; set; }
+
         [JsonPropertyName("metadatum")]
         public RomMetadatumDTO?
                             Metadatum { get; set; }
@@ -92,6 +92,9 @@ namespace RommStar.Core.Dtos.Romm
         public string
                             Name { get; set; }
 
+        [JsonPropertyName("platform_slug")]
+        public string? 
+                            PlatformStub { get; set; }
         [JsonPropertyName("regions")]
         public List<string>?
                             Regions { get; set; }
@@ -106,7 +109,6 @@ namespace RommStar.Core.Dtos.Romm
         [JsonPropertyName("ss_metadata")]
         public RomScreenscraperMetadataDTO?
                             ScreenscrapeMetadata { get; set; }
-
         [JsonPropertyName("ss_id")]
         public int?
                             ScreenscraperId { get; set; }

@@ -1,5 +1,6 @@
 using System;
 using RommStar.Core.Models;
+using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.Sync
 {
@@ -13,7 +14,6 @@ namespace RommStar.Core.Sync
         /// </summary>
         public Guid JobId { get; set; }
         public DownloadJobType JobType { get; set; }
-
         public MediaType? MediaType { get; set; }
         public string RomName { get; set; }
         public string RelativeUrl { get; set; } = string.Empty;
@@ -23,5 +23,6 @@ namespace RommStar.Core.Sync
         public PlatformSyncJob? UiCard { get; set; } // Null if bypassed via on-demand
         public Action? OnSuccessCallback { get; set; }
         public CancellationToken CancellationToken { get; set; }
+        public IGame IGame { get; set; }
     }
 }

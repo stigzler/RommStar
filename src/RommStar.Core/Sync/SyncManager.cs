@@ -272,7 +272,7 @@ namespace RommStar.Core.Sync
             return new RomCollectionDTO();
         }
 
-        private void ScheduleMediaDownloads(RomDTO rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServer server, string iGameId)
+        private void ScheduleMediaDownloads(RomDTO rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServer server, IGame iGame)
         {
             // Extract extensionless ground-truth filename from your unified RommFilename property
             string romFilename = !string.IsNullOrEmpty(rom.RommFilename)
@@ -292,7 +292,7 @@ namespace RommStar.Core.Sync
                 launchboxMediaFolders: task.PlatformMediaFolders, // Direct IPlatformFolder tracking array
                 romFilename: romFilename,
                 forceMediaPriority: forcePriority,
-                iGameId: iGameId
+                iGameId: iGame.Id
             );
 
             foreach (var item in downloadItems)
@@ -314,7 +314,8 @@ namespace RommStar.Core.Sync
                     LaunchBoxPlatformName = task.PlatformName,
                     ServerContext = server,
                     UiCard = task.UiCard,
-                    CancellationToken = task.Cts.Token
+                    CancellationToken = task.Cts.Token,
+                    IGame = iGame
                 });
             }
         }
@@ -355,7 +356,6 @@ namespace RommStar.Core.Sync
                     {
                         job.UiCard.ErrorCount++;
 
-                        // FIXED: Direct null check on job.MediaType to prevent NullReferenceExceptions
                         string typeLabel = job.JobType == DownloadJobType.Rom ? "ROM"
                                            : (job.MediaType != null ? job.MediaType.ToString() : "Media");
 
@@ -369,6 +369,24 @@ namespace RommStar.Core.Sync
                         string typeLabel = job.JobType == DownloadJobType.Rom ? "ROM"
                                            : (job.MediaType != null ? job.MediaType.ToString() : "Media");
 
+                        // update relevant igame media paths (these have to be explicitly designed - LB doesn't auto calculate (of course!!))
+                        bool iGameUpdated = false;
+                        switch (job.MediaType)
+                        {
+                            case MediaType.Manual:
+                                job.IGame.ManualPath = job.DestinationPath.Replace(Constants.LaunchboxRootDir + "\\", "");
+                                break;
+                            case MediaType.Video:
+                                job.IGame.VideoPath = job.DestinationPath.Replace(Constants.LaunchboxRootDir + "\\", "");
+                                break;
+                            case MediaType.Music:
+                                job.IGame.MusicPath = job.DestinationPath.Replace(Constants.LaunchboxRootDir + "\\", "");
+                                break;
+                        }
+
+                        // if (iGameUpdated) PluginHelper.DataManager.Save()
+
+                        // update sync log
                         job.UiCard.AddLog($"Downloaded {typeLabel} ({Path.GetFileName(job.DestinationPath)}) for '{job.RomName}'", PlatformSyncJob.LogType.Success);
                     }
 
@@ -541,7 +559,6 @@ namespace RommStar.Core.Sync
                                                 targetedGame.ApplicationPath = Constants.romPlaceholder;
                                             }
 
-                                            // Now you have access to actionPerformed cleanly!
                                             string actionLabel = actionPerformed.ToString();
                                             platformTask.UiCard.AddLog($"Successfully {actionLabel}d metadata for game '{detailedRomDto.Name}'", PlatformSyncJob.LogType.Success);
                                         }
@@ -584,7 +601,7 @@ namespace RommStar.Core.Sync
 
                                     if (platformTask.DownloadMediaFiles)
                                     {
-                                        ScheduleMediaDownloads(detailedRomDto, platformTask, chosenProfile, currentServer, targetedGame.Id);
+                                        ScheduleMediaDownloads(detailedRomDto, platformTask, chosenProfile, currentServer, targetedGame);
                                     }
                                 }
                                 // =========================================================================
@@ -669,7 +686,7 @@ namespace RommStar.Core.Sync
 
                                     if (platformTask.DownloadMediaFiles)
                                     {
-                                        ScheduleMediaDownloads(detailedRomDto, platformTask, chosenProfile, currentServer, targetedGame.Id);
+                                        ScheduleMediaDownloads(detailedRomDto, platformTask, chosenProfile, currentServer, targetedGame);
                                     }
                                 }
                             }
@@ -771,7 +788,7 @@ namespace RommStar.Core.Sync
 
                             if (platformTask.DownloadMediaFiles)
                             {
-                                ScheduleMediaDownloads(masterRom, platformTask, chosenProfile, currentServer, masterGameInstance.Id);
+                                ScheduleMediaDownloads(masterRom, platformTask, chosenProfile, currentServer, masterGameInstance);
                             }
 
                             // =========================================================================
