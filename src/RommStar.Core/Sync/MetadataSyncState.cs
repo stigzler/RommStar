@@ -9,6 +9,7 @@ namespace RommStar.Core.Sync
     public record MetadataSyncState(
         bool? HasMathcingLaunchboxId,
         bool? HasMatchingRommId,
-        bool? HasMatchingServerId
+        bool? HasMatchingServerId,
+        bool? IsMultiFile = false
         );
 }

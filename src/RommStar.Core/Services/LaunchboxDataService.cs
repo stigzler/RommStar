@@ -339,10 +339,15 @@ namespace RommStar.Core.Services
             {
                 Debug.WriteLine(game.Title);
 
+                // 1. Determine if LB iGame has an old romm server assigned. If so, delete it and do not include in the lookup lists
                 var gameCustomFields = game.GetAllCustomFields();
-
-                if (gameCustomFields.Contains())
-
+                var rommServerField = game.GetAllCustomFields().FirstOrDefault(f => f.Name == "Romm_ServerId");
+                if (rommServerField != null && !string.IsNullOrWhiteSpace(rommServerField.Value) && rommServerField.Value != _operativeServerId)
+                {
+                    PluginHelper.DataManager.TryRemoveGame(game);
+                    PluginHelper.DataManager.Save();
+                    continue;
+                }
 
                 MetadataSyncHelperMap gameIdMap = new MetadataSyncHelperMap(game.Id, game.LaunchBoxDbId);
                 gameIdMap.GameName = game.Title;

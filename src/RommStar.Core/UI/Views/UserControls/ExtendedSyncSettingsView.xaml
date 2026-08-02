@@ -79,16 +79,16 @@
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.ForceMediaPriority, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Remove Old Server Roms" 
-                         Description="If local launchbox platform contains roms from a previously assigned server, these are deleted.">
+        <ui:SettingsCard Grid.Row="0" Header="Remove Old Server Roms" IsEnabled="False"
+                         Description="DEV: Disabled - now removes old server roms autoamtically. Sig code needed to preserve option. If local launchbox platform contains roms from a previously assigned server, these are deleted.">
             <ui:SettingsCard.HeaderIcon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
             </ui:SettingsCard.HeaderIcon>
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.DeleteOldServerRoms, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Individual Game Folders" 
-                         Description="Downloaded roms are placed in their own folders in the Platform Rom Directory">
+        <ui:SettingsCard Grid.Row="0" Header="Individual Game Folders" IsEnabled="False"
+                         Description="DEV: Disabled. Files now put where app dictates. Downloaded roms are placed in their own folders in the Platform Rom Directory">
             <ui:SettingsCard.HeaderIcon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
             </ui:SettingsCard.HeaderIcon>
