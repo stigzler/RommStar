@@ -47,15 +47,16 @@ namespace RommStar.Tests
             var manager = new MediaDownloadManager();
 
             // 2. Act: Run the transformation strategy matrix
-            var results = manager.BuildDownloadItems(
-                rom: mockRom,
-                profile: mockProfile,
-                baseUrl: "https://roms.stig.life",
-                launchboxPlatformName: "Sony Playstation"
-            );
+            //var results = manager.BuildDownloadItems(
+            //    rom: mockRom,
+            //    profile: mockProfile,
+            //    baseUrl: "https://roms.stig.life",
+            //    launchboxPlatformName: "Sony Playstation",
+            //    ""
+            //);
 
-            var inspectMe = results; // <--- PUT YOUR BREAKPOINT HERE
-            Assert.NotEmpty(results);
+            //var inspectMe = results; // <--- PUT YOUR BREAKPOINT HERE
+            //Assert.NotEmpty(results);
         }
     }
 

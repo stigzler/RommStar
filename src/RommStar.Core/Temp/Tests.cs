@@ -91,7 +91,8 @@ namespace RommStar.Core.Temp
                 launchboxPlatformName: "Sony Playstation",
                 launchboxMediaFolders: mediaFolders,
                 romFilename: "ff7_disc1_usa", // Clean filename from the platform storage
-                forceMediaPriority: true       // Force append -00 overrides
+                forceMediaPriority: true  ,     // Force append -00 overrides
+                "Test"
             );
 
             // 3. Output Window Fallback: Check the Output window to verify path transformations instantly

@@ -57,7 +57,8 @@ namespace RommStar.Core.Sync
             string launchboxPlatformName,
             IPlatformFolder[] launchboxMediaFolders,
             string romFilename, // Explicitly passed file name (without extension)
-            bool forceMediaPriority)
+            bool forceMediaPriority,
+            string iGameId)
         {
             var items = new List<MediaDownloadItem>();
 
@@ -67,7 +68,7 @@ namespace RommStar.Core.Sync
             string baseResourceEndpoint = $"{baseUrl.TrimEnd('/')}{MediaStubPath}";
 
             // Determine our primary naming token based on UI configuration flag
-            string baseTargetName = rom.Name;
+            string baseTargetName = $"{rom.Name}.{iGameId}";
 
             foreach (var type in profile.EnabledTypes)
             {
@@ -94,7 +95,8 @@ namespace RommStar.Core.Sync
                         {
                             MediaType = type,
                             DownloadUrl = CleanAndCombineUrl(baseResourceEndpoint, screenshotPath),
-                            TargetLocalPath = ResolveLaunchboxPath(type, launchboxPlatformName, baseTargetName, suffix, Path.GetExtension(CleanQueryString(screenshotPath)), launchboxMediaFolders)
+                            TargetLocalPath = ResolveLaunchboxPath(type, launchboxPlatformName, baseTargetName, suffix, 
+                            Path.GetExtension(CleanQueryString(screenshotPath)), launchboxMediaFolders)
                         });
                         screenshotIndex++;
                     }
@@ -114,7 +116,8 @@ namespace RommStar.Core.Sync
                 {
                     MediaType = type,
                     DownloadUrl = CleanAndCombineUrl(baseResourceEndpoint, relativePath),
-                    TargetLocalPath = ResolveLaunchboxPath(type, launchboxPlatformName, baseTargetName, fileSuffix, Path.GetExtension(CleanQueryString(relativePath)), launchboxMediaFolders)
+                    TargetLocalPath = ResolveLaunchboxPath(type, launchboxPlatformName, baseTargetName, fileSuffix, 
+                                Path.GetExtension(CleanQueryString(relativePath)), launchboxMediaFolders)
                 });
             }
 

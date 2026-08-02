@@ -129,9 +129,7 @@ namespace RommStar.Core.Services
                         RommIds = rommIdsToDownload,
                         GameNameSanitised = StringsHelper.SanitizeFileName(game.Title),
                         MasterFilename = firstRomDTO.RommFilename
-                    };
-
-      
+                    };    
                     
 
                     await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem });

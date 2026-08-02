@@ -119,71 +119,72 @@ namespace RommStar.Core.Sync
         // PARALLEL ON-DEMAND BYPASS (Bypasses macro structural sync channel entirely)
         // =========================================================================
         // ToDO: IGAME
-        public async Task ExecuteOnDemandInstallAsync(string lbPlatform, RomDTO rom, RommServer targetServer, PlatformSyncTask syncTask)
-        {
-            //var currentSnapshot = targetServer;
-            //var mediaTasks = new List<Task>();
-            //await Task.WhenAll(mediaTasks);
-            if (rom == null || targetServer == null) return;
+        // NOTE: Legacy - not sure why this was in here - could be AI gen
+        //public async Task ExecuteOnDemandInstallAsync(string lbPlatform, RomDTO rom, RommServer targetServer, PlatformSyncTask syncTask)
+        //{
+        //    //var currentSnapshot = targetServer;
+        //    //var mediaTasks = new List<Task>();
+        //    //await Task.WhenAll(mediaTasks);
+        //    if (rom == null || targetServer == null) return;
 
-            IPlatform platform = PluginHelper.DataManager.GetPlatformByName(lbPlatform);
+        //    IPlatform platform = PluginHelper.DataManager.GetPlatformByName(lbPlatform);
 
-            // 1. Normalize and resolve the target ROM path
-            string baseRomDir = NormalizeRomPath(Constants.LaunchboxRootDir, platform.Folder); // Ensure this setting property is exposed/passed
-            string targetRomDirectory = (rom.HasMultipleFiles == true || (rom.SiblingRoms != null && rom.SiblingRoms.Count > 0))
-                ? Path.Combine(baseRomDir, rom.Name)
-                : baseRomDir;
+        //    // 1. Normalize and resolve the target ROM path
+        //    string baseRomDir = NormalizeRomPath(Constants.LaunchboxRootDir, platform.Folder); // Ensure this setting property is exposed/passed
+        //    string targetRomDirectory = (rom.HasMultipleFiles == true || (rom.SiblingRoms != null && rom.SiblingRoms.Count > 0))
+        //        ? Path.Combine(baseRomDir, rom.Name)
+        //        : baseRomDir;
 
-            // Enqueue or execute the specific ROM file streaming tasks here...
+        //    // Enqueue or execute the specific ROM file streaming tasks here...
 
-            // 2. Process On-Demand Media Downloads if requested
-            bool downloadMedia = syncTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia
-                                 || syncTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia;
+        //    // 2. Process On-Demand Media Downloads if requested
+        //    bool downloadMedia = syncTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia
+        //                         || syncTask.SyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia;
 
-            if (downloadMedia)
-            {
-                // Pull the installation-specific media profile footprint
-                var chosenProfile = _settingsService.Settings.InstallMediaProfile;
+        //    if (downloadMedia)
+        //    {
+        //        // Pull the installation-specific media profile footprint
+        //        var chosenProfile = _settingsService.Settings.InstallMediaProfile;
 
-                // Extract native media folder paths straight from LaunchBox's global data memory
-                var lbMediaFolders = PluginHelper.DataManager.GetPlatformByName(lbPlatform).GetAllPlatformFolders();
+        //        // Extract native media folder paths straight from LaunchBox's global data memory
+        //        var lbMediaFolders = PluginHelper.DataManager.GetPlatformByName(lbPlatform).GetAllPlatformFolders();
 
-                string romFilename = !string.IsNullOrEmpty(rom.RommFilename)
-                    ? Path.GetFileNameWithoutExtension(rom.RommFilename)
-                    : rom.Name;
+        //        string romFilename = !string.IsNullOrEmpty(rom.RommFilename)
+        //            ? Path.GetFileNameWithoutExtension(rom.RommFilename)
+        //            : rom.Name;
 
-                var mediaManager = new MediaDownloadManager();
+        //        var mediaManager = new MediaDownloadManager();
 
-                var downloadItems = mediaManager.BuildDownloadItems(
-                    rom: rom,
-                    profile: chosenProfile,
-                    baseUrl: targetServer.BaseUrl,
-                    launchboxPlatformName: lbPlatform,
-                    launchboxMediaFolders: lbMediaFolders,
-                    romFilename: romFilename,
-                    forceMediaPriority: syncTask.SyncSettings.ForceMediaPriority
-                );
+        //        var downloadItems = mediaManager.BuildDownloadItems(
+        //            rom: rom,
+        //            profile: chosenProfile,
+        //            baseUrl: targetServer.BaseUrl,
+        //            launchboxPlatformName: lbPlatform,
+        //            launchboxMediaFolders: lbMediaFolders,
+        //            romFilename: romFilename,
+        //            forceMediaPriority: syncTask.SyncSettings.ForceMediaPriority
+        //        );
 
-                var mediaTasks = new List<Task>();
+        //        var mediaTasks = new List<Task>();
 
-                foreach (var item in downloadItems)
-                {
-                    // Apply the Upstream Overwrite setting check
-                    if (!syncTask.SyncSettings.OverwriteExistingMedia && File.Exists(item.TargetLocalPath))
-                    {
-                        continue;
-                    }
+        //        foreach (var item in downloadItems)
+        //        {
+        //            // Apply the Upstream Overwrite setting check
+        //            if (!syncTask.SyncSettings.OverwriteExistingMedia && File.Exists(item.TargetLocalPath))
+        //            {
+        //                continue;
+        //            }
 
-                    // Map standard API path string for the download engine call
-                    string apiRelativeUrl = item.DownloadUrl.Replace(targetServer.BaseUrl, "").TrimStart('/');
+        //            // Map standard API path string for the download engine call
+        //            string apiRelativeUrl = item.DownloadUrl.Replace(targetServer.BaseUrl, "").TrimStart('/');
 
-                    // Direct parallel execution lane bypass instead of using macro FIFO channels
-                    mediaTasks.Add(StreamFileFromNetworkAsync(apiRelativeUrl, item.TargetLocalPath, targetServer, CancellationToken.None));
-                }
+        //            // Direct parallel execution lane bypass instead of using macro FIFO channels
+        //            mediaTasks.Add(StreamFileFromNetworkAsync(apiRelativeUrl, item.TargetLocalPath, targetServer, CancellationToken.None));
+        //        }
 
-                await Task.WhenAll(mediaTasks);
-            }
-        }
+        //        await Task.WhenAll(mediaTasks);
+        //    }
+        //}
 
         // =========================================================================
         // MACRO MANAGEMENT: ENQUEUE PLATFORM RUN
@@ -271,7 +272,7 @@ namespace RommStar.Core.Sync
             return new RomCollectionDTO();
         }
 
-        private void ScheduleMediaDownloads(RomDTO rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServer server)
+        private void ScheduleMediaDownloads(RomDTO rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServer server, string iGameId)
         {
             // Extract extensionless ground-truth filename from your unified RommFilename property
             string romFilename = !string.IsNullOrEmpty(rom.RommFilename)
@@ -290,7 +291,8 @@ namespace RommStar.Core.Sync
                 launchboxPlatformName: task.PlatformName,
                 launchboxMediaFolders: task.PlatformMediaFolders, // Direct IPlatformFolder tracking array
                 romFilename: romFilename,
-                forceMediaPriority: forcePriority
+                forceMediaPriority: forcePriority,
+                iGameId: iGameId
             );
 
             foreach (var item in downloadItems)
@@ -444,7 +446,6 @@ namespace RommStar.Core.Sync
 
 
                         // determine which profile to use (install = minimal media - eg boxart; Catalg = full (eg when game installed)
-                        // REPLACE WITH THIS:
                         var chosenProfile = installRoms
                             ? _settingsService.Settings.InstallMediaProfile
                             : _settingsService.Settings.SyncMediaProfile;
@@ -512,7 +513,7 @@ namespace RommStar.Core.Sync
                                 //string targetDirectory = isGroupedLayout ? Path.Combine(basePlatformPath, detailedRomDto.Name) : basePlatformPath;
 
                                 string basePlatformPath = NormalizeRomPath(Constants.LaunchboxRootDir, platformTask.LaunchBoxRomFolder);
-                                string targetDirectory = isGroupedLayout ? Path.Combine(basePlatformPath, detailedRomDto.Name) : basePlatformPath;
+                                string targetDirectory = isGroupedLayout ? Path.Combine(basePlatformPath, detailedRomDto.RommFilename) : basePlatformPath;
 
                                 IGame targetedGame = null;
 
@@ -583,7 +584,7 @@ namespace RommStar.Core.Sync
 
                                     if (platformTask.DownloadMediaFiles)
                                     {
-                                        ScheduleMediaDownloads(detailedRomDto, platformTask, chosenProfile, currentServer);
+                                        ScheduleMediaDownloads(detailedRomDto, platformTask, chosenProfile, currentServer, targetedGame.Id);
                                     }
                                 }
                                 // =========================================================================
@@ -668,7 +669,7 @@ namespace RommStar.Core.Sync
 
                                     if (platformTask.DownloadMediaFiles)
                                     {
-                                        ScheduleMediaDownloads(detailedRomDto, platformTask, chosenProfile, currentServer);
+                                        ScheduleMediaDownloads(detailedRomDto, platformTask, chosenProfile, currentServer, targetedGame.Id);
                                     }
                                 }
                             }
@@ -770,7 +771,7 @@ namespace RommStar.Core.Sync
 
                             if (platformTask.DownloadMediaFiles)
                             {
-                                ScheduleMediaDownloads(masterRom, platformTask, chosenProfile, currentServer);
+                                ScheduleMediaDownloads(masterRom, platformTask, chosenProfile, currentServer, masterGameInstance.Id);
                             }
 
                             // =========================================================================

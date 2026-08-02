@@ -86,7 +86,7 @@
                                     <TextBlock Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    FontSize="11"
                                                    Margin="0,6,0,0">
-                                            <Run Text="{Binding ProcessedItems, StringFormat='Roms Processed: \{0\}'}" />
+                                            <Run Text="{Binding ProcessedItems, StringFormat='Files Processed: \{0\}'}" />
                                             <Run Text="{Binding TotalItems, StringFormat='/ \{0\}'}" />
                                     </TextBlock>
                                 </StackPanel>
@@ -128,8 +128,8 @@
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" FlowDirection="RightToLeft"
                                                         Margin="0,0,30,0">
                                                 <ui:ToggleSwitch Grid.Column="1" Margin="0,0,10,0"
-                                                             OnContent="Logging Success"
-                                                             OffContent="Hiding Success"
+                                                             OnContent="Log Success Items"
+                                                             OffContent="Hide Success Items"
                                                              HorizontalAlignment="Right" 
                                                              VerticalAlignment="Center"                                                             
                                                              IsOn="{Binding SupressSuccessLogItems, Mode=TwoWay, Converter={StaticResource InverseBoolConverter}}"/>
