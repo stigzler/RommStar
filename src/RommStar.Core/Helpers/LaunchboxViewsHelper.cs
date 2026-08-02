@@ -41,68 +41,88 @@ namespace RommStar.Core.Helpers
         internal static async Task UpdatePlayButtonUi(IGame game)
         {
             await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-             {
-                 var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
-                 if (view == null) return;
+            {
+                var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
+                if (view == null) return;
 
-                 var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
-                 if (playButton == null) return;
+                var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
+                if (playButton == null) return;
 
-                 var parent = VisualTreeHelper.GetParent(playButton) as Panel;
-                 if (parent == null) return;
+                var parent = VisualTreeHelper.GetParent(playButton) as Panel;
+                if (parent == null) return;
 
-                 // 1. FIND OR CREATE (Only add to the visual tree ONCE)
-                 var overlayContainer = parent.Children.OfType<Border>().FirstOrDefault(x => x.Tag as string == "InstallingOverlay");
+                // Find the dropdown sibling button by looking for the Button in this parent that isn't the main playButton.
+                var dropdownButton = parent.Children.OfType<Button>().FirstOrDefault(b => b != playButton);
 
-                 if (overlayContainer == null)
-                 {
-                     overlayContainer = new Border
-                     {
-                         Tag = "InstallingOverlay",
-                         Height = playButton.ActualHeight,
-                         Width = playButton.ActualWidth,
-                         Margin = playButton.Margin,
-                         Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#a0553e98")),
-                         BorderThickness = new Thickness(1),
-                         BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e0371f69")),
-                         Focusable = false,
-                         Opacity = 0, // Hidden by default
-                         IsHitTestVisible = false
-                     };
+                // 1. FIND OR CREATE (Only add to the visual tree ONCE)
+                var overlayContainer = parent.Children.OfType<Border>().FirstOrDefault(x => x.Tag as string == "InstallingOverlay");
 
-                     // FIX: Use StackPanel for layout
-                     var stackPanel = new StackPanel
-                     {
-                         Orientation = Orientation.Horizontal,
-                         HorizontalAlignment = HorizontalAlignment.Center,
-                         VerticalAlignment = VerticalAlignment.Center
-                     };
+                if (overlayContainer == null)
+                {
+                    overlayContainer = new Border
+                    {
+                        Tag = "InstallingOverlay",
+                        Height = playButton.ActualHeight,
+                        // Removed fixed Width and Margin so it can stretch fully
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch,
+                        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#a0553e98")),
+                        BorderThickness = new Thickness(1),
+                        BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e0371f69")),
+                        Focusable = false,
+                        Opacity = 0, // Hidden by default
+                        IsHitTestVisible = false
+                    };
 
-                     stackPanel.Children.Add(CreateSpinner());
-                     stackPanel.Children.Add(new TextBlock
-                     {
-                         Text = "INSTALLING",
-                         Foreground = Brushes.White,
-                         FontWeight = FontWeights.Bold,
-                         FontSize = 25,
-                         VerticalAlignment = VerticalAlignment.Center,
-                         Margin = new Thickness(5, 0, 0, 0) // Space between spinner and text
-                     });
+                    // Force the overlay to stretch across the entire Grid to cover the empty dropdown space
+                    if (parent is Grid)
+                    {
+                        // Spanning 3 columns guarantees it covers the Play Button (Col 0) and the Dropdown (Col 1)
+                        Grid.SetColumnSpan(overlayContainer, 3);
+                    }
 
-                     overlayContainer.Child = stackPanel;
-                     parent.Children.Add(overlayContainer);
-                 }
+                    // Use StackPanel for layout
+                    var stackPanel = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
 
-                 // 2. TOGGLE (Don't collapse, just change Opacity)
-                 bool isInstalling = (game.Status == "Installing");
+                    stackPanel.Children.Add(CreateSpinner());
+                    stackPanel.Children.Add(new TextBlock
+                    {
+                        Text = "INSTALLING",
+                        Foreground = Brushes.White,
+                        FontWeight = FontWeights.Bold,
+                        FontSize = 25,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(5, 0, 0, 0) // Space between spinner and text
+                    });
 
-                 playButton.Opacity = isInstalling ? 0 : 1;
-                 playButton.IsHitTestVisible = !isInstalling;
+                    overlayContainer.Child = stackPanel;
+                    parent.Children.Add(overlayContainer);
+                }
 
-                 overlayContainer.Opacity = isInstalling ? 1 : 0;
-                 overlayContainer.IsHitTestVisible = isInstalling;
+                // 2. TOGGLE (Don't collapse, just change Opacity)
+                bool isInstalling = (game.Status == "Installing");
 
-             }), System.Windows.Threading.DispatcherPriority.Background);
+                // Toggle Main Play Button
+                playButton.Opacity = isInstalling ? 0 : 1;
+                playButton.IsHitTestVisible = !isInstalling;
+
+                // Toggle the Dropdown Button if it exists
+                if (dropdownButton != null)
+                {
+                    dropdownButton.Opacity = isInstalling ? 0 : 1;
+                    dropdownButton.IsHitTestVisible = !isInstalling;
+                }
+
+                // Toggle the Installing Overlay
+                overlayContainer.Opacity = isInstalling ? 1 : 0;
+                overlayContainer.IsHitTestVisible = isInstalling;
+
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
         private static FrameworkElement CreateSpinner()
