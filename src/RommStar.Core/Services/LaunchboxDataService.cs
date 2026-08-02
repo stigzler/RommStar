@@ -338,10 +338,15 @@ namespace RommStar.Core.Services
             foreach (IGame game in games)
             {
                 Debug.WriteLine(game.Title);
+
+                var gameCustomFields = game.GetAllCustomFields();
+
+                if (gameCustomFields.Contains())
+
+
                 MetadataSyncHelperMap gameIdMap = new MetadataSyncHelperMap(game.Id, game.LaunchBoxDbId);
                 gameIdMap.GameName = game.Title;
 
-                var gameCustomFields = game.GetAllCustomFields();
 
                 if (gameCustomFields != null)
                 {
@@ -362,6 +367,7 @@ namespace RommStar.Core.Services
 
             _platformLbGameDatabaseIds = _platformHelperMap.Select(phm => phm.LbDatabaseId).Where(id => id != null).ToHashSet();
             _platformServerIds = _platformHelperMap.Select(phm => phm.RommServerId).Where(id => id != null).ToHashSet();
+
             // Flatten the CSV strings into separate, easily searchable items inside the lookup set
             _platformRommIds = _platformHelperMap
                 .Where(phm => !string.IsNullOrWhiteSpace(phm.RommIds))
@@ -384,12 +390,14 @@ namespace RommStar.Core.Services
             //    return (null, MetadataSyncAction.Update);
             //}
 
-            bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue && _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
-
-            bool hasMatchingServerId = !string.IsNullOrEmpty(_operativeServerId) &&
-                                       (_platformServerIds.Contains(_operativeServerId) || _platformHelperMap.Any(m => m.RommServerId == _operativeServerId));
+            bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue && 
+                                            _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
 
             bool hasMatchingRommId = rommDTO.Id.HasValue && _platformRommIds.Contains(rommDTO.Id.Value.ToString());
+
+            bool hasMatchingServerId = !string.IsNullOrEmpty(_operativeServerId) &&
+                                       (_platformServerIds.Contains(_operativeServerId) || 
+                                       _platformHelperMap.Any(m => m.RommServerId == _operativeServerId));
 
             MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId);
 
@@ -499,6 +507,12 @@ namespace RommStar.Core.Services
                     }
                 }
             }
+
+            else if (syncAction == MetadataSyncAction.DeleteAndInsert)
+            {
+                Debug.WriteLine("DeleteAndInsert");
+            }
+
 
             if (game != null)
             {
