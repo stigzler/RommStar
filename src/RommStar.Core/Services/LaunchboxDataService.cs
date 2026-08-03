@@ -404,10 +404,10 @@ namespace RommStar.Core.Services
                                        (_platformServerIds.Contains(_operativeServerId) || 
                                        _platformHelperMap.Any(m => m.RommServerId == _operativeServerId));
 
-            MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId);
+            MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId,
+                rommDTO.HasMultipleFiles.GetValueOrDefault() );
 
             MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
-
             IGame game = null;
             bool metadataProtected = false;
 

@@ -10,6 +10,6 @@ namespace RommStar.Core.Sync
         bool? HasMathcingLaunchboxId,
         bool? HasMatchingRommId,
         bool? HasMatchingServerId,
-        bool? IsMultiFile = false
+        bool IsMultiFile = false
         );
 }

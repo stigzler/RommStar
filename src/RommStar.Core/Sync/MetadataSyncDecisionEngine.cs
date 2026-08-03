@@ -31,6 +31,9 @@ namespace RommStar.Core.Sync
             { HasMathcingLaunchboxId: true, HasMatchingRommId: false, HasMatchingServerId: false }
                 => (OverwriteMetadata) ? MetadataSyncAction.Update : MetadataSyncAction.None,
 
+            // T, F, T, T -> Insert (Unconditional) - covers multidisc
+            { HasMathcingLaunchboxId: true, HasMatchingRommId: false, HasMatchingServerId: true, IsMultiFile: true } => MetadataSyncAction.Insert,
+
             // T, F, T -> Update (Unconditional)
             { HasMathcingLaunchboxId: true, HasMatchingRommId: false, HasMatchingServerId: true } => MetadataSyncAction.Update,
 
