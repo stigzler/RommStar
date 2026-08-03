@@ -162,6 +162,10 @@ namespace RommStar.Core.Services
                 {
                     PluginHelper.LaunchBoxMainViewModel.RefreshData();
                 }
+
+                // Change PLay button from "Installing" to "Play"
+                await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+
             }
         }
 
