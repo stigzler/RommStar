@@ -139,12 +139,13 @@ namespace RommStar.Core.Services
         }
 
         /// <summary>
-        /// 
+        /// This moves the unzipped game files from the temp locaiton to the right locaiton on disk
         /// </summary>
         /// <param name="tempZipPath"></param>
         /// <param name="romQueueItems">List of game/roms</param>
         /// <returns></returns>
-        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems)
+        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems, 
+            Dictionary<string, string> fullpathCategoryMap, IGame igame)
         {
             if (romQueueItems == null || romQueueItems.Count == 0) return;
 
@@ -188,11 +189,32 @@ namespace RommStar.Core.Services
                     if (!entryFullName.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
                         continue;
 
-                    // Strip "roms/[Platform Name]/" to isolate the clean, relative file path
-                    string relativeRomPath = entryFullName.Substring(expectedPrefix.Length);
 
                     // 3. Resolve Destination Paths and Correlate Game Item
-                    string targetDirectory = romRoot;
+                    string relativeRomPath;
+                    string targetDirectory;
+
+                    // relativeRomPath below - Strip "roms/[Platform Name]/" to isolate the clean, relative file path
+                    string fileType = "game";
+                    if (fullpathCategoryMap.ContainsKey(entryFullName))
+                    {
+                        fileType = fullpathCategoryMap[entryFullName];
+                    }                        
+                        
+                    if (fileType == "soundtrack")
+                    {
+
+                        relativeRomPath = entryFullName.Substring(expectedPrefix.Length).Replace("/soundtrack","");
+                        targetDirectory = Path.Combine(Constants.LaunchboxRootDir, "Music", platform.Name);
+                    }
+                    else // game
+                    {
+                        relativeRomPath = entryFullName.Substring(expectedPrefix.Length);
+                        targetDirectory = romRoot;
+
+                    }
+
+
                     RomQueueItem matchingItem = null;
 
                     // Resolved outside the directory-flag block to ensure path tracking works globally
@@ -206,6 +228,7 @@ namespace RommStar.Core.Services
                         matchingItem = FindMatchingBatchItemForFile(romQueueItems, entry.Name);
                     }
 
+                    // below ma be redundant since remove user feature to store to individual dirs
                     if (individualGameFolders && matchingItem != null)
                     {
                         targetDirectory = Path.Combine(romRoot, matchingItem.GameNameSanitised);
@@ -230,6 +253,12 @@ namespace RommStar.Core.Services
                             extractedFilesMap[matchingItem.LaunchboxId] = new List<string>();
                         }
                         extractedFilesMap[matchingItem.LaunchboxId].Add(fullDestinationPath);
+                    }
+
+                    // if a filetype beside rom file, update iGame object
+                    if (fileType == "soundtrack")
+                    {
+                        igame.MusicPath = fullDestinationPath;
                     }
                 }
             }
@@ -287,10 +316,10 @@ namespace RommStar.Core.Services
 
             }
 
-            PluginHelper.DataManager.Save();
+            //PluginHelper.DataManager.Save();
 
-            if (PluginHelper.LaunchBoxMainViewModel != null)
-                PluginHelper.LaunchBoxMainViewModel.RefreshData();
+            //if (PluginHelper.LaunchBoxMainViewModel != null)
+            //    PluginHelper.LaunchBoxMainViewModel.RefreshData();
         }
 
         /// <summary>

@@ -36,6 +36,5 @@ namespace RommStar.Core.Sync
         /// </summary>
         public string GameNameSanitised { get; set; }
 
-
     }
 }

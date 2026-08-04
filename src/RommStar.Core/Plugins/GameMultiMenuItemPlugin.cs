@@ -19,22 +19,22 @@ namespace RommStar.Core.Plugins
                 Caption = "Test Sub Item 1",
                 Enabled = true
             };
-            GameMenuItem testSubItem2 = new GameMenuItem()
+            GameMenuItem uninstallGame = new GameMenuItem()
             {
                 Icon = Properties.Resources.rommIcon64px,
-                Caption = "Test Sub Item 2",
+                Caption = "Uninstall Game",
                 Enabled = true
             };
 
-            GameMenuItem testItem = new GameMenuItem()
+            GameMenuItem rommMenuItem = new GameMenuItem()
             {
                 Icon = Properties.Resources.rommIcon64px,
-                Caption = "Test Item",
+                Caption = "RomM",
                 Enabled = true,
-                Children = new List<IGameMenuItem>() { testSubItem1, testSubItem2 }
+                Children = new List<IGameMenuItem>() { uninstallGame }
             };
 
-            return new List<IGameMenuItem>() { testItem };
+            return new List<IGameMenuItem>() { rommMenuItem };
         }
     }
 }

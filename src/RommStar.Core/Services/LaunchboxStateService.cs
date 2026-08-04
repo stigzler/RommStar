@@ -1,16 +1,10 @@
-﻿using Microsoft.Xaml.Behaviors.Input;
+﻿using iNKORE.UI.WPF.Helpers;
 using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Helpers;
-using RommStar.Core.Models;
 using RommStar.Core.Sync;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
@@ -25,15 +19,18 @@ namespace RommStar.Core.Services
         private readonly LaunchboxDataService _launchboxDataService;
         private readonly SettingsService _settingsService;
         private readonly RommService _rommService;
+        private readonly NotificationService _notificationService;
 
         public LaunchboxStateService(
                     LaunchboxDataService launchboxDataService,
                     SettingsService settingsService,
-                    RommService rommService)
+                    RommService rommService,
+                    NotificationService notificationService)
         {
             _launchboxDataService = launchboxDataService;
             _settingsService = settingsService;
             _rommService = rommService;
+            _notificationService = notificationService;
         }
 
         string _lastEmulatorApplicationPath;
@@ -49,6 +46,9 @@ namespace RommStar.Core.Services
 
         private async Task InstallGameOnDemandAsync(IGame game)
         {
+            ILaunchBoxMainViewModel lbvm = PluginHelper.LaunchBoxMainViewModel;
+            lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Indeterminate);
+
             try
             {
                 // 1. Extract the RomM IDs (csv) from the custom field Romm_RomIds
@@ -113,7 +113,10 @@ namespace RommStar.Core.Services
                 if (!apiReturn.IsSuccess) return; // TODO: Need to feedback to user/log somehow.
 
                 RomDTO firstRomDTO = apiReturn.Data;
-                string platformStub = firstRomDTO.PlatformStub;      
+                string platformStub = firstRomDTO.PlatformStub;
+
+                //LaunchboxViewsHelper.UpdateStatusTextUi($"Installing {game.Title} ({game.Platform})");
+
 
                 // 4. Download immediately to disk
                 bool success = await _rommService.DownloadRomsToDiskAsync(activeServer, rommIdsToDownload, targetZipPath, CancellationToken.None);
@@ -129,51 +132,64 @@ namespace RommStar.Core.Services
                         RommIds = rommIdsToDownload,
                         GameNameSanitised = StringsHelper.SanitizeFileName(game.Title),
                         MasterFilename = firstRomDTO.RommFilename
-                    };    
-                    
+                    };
 
-                    await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem });
+                    // Construct map of files and type of file (atm game vs soundtrack as audio files are stored in a rom's Files collection for some reason)
+                    Dictionary<string, string> fullpathCategoryMap = new Dictionary<string, string>();
+                    foreach (var file in firstRomDTO.Files)
+                    {
+                        fullpathCategoryMap.Add(file.FullPath, file.Category);
+                    }
+
+                    await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem }, fullpathCategoryMap, game);
 
                     // 6. Cleanup the zip file
                     try { File.Delete(targetZipPath); } catch { /* Ignore locked file errors */ }
                 }
                 else
                 {
-                    Debug.WriteLine($"[VIP Install] Download failed for {game.Title}.");
+                    lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Error);
+                    _notificationService.SendErrorNotification($"Unknown Error installing {game.Title} ({game.Platform})");
                     game.Status = "Not Installed";
                 }
+
+                // Force LaunchBox to save state and refresh
+                PluginHelper.DataManager.Save();
+
+                //PluginHelper.LaunchBoxMainViewModel.RefreshData();
+
+
+                if (PluginHelper.LaunchBoxMainViewModel != null)
+                {
+                    IGame[] selectedIGames = PluginHelper.StateManager.GetAllSelectedGames();
+                    if (selectedIGames.Contains(game))
+                    {
+                        //PluginHelper.LaunchBoxMainViewModel.RefreshData();
+                    }
+                }
+
+                _notificationService.SendNotification($"{game.Title} ({game.Platform}) Installed", 1);
+                lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.None);    
+
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[VIP Install] Error during manual install: {ex.Message}");
+                lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Error);
                 game.Status = "Not Installed";
+                _notificationService.SendErrorNotification($"Error installing {game.Title} ({game.Platform}): {ex.Message}", 2);
+
             }
             finally
             {
+
                 // Ensure LaunchBox is taken out of its "fake launch" state
                 RestoreGameLaunchEmulatorExe();
 
                 // Change PLay button from "Installing" to "Play"
-                await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
-
-                // Force LaunchBox to save state and refresh
-                PluginHelper.DataManager.Save();
-                if (PluginHelper.LaunchBoxMainViewModel != null)
-                {
-                    PluginHelper.LaunchBoxMainViewModel.RefreshData();
-                }
-
-                // Change PLay button from "Installing" to "Play"
-                await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
-
+                LaunchboxViewsHelper.UpdatePlayButtonUi(game);
             }
-        }
+        } 
 
-        internal async Task DownloadRoms()
-        {
-
-        }
-            
 
         internal async Task OnGameSelectionChanged()
         {
@@ -221,11 +237,12 @@ namespace RommStar.Core.Services
 
             // Additional apps can contain other exe's/alt versions etc
             var apps = game.GetAllAdditionalApplications();
-                       
+
             // Check if Rom Installation required
             // This covers both main roms and sibling roms/additional applications
             if (game?.Installed == false && game.Status != "Installing")
             {
+
                 // Update any additional apps to also read updating
                 foreach (var app in apps)
                 {
@@ -234,13 +251,13 @@ namespace RommStar.Core.Services
                 }
 
                 game.Status = "Installing";
-      
-                // Now set the emulator to an essentially empty exe to fake game launch
-                // (No game launch cancel facility in LB sadly)
-                if (emulator != null || apps.Count() > 0) emulator.ApplicationPath = Constants.DummyEmulatorExe;
 
                 // Change Launchbox "Play" button to "Installing" animation.
                 LaunchboxViewsHelper.UpdatePlayButtonUi(game); // no await b/c fire and forget
+
+                // Now set the emulator to an essentially empty exe to fake game launch
+                // (No game launch cancel facility in LB sadly)
+                if (emulator != null || apps.Count() > 0) emulator.ApplicationPath = Constants.DummyEmulatorExe;
 
                 // Download ROM and install
                 _ = Task.Run(() => InstallGameOnDemandAsync(game));

@@ -119,7 +119,8 @@ namespace RommStar.Core.Services
                     if (success && File.Exists(targetZipPath))
                     {
                         // 6. Handoff to LaunchboxDataService for extraction and IGame updates
-                        await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, currentBatch);
+                        // TODO: this needs updating to present system
+                        //await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, currentBatch);
 
                         // 7. Cleanup & remove from queue on success
                         foreach (var completedItem in currentBatch)

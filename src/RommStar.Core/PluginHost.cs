@@ -33,6 +33,7 @@ namespace RommStar.Core
         private readonly LoggingService _loggingService;
         private readonly IServiceProvider _serviceProvider;
         private readonly SettingsService _settingsService;
+
         internal static PluginHost Instance {
             get {
                 lock (_padlock)
@@ -135,6 +136,7 @@ namespace RommStar.Core
             services.AddSingleton<RommService>();
             services.AddSingleton<CryptoService>();
             services.AddSingleton<RomMapper>();
+            services.AddSingleton<NotificationService>();
             services.AddSingleton<LaunchboxDataService>();
             services.AddSingleton<LaunchboxStateService>();
             services.AddSingleton<RomBatchService>();

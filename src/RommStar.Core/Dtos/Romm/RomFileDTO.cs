@@ -15,8 +15,14 @@ namespace RommStar.Core.Dtos.Romm
         [JsonPropertyName("file_name")]
         public string? FileName { get; set; }
 
+        [JsonPropertyName("category")]
+        public string? Category { get; set; }
+
         [JsonPropertyName("file_path")]
         public string? FilePath { get; set; }
+
+        [JsonPropertyName("full_path")]
+        public string? FullPath { get; set; }
 
         [JsonPropertyName("file_size_bytes")]
         public long? FileSizeBytes { get; set; }
@@ -29,5 +35,8 @@ namespace RommStar.Core.Dtos.Romm
 
         [JsonPropertyName("sha1_hash")]
         public string? Sha1Hash { get; set; }
+
+
+
     }
 }
