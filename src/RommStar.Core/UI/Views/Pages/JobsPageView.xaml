@@ -8,7 +8,8 @@
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
       xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
       xmlns:helpers="clr-namespace:RommStar.Core.UI.Helpers"
-    xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
+      xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
+      xmlns:properties="clr-namespace:RommStar.Core.Properties"
       d:DataContext="{d:DesignInstance Type=vm:JobsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
@@ -16,7 +17,7 @@
       TextOptions.TextRenderingMode="ClearType"
       UseLayoutRounding="True"
       SnapsToDevicePixels="True"
-      Title="Sync Jobs">
+      Title="Platform Sync Jobs">
 
     <ui:Page.Resources>
         <ResourceDictionary>
@@ -26,6 +27,10 @@
             </ResourceDictionary.MergedDictionaries>
             <converters:InverseBoolConverter x:Key="InverseBoolConverter" />
             <converters:NotZeroVisibilityConverter x:Key="NotZeroVisibilityConverter" />
+            <converters:SyncStatusToVisibilityConverter x:Key="SyncStatusToVisibilityConverter"/>
+            <converters:SyncStatusToVisibilityConverterInv x:Key="SyncStatusToVisibilityConverterInv"/>
+            <converters:SyncStatusToProcessingTitleConverter x:Key="SyncStatusToProcessingTitleConverter"/>
+
         </ResourceDictionary>
     </ui:Page.Resources>
 
@@ -36,7 +41,13 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Button Grid.Row="0" Content="Start Test Jobs" Command="{Binding StartSyncJobCommand}" Margin="5" />
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20,5,0,0">
+            <CheckBox Grid.Column="1" Margin="0,0,10,0"
+                    Content="Default to Ignore Success Entries in Log"
+                    HorizontalAlignment="Right" 
+                    VerticalAlignment="Center"                                                           
+                    IsChecked="{Binding HideSuccessEntries, Mode=TwoWay}"/>
+        </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" 
                       Style="{DynamicResource DefaultScrollViewerStyle}">
@@ -55,6 +66,7 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
+                                    
                                 </Grid.ColumnDefinitions>
 
                                 <Grid.RowDefinitions>
@@ -69,44 +81,54 @@
                                                        FontWeight="SemiBold"
                                                        FontSize="14" />
 
-                                        <TextBlock Text="{Binding Status, StringFormat=' - \{0\}'}"
+                                        <TextBlock Text="{Binding Status, Converter={StaticResource SyncStatusToProcessingTitleConverter}}"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center"
                                                        FontSize="12" />
                                     </WrapPanel>
 
+
+
                                     <ui:ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
                                                         Minimum="0"
                                                         Maximum="100"
                                                         Height="1" Background="#80808080"
-                                                        Margin="0,10,0,0" Foreground="Green" MinHeight="5">
+                                                        Margin="0,10,10,0" Foreground="ForestGreen" MinHeight="5">
                                     </ui:ProgressBar>
 
                                     <TextBlock Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    FontSize="11"
                                                    Margin="0,6,0,0">
-                                            <Run Text="{Binding ProcessedItems, StringFormat='Files Processed: \{0\}'}" />
+                                            <Run Text="{Binding ProcessedItems, StringFormat='Items Processed: \{0\}'}" />
                                             <Run Text="{Binding TotalItems, StringFormat='/ \{0\}'}" />
                                     </TextBlock>
                                 </StackPanel>
 
-                                <!-- Cancel Job Button -->
+                                <!-- Cancel Job -->
                                 <Button Grid.Column="1" Grid.Row="0"
-                                            VerticalAlignment="Top"
-                                            Margin="16,0,0,0"
-                                            Content="&#xE711;"
-                                            FontFamily="Segoe MDL2 Assets"
-                                            FontSize="12"
-                                            Width="28"
-                                            Height="28"
-                                            Padding="0"
-                                            Background="Transparent"
-                                            BorderBrush="Transparent"
-                                            Command="{Binding DataContext.CancelJobCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                            CommandParameter="{Binding Id}">
+                                       VerticalAlignment="Top" Margin="5,0,0,0" Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="12" Width="28" Height="28" Padding="0" Background="Transparent"
+                                       BorderBrush="Transparent"
+                                       Command="{Binding DataContext.CancelJobCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                       CommandParameter="{Binding Id}"
+                                       Visibility="{Binding Status, Converter={StaticResource SyncStatusToVisibilityConverterInv}}">
                                     <Button.ToolTip>
-                                        <ToolTip Content="Cancel Sync Task" />
+                                        <ToolTip Content="Cancel Platform Sync Job" />
+                                    </Button.ToolTip>
+                                </Button>
+
+
+                                <!-- Remove Job from UI-->
+                                <Button Grid.Column="1" Grid.Row="0"
+                                            VerticalAlignment="Top" Margin="5,0,0,0" Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
+                                            FontSize="12" Width="28" Height="28" Padding="0" Background="Transparent"
+                                            BorderBrush="Transparent"
+                                            Command="{Binding DataContext.RemoveJobCardCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                            CommandParameter="{Binding Id}"
+                                            Visibility="{Binding Status, Converter={StaticResource SyncStatusToVisibilityConverter}}">
+                                    <Button.ToolTip>
+                                        <ToolTip Content="Remove this Job Card from UI" />
                                     </Button.ToolTip>
                                 </Button>
 
@@ -128,11 +150,11 @@
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" FlowDirection="RightToLeft"
                                                         Margin="0,0,30,0">
                                                 <ui:ToggleSwitch Grid.Column="1" Margin="0,0,10,0"
-                                                             OnContent="Log Success Items"
-                                                             OffContent="Hide Success Items"
+                                                             OffContent="Logging Success Entries"
+                                                             OnContent="Ignoring Success Entries"
                                                              HorizontalAlignment="Right" 
                                                              VerticalAlignment="Center"                                                             
-                                                             IsOn="{Binding SupressSuccessLogItems, Mode=TwoWay, Converter={StaticResource InverseBoolConverter}}"/>
+                                                             IsOn="{Binding SupressSuccessLogItems, Mode=TwoWay}"/>
 
                                                 <Button Style="{DynamicResource {x:Static ui:ThemeKeys.DefaultButtonStyleKey}}"
                                                         Command="{Binding CopyJobLogToClipboardCommand}">
@@ -143,17 +165,16 @@
                                                 </Button>
 
                                                 <!-- Errors Count -->
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.6"
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.8"
                                                             Visibility="{Binding ErrorCount, Converter={StaticResource NotZeroVisibilityConverter}}">
-                                                    
+
                                                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DismissCircle_20_Regular}" Margin="0,0,5,0" />
                                                     <TextBlock Text="{Binding ErrorCount}"/>
                                                     <TextBlock Text=" Errors" Margin="0,0,10,0"/>
-
                                                 </StackPanel>
 
                                                 <!-- Warnings Count -->
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.6"
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.8"
                                                             Visibility="{Binding WarningCount, Converter={StaticResource NotZeroVisibilityConverter}}">
 
                                                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Warning_20_Regular}" Margin="0,0,5,0" />
@@ -196,6 +217,10 @@
                         </Border>
 
                         <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Status}" Value="ProcessingMetadata">
+                                <Setter TargetName="JobCard" Value="#80553e98" Property="Background" />
+                                <Setter TargetName="JobCard" Value="#80371f69" Property="BorderBrush" />
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding Status}" Value="SyncingFiles">
                                 <Setter TargetName="JobCard" Value="#80553e98" Property="Background" />
                                 <Setter TargetName="JobCard" Value="#80371f69" Property="BorderBrush" />

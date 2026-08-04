@@ -30,6 +30,11 @@ namespace RommStar.Core.UI.ViewModels.Pages
             _loggingService;
 
         /// <summary>
+        /// Controls overlapping InfoBar calls
+        /// </summary>
+        private CancellationTokenSource? _infoBarCts;
+
+        /// <summary>
         /// ===== PERFORMANCE-CRITICAL: Centralized Cache =====
         /// Central cache for all Romm server platforms. Key = RommServer.Id
         /// </summary>
@@ -128,7 +133,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
         public PlatformsPageVM()
         {
-            
+
         }
 
 
@@ -581,12 +586,33 @@ namespace RommStar.Core.UI.ViewModels.Pages
             _settingsService.Save();
         }
 
-        private void SetInfoBar(InfoBar infoBar, bool isOpen, InfoBarSeverity severity, string title, string message)
+        private async void SetInfoBar(InfoBar infoBar, bool isOpen, InfoBarSeverity severity, string title,
+           string message, int autoCloseSeconds = 0)
         {
-            infoBar.IsOpen = isOpen;
+            // Cancel any existing auto-close timer
+            _infoBarCts?.Cancel();
+            _infoBarCts?.Dispose();
+            _infoBarCts = null;
+
             infoBar.Title = title;
             infoBar.Message = message;
             infoBar.Severity = severity;
+            infoBar.IsOpen = isOpen;
+
+            // If autoCloseSeconds <= 0, it remains open indefinitely
+            if (isOpen && autoCloseSeconds > 0)
+            {
+                _infoBarCts = new CancellationTokenSource();
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(autoCloseSeconds), _infoBarCts.Token);
+                    infoBar.IsOpen = false;
+                }
+                catch (TaskCanceledException)
+                {
+                    // Ignored - triggered if a new InfoBar message replaces this one before timeout
+                }
+            }
         }
 
         [RelayCommand]
@@ -625,8 +651,6 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 return;
             }
 
-
-
             string platformDefaultEmulatorID = _launchboxService.GetPlatformDefaultEmulatorID(SelectedPlatform.LaunchboxPlatformName);
 
             if (platformDefaultEmulatorID == null)
@@ -646,18 +670,27 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             // note: at this stage, this list may include orphaned platforms that have been persisted in user settings,
             // but then deleted later on the romm server.
+
             List<int> rommPlatformIds = SelectedPlatform.MatchedRommPlatforms.Select(p => p.RommId).ToList();
 
+            // figure whether to send global extendedSyncSettings or platform specific
             ExtendedSyncSettings resolvedExtSyncSettings = _settingsService.Settings.GlobalExtendedSyncSettings;
-
             if (SelectedPlatform.ExtendedSyncSettings.ApplySettings)
                 resolvedExtSyncSettings = SelectedPlatform.ExtendedSyncSettings;
 
             IPlatformFolder[] mediaFolders = platform.GetAllPlatformFolders();
 
+            // figure total rom count across all romm platforms for the LB platform.
+            int combinedRomCount = (int)SelectedPlatform.MatchedRommPlatforms.Sum(x => x.RomCount);
+
             // Queue PLatform
             _syncManager?.QueuePlatformSync(SelectedPlatform.LaunchboxPlatformName, SelectedPlatform.LaunchboxPlatformRomFolder,
-                mediaFolders, platformDefaultEmulatorID, rommPlatformIds, resolvedExtSyncSettings, SelectedPlatform.AssignedServerItem.RommServer);
+                mediaFolders, platformDefaultEmulatorID, rommPlatformIds, resolvedExtSyncSettings, SelectedPlatform.AssignedServerItem.RommServer,
+                combinedRomCount);
+
+            SetInfoBar(LaunchboxRommPlatformsInfoBar, true,
+                        InfoBarSeverity.Informational, "Platform Sync Started", $"Sync started for {platform.Name}. " +
+                        $"See Sync Jobs page for progress.",autoCloseSeconds: 3);
 
         }
 
@@ -667,7 +700,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             SavePlatformSyncSettings();
         }
 
-   
+
 
         [RelayCommand]
         private async Task UpdatePlatformIcon()

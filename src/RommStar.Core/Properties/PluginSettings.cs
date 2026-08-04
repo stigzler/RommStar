@@ -23,11 +23,16 @@ namespace RommStar.Core.Properties
         /// </summary>
         public LoggingLevel LoggingLevel { get; set; } = LoggingLevel.Normal;
 
+
+        /// <summary>
+        /// Default for Sync Jobs: hides success log entries if true.
+        /// </summary>
+        public bool HideSuccessEntries { get; set; } = true;
+
         /// <summary>
         /// User-set space for temporary downloads. Eg: when the Romm API 
         /// downloads the zipped rom collection files to.
         /// </summary>
-
         public List<RomQueueItem> RomDownloadQueue { get; set; } = new();
 
         public ExtendedSyncSettings GlobalExtendedSyncSettings { get; set; } = new()

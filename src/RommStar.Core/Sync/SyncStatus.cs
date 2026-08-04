@@ -8,6 +8,7 @@ namespace RommStar.Core.Sync
         Completed,
         CompletedWithWarnings,
         CompletedWithErrors,
+        CompletedWithWarningsAndErrors,
         Cancelled
     }
 }

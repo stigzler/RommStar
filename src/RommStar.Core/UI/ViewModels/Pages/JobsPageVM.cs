@@ -1,9 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RommStar.Core.Services;
 using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,18 +17,35 @@ namespace RommStar.Core.UI.ViewModels.Pages
         [ObservableProperty]
         private ObservableCollection<PlatformSyncJob> _activeJobs;
 
+        [ObservableProperty]
+        private bool _hideSuccessEntries = true;
+
         private readonly SyncManager? _syncManager;
+
+        private readonly SettingsService _settingsService;
 
         public JobsPageVM()
         {
         }
 
-        public JobsPageVM(SyncManager syncManager)
+        partial void OnHideSuccessEntriesChanged(bool value)
+        {
+            _settingsService.Settings.HideSuccessEntries = value;
+            _settingsService.Save();
+        }
+
+        public JobsPageVM(SyncManager syncManager, SettingsService settingsService)
         {
             _syncManager = syncManager;
             _activeJobs = _syncManager.ActiveSyncJobs;
+            _settingsService = settingsService;
+
+            HideSuccessEntries = _settingsService.Settings.HideSuccessEntries;
         }
 
+        /// <summary>
+        /// Test - remove in production
+        /// </summary>
         [RelayCommand]
         private void StartSyncJob()
         {
@@ -45,5 +64,12 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 _syncManager.CancelPlatformSync(id);
             }
         }
+
+        [RelayCommand]
+        private void RemoveJobCard(Guid id)
+        {
+            _activeJobs.Remove(_activeJobs.Where(aj => aj.Id == id).FirstOrDefault());
+        }
+
     }
 }

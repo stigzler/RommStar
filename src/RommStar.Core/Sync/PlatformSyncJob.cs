@@ -23,9 +23,15 @@ namespace RommStar.Core.Sync
         [ObservableProperty]
         private SyncStatus _status;
 
+        /// <summary>
+        /// Dynamic - used  in both metdata and files count feedabck to user
+        /// </summary>
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ProgressPercentage))]
         private int _totalItems;
+
+        [ObservableProperty]
+        private int _romCount;
 
         [ObservableProperty]
         private int _warningCount;
@@ -65,6 +71,7 @@ namespace RommStar.Core.Sync
 
             string prefix = type switch
             {
+                LogType.Info => "ℹ️",
                 LogType.Success => "✅",
                 LogType.Warning => "⚠️",
                 LogType.Error => "❌",

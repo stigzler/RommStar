@@ -11,7 +11,7 @@ namespace RommStar.Core.Plugins
 {
     internal class SystemMenuItemPlugin : ISystemMenuItemPlugin
     {
-        public string Caption => "Rommstar";
+        public string Caption => "RommStar";
 
         public Image IconImage => Properties.Resources.rommIcon64px;
 

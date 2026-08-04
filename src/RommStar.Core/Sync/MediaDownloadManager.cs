@@ -112,6 +112,9 @@ namespace RommStar.Core.Sync
                 // For single files, apply -00 priority suffix if toggled on
                 string fileSuffix = forceMediaPriority ? "-00" : "";
 
+                // Note: These are prospective download urls. If romm doesn't have any media asset, the url will fail
+                // it has to be detected via future methods
+
                 items.Add(new MediaDownloadItem
                 {
                     MediaType = type,
