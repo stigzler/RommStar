@@ -438,7 +438,7 @@
                                         <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
                                     <StackPanel Orientation="Vertical">
-                                        <TextBlock Grid.Row="0" Text="Matched RomM Platforms"
+                                        <TextBlock Grid.Row="0" Text="Matched RomM Platform/s"
                                                    FontWeight="SemiBold" VerticalAlignment="Center"
                                                    Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}"
                                                    Margin="0,5,0,0" />

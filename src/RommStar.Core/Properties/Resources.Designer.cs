@@ -73,6 +73,16 @@ namespace RommStar.Core.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap romm40pxOutlined {
+            get {
+                object obj = ResourceManager.GetObject("romm40pxOutlined", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap rommIcon64px {
             get {
                 object obj = ResourceManager.GetObject("rommIcon64px", resourceCulture);
