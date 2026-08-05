@@ -9,6 +9,7 @@ using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Windows;
 using System.Xml.Linq;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
@@ -143,7 +144,8 @@ namespace RommStar.Core.Services
         /// <param name="tempZipPath"></param>
         /// <param name="romQueueItems">List of game/roms</param>
         /// <returns></returns>
-        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems, CancellationToken token)
+        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems,
+            CancellationToken token, bool isBackgroundBatch = true)
         {
             if (romQueueItems == null || romQueueItems.Count == 0) return;
 
@@ -332,8 +334,38 @@ namespace RommStar.Core.Services
             // Force save the LaunchBox database changes for the batch
             PluginHelper.DataManager.Save();
 
-            // Trigger a non-destructive visual update of the UI
-            await LaunchboxViewsHelper.SoftRefreshUi();
+            // Only trigger the background UI hacks if this is the background daemon!
+            // The manual VIP install handles its own UI updates via UpdatePlayButtonUi.
+            if (isBackgroundBatch)
+            {
+                await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    // If user browsing the same platform as the download, refresh to update Install badges. Otherwise don't to reduce UI noise.
+                    // Note: AT LB startup, it defaults to display your last platform, but GetSelectedPlatform() returns null
+                    // therefor refresh on null or same platform. 
+                    IPlatform selectedPlatform = PluginHelper.StateManager.GetSelectedPlatform();
+                    if (selectedPlatform == null || selectedPlatform.Name == platform.Name)
+                    {
+                        var detailsView = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
+                        var detailsContext = detailsView?.DataContext;
+
+                        //PluginHelper.DataManager.ForceReload();
+                        _ =  LaunchboxViewsHelper.SoftRefreshUi();
+
+                        detailsView.DataContext = detailsContext;
+
+                        //var dave = PluginHelper.LaunchBoxMainViewModel.GameDetailsView;
+                        //LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+
+
+
+                    }
+                    //PluginHelper.LaunchBoxMainViewModel.RefreshData();
+
+                }));
+
+               // 
+            }
 
         }
 

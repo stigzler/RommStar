@@ -126,7 +126,7 @@ namespace RommStar.Core.Services
                     };
 
                     // Pass the live cancellation token to the extraction method!
-                    await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem }, _onDemandCts.Token);
+                    await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem }, _onDemandCts.Token, false);
 
                     try { File.Delete(targetZipPath); } catch { }
                 }
@@ -140,7 +140,6 @@ namespace RommStar.Core.Services
                 PluginHelper.DataManager.Save();
                 _notificationService.SendNotification($"{game.Title} ({game.Platform}) Installed", 1);
                 lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.None);
-                Thread.Sleep(500);
             }
             catch (OperationCanceledException)
             {
