@@ -12,6 +12,10 @@ namespace RommStar.Core.Sync
     {
         public DateTime AddedAt { get; set; } = DateTime.Now;
         public bool IsPriority { get; set; } = false;
+
+        /// <summary>
+        /// The local Id - not lb db id.
+        /// </summary>
         public string LaunchboxId { get; set; } = string.Empty;
         public string PlatformName { get; set; } = string.Empty;
         public string PlatformStub { get; set; } = string.Empty;

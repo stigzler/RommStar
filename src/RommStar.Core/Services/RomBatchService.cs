@@ -64,7 +64,7 @@ namespace RommStar.Core.Services
 
                     if (platExtSyncSetts == null) platExtSyncSetts = _settingsService.Settings.GlobalExtendedSyncSettings;
 
-                    long targetSize = platExtSyncSetts.TargetRomBatchFilesizeBytes;
+                    long targetSize = platExtSyncSetts.TargetRomBatchFilesizeGb;
 
                     foreach (var item in sortedCandidates)
                     {

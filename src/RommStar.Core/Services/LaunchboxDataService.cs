@@ -7,14 +7,11 @@ using RommStar.Core.Models;
 using RommStar.Core.Sync;
 using System.Data;
 using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.IO.Compression;
-using System.Web;
 using System.Xml.Linq;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
-using Unbroken.LaunchBox.Plugins.RetroAchievements;
 
 namespace RommStar.Core.Services
 {

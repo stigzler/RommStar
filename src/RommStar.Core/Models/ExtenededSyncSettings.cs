@@ -20,7 +20,7 @@ namespace RommStar.Core.Models
         public bool OverwriteExistingMedia { get; set; } = true;
         public bool ForceMediaPriority { get; set; } = true;
         public string TempDownloadsPath { get; set; } = "TemporaryDownloads";
-        public long TargetRomBatchFilesizeBytes { get; set; } = 2; // 2GB
+        public long TargetRomBatchFilesizeGb { get; set; } = 2; // 2GB
         public bool UseIndividualGameFolders { get; set; } = false;
 
         /// <summary>

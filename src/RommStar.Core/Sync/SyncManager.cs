@@ -993,21 +993,19 @@ namespace RommStar.Core.Sync
             //TODO: needs testing - emulatorId correct for all 4 calls?
             string emulatorId = _launchboxService.EmulatorId;
 
-
-            //EnqueueFileDownload(new DownloadJob
-
-            //{
-            //    JobId = platformTask.Id,
-            //    JobType = DownloadJobType.Rom,
-            //    RomName = romName,
-            //    LaunchBoxPlatformName = platformTask.PlatformName,
-            //    ServerContext = currentSnapshot,
-            //    UiCard = platformTask.UiCard,
-            //    CancellationToken = platformTask.Cts.Token,
-            //    RelativeUrl = $"/api/v1/roms/{romId}/files/{fileDto.Id}/download",
-            //    DestinationPath = Path.Combine(targetDirectory, fileDto.FileName),
-            //    OnSuccessCallback = () => { }
-            //});
+            EnqueueFileDownload(new DownloadJob
+            {
+                JobId = platformTask.Id,
+                JobType = DownloadJobType.Rom,
+                RomName = romName,
+                LaunchBoxPlatformName = platformTask.PlatformName,
+                ServerContext = currentSnapshot,
+                UiCard = platformTask.UiCard,
+                CancellationToken = platformTask.Cts.Token,
+                RelativeUrl = $"/api/v1/roms/{romId}/files/{fileDto.Id}/download",
+                DestinationPath = Path.Combine(targetDirectory, fileDto.FileName),
+                OnSuccessCallback = () => { }
+            });
         }
 
         private async Task<string> StreamFileFromNetworkAsync(string absoluteUrl, string targetPath, RommServer server,
