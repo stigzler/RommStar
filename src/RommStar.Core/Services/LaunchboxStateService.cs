@@ -141,7 +141,9 @@ namespace RommStar.Core.Services
                         fullpathCategoryMap.Add(file.FullPath, file.Category);
                     }
 
-                    await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem }, fullpathCategoryMap, game);
+                   // await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem }, fullpathCategoryMap, game);
+                    await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem });
+
 
                     // 6. Cleanup the zip file
                     try { File.Delete(targetZipPath); } catch { /* Ignore locked file errors */ }

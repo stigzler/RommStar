@@ -19,9 +19,7 @@ namespace RommStar.Core.Sync
         public string LaunchboxId { get; set; } = string.Empty;
         public string PlatformName { get; set; } = string.Empty;
         public string PlatformStub { get; set; } = string.Empty;
-
         public string ServerId { get; set; } = string.Empty;
-
 
         /// <summary>
         /// This accommodates sibling/disc set romsets for games. 

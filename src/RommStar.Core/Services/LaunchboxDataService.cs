@@ -22,6 +22,8 @@ namespace RommStar.Core.Services
         private IPlatform _operationalPlatform;
         private string? _operativeServerId = null;
         private bool _overwriteMetadata = true;
+
+        private LoggingService _loggingService;
         /// <summary>
         /// Used in conjunction with _platformLbGameDatabaseIds. Lookup once presence of launchboxDatabaseID Game
         /// </summary>
@@ -48,10 +50,11 @@ namespace RommStar.Core.Services
         private RomMapper _romMapper;
         public LaunchboxSettings _launchboxSettings { get; set; } = new LaunchboxSettings();
         public SettingsService _settingsService { get; set; }
-        public LaunchboxDataService(RomMapper romMapper, SettingsService settingsService)
+        public LaunchboxDataService(RomMapper romMapper, SettingsService settingsService, LoggingService loggingService)
         {
             _romMapper = romMapper;
             _settingsService = settingsService;
+            _loggingService = loggingService;
             PopulateLaunchboxSettings();
         }
 
@@ -141,8 +144,7 @@ namespace RommStar.Core.Services
         /// <param name="tempZipPath"></param>
         /// <param name="romQueueItems">List of game/roms</param>
         /// <returns></returns>
-        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems, 
-            Dictionary<string, string> fullpathCategoryMap, IGame igame)
+        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems)
         {
             if (romQueueItems == null || romQueueItems.Count == 0) return;
 
@@ -150,7 +152,6 @@ namespace RommStar.Core.Services
             var platformSettings = _settingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss =>
                             pss.LaunchboxPlatformName == romQueueItems[0].PlatformName);
 
-            // Safe null propagation checks in case a platform profile configuration layout is raw or uninitialized
             bool individualGameFolders = (platformSettings?.ExtendedSyncSettings?.ApplySettings == true) ?
                 platformSettings.ExtendedSyncSettings.UseIndividualGameFolders :
                  _settingsService.Settings.GlobalExtendedSyncSettings.UseIndividualGameFolders;
@@ -158,17 +159,13 @@ namespace RommStar.Core.Services
             IPlatform platform = PluginHelper.DataManager.GetPlatformByName(romQueueItems[0].PlatformName);
             if (platform == null)
             {
-                // Todo: user feedback
-                Debug.WriteLine($"[Extraction] Error: Platform '{romQueueItems[0].PlatformName}' not found in LaunchBox.");
+                _loggingService.Log($"[Extraction] Error: Platform '{romQueueItems[0].PlatformName}' not found in LaunchBox.");
                 return;
             }
 
             string romRoot = FileSystemHelper.ResolvedRompath(platform.Folder, platform.Name);
-
-            // Build the exact internal folder prefix used by RomM's zip generation engine
             string expectedPrefix = $"roms/{romQueueItems[0].PlatformStub}/".Replace('\\', '/');
 
-            // Tracks all successfully extracted file paths mapped directly to their corresponding LaunchBox Game ID
             var extractedFilesMap = new Dictionary<string, List<string>>();
 
             // 2. Open the Zip Archive for streaming extraction
@@ -176,57 +173,35 @@ namespace RommStar.Core.Services
             {
                 foreach (ZipArchiveEntry entry in archive.Entries)
                 {
-                    // Skip empty entries or pure directory markers (they end with a slash in zip specs)
                     if (string.IsNullOrEmpty(entry.Name)) continue;
 
-                    // Normalize path delimiters to forward slashes for reliable zip matching
                     string entryFullName = entry.FullName.Replace('\\', '/');
 
-                    // Filter out any anomalous files outside the expected platform tree
                     if (!entryFullName.StartsWith(expectedPrefix, StringComparison.OrdinalIgnoreCase))
                         continue;
 
-
-                    // 3. Resolve Destination Paths and Correlate Game Item
+                    // 3. Resolve Destination Paths and Detect Soundtracks
                     string relativeRomPath;
                     string targetDirectory;
+                    bool isSoundtrack = entryFullName.Contains("/soundtrack/", StringComparison.OrdinalIgnoreCase);
 
-                    // relativeRomPath below - Strip "roms/[Platform Name]/" to isolate the clean, relative file path
-                    string fileType = "game";
-                    if (fullpathCategoryMap.ContainsKey(entryFullName))
+                    if (isSoundtrack)
                     {
-                        fileType = fullpathCategoryMap[entryFullName];
-                    }                        
-                        
-                    if (fileType == "soundtrack")
-                    {
-
-                        relativeRomPath = entryFullName.Substring(expectedPrefix.Length).Replace("/soundtrack","");
+                        relativeRomPath = entryFullName.Substring(expectedPrefix.Length).Replace("/soundtrack", "");
                         targetDirectory = Path.Combine(Constants.LaunchboxRootDir, "Music", platform.Name);
-                    }
-                    else // game
-                    {
-                        relativeRomPath = entryFullName.Substring(expectedPrefix.Length);
-                        targetDirectory = romRoot;
-
-                    }
-
-
-                    RomQueueItem matchingItem = null;
-
-                    // Resolved outside the directory-flag block to ensure path tracking works globally
-                    if (romQueueItems.Count == 1)
-                    {
-                        matchingItem = romQueueItems[0];
                     }
                     else
                     {
-                        // Background Queue Path: Match this specific file entry to its owning game item
-                        matchingItem = FindMatchingBatchItemForFile(romQueueItems, entry.Name);
+                        relativeRomPath = entryFullName.Substring(expectedPrefix.Length);
+                        targetDirectory = romRoot;
                     }
 
-                    // below ma be redundant since remove user feature to store to individual dirs
-                    if (individualGameFolders && matchingItem != null)
+                    // Route to correct queue item
+                    RomQueueItem matchingItem = romQueueItems.Count == 1
+                        ? romQueueItems[0]
+                        : FindMatchingBatchItemForFile(romQueueItems, entryFullName); // Passing FullName helps with directory matching
+
+                    if (individualGameFolders && matchingItem != null && !isSoundtrack)
                     {
                         targetDirectory = Path.Combine(romRoot, matchingItem.GameNameSanitised);
                     }
@@ -235,14 +210,28 @@ namespace RommStar.Core.Services
                     string fullDestinationPath = Path.Combine(targetDirectory, relativeRomPath);
                     string destDirectoryPath = Path.GetDirectoryName(fullDestinationPath);
 
-                    // Build missing subdirectory trees (handles multi-file/multi-disc structures safely)
                     if (!Directory.Exists(destDirectoryPath))
                         Directory.CreateDirectory(destDirectoryPath);
 
-                    // Extract and overwrite any stale or corrupted files matching this payload
-                    entry.ExtractToFile(fullDestinationPath, overwrite: true);
+                   // todo: need to find a way to log back to ui.
+                    if (File.Exists(fullDestinationPath))
+                    {
+                        _loggingService.Log($"Attempting copying an unzipped game file where the file already exists: {fullDestinationPath}");
+                    }
 
-                    // Map the extracted file to its parent LaunchBox ID tracking set
+                    // If music file is playing when click Install, it is locked by LB. If you try to unzip onto the existing file, it throws an error
+                    // Also possible edge case where rom is being used elsewhere and you try to unzip the rom back onto itself. 
+                    try
+                    {
+                        entry.ExtractToFile(fullDestinationPath, overwrite: true);
+                        _loggingService.Log($"File extracted and copied successfully.", Primitives.LoggingLevel.Debug);
+                    }
+                    catch (Exception e) 
+                    {
+                        _loggingService.Log($"Could not unzip to target destination. Exception: {e.Message}");
+                    }
+
+                    // 5. Map the extracted file to its parent LaunchBox ID
                     if (matchingItem != null)
                     {
                         if (!extractedFilesMap.ContainsKey(matchingItem.LaunchboxId))
@@ -251,16 +240,10 @@ namespace RommStar.Core.Services
                         }
                         extractedFilesMap[matchingItem.LaunchboxId].Add(fullDestinationPath);
                     }
-
-                    // if a filetype beside rom file, update iGame object
-                    if (fileType == "soundtrack")
-                    {
-                        igame.MusicPath = fullDestinationPath;
-                    }
                 }
             }
 
-            // 5. Update Launchbox Game object
+            // 6. Update Launchbox Game objects
             foreach (var batchItem in romQueueItems)
             {
                 var game = PluginHelper.DataManager.GetGameById(batchItem.LaunchboxId);
@@ -272,51 +255,78 @@ namespace RommStar.Core.Services
 
                     if (extractedFilesMap.TryGetValue(batchItem.LaunchboxId, out var unzippedFiles) && unzippedFiles.Count > 0)
                     {
+                        // Isolate music files to assign them cleanly
+                        // Derive the exact LaunchBox-assigned Music directory for this platform
+                        string canonicalMusicDirectory = Path.Combine(Constants.LaunchboxRootDir, "Music", platform.Name);
 
-                        // Get all additional apps
-                        var additionalApps = game.GetAllAdditionalApplications();
+                        // Ensure trailing slash for precise matching, handling cross-platform separator differences
+                        string normalizedMusicPrefix = canonicalMusicDirectory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 
-                        // switch between multi-file games (eg. Disc 1, Disc 2) or sibling sets - romm api for multi-file games means
-                        // firstRomDTO.RommFilename DOESN'T have a extension (for some bloody reason)
-                        string mainApplicationPath = string.Empty;
-                        if (Path.HasExtension(batchItem.MasterFilename))
+                        // Isolate music files by verifying they reside strictly within the canonical music folder tree
+                        var musicFiles = unzippedFiles.Where(f => f.StartsWith(normalizedMusicPrefix, StringComparison.OrdinalIgnoreCase)).ToList();
+                        var gameFiles = unzippedFiles.Except(musicFiles).ToList();
+
+
+                        // todo: this will always set the music to the first downloaded track. LB limitation as Romm
+                        // may have more than 1 music file for each game/rom - h/e user will be able to choose the music track
+                        // manually via Edit Metadata in LB. Maybe not a biggie? They can also order there music tracks on Romm
+                        // to affect the primary music track? (researched - no dice 😔 )
+                        if (musicFiles.Any())
                         {
-                            mainApplicationPath = unzippedFiles.FirstOrDefault(path => Path.GetFileName(path)
-                                                       .Equals(batchItem.MasterFilename, StringComparison.OrdinalIgnoreCase));
+                            game.MusicPath = musicFiles.First();
                         }
-                        else
-                        {
-                            mainApplicationPath = additionalApps.FirstOrDefault(a => !string.IsNullOrEmpty(a.ApplicationPath)
-                                                               && (Helpers.TagHelper.ParseFilename(a.ApplicationPath).DiscNumber == 1 ||
-                                                                    Helpers.TagHelper.ParseFilename(a.ApplicationPath).IsSideA)
-                                                                    ).ApplicationPath
-                                                                ?? additionalApps.First().ApplicationPath;
-                        }                                            
 
-                        game.ApplicationPath = mainApplicationPath;              
-
-                        foreach (var additionalApp in additionalApps)
+                        if (gameFiles.Any())
                         {
-                            string applicationPath = unzippedFiles.FirstOrDefault(path => Path.GetFileName(path)
-                            .Equals(batchItem.MasterFilename, StringComparison.OrdinalIgnoreCase));
-                            additionalApp.Status = "Installed";
-                            additionalApp.Installed = true;
+                            var additionalApps = game.GetAllAdditionalApplications();
+                            string mainApplicationPath = string.Empty;
+
+                            // will this work for multi-disc??
+                            if (Path.HasExtension(batchItem.MasterFilename))
+                            {
+                                mainApplicationPath = gameFiles.FirstOrDefault(path => Path.GetFileName(path)
+                                                           .Equals(batchItem.MasterFilename, StringComparison.OrdinalIgnoreCase));
+                            }
+                            else
+                            {
+                                // Safely fallback to the first available game file if multi-disc parsing fails
+                                var firstApp = additionalApps.FirstOrDefault(a => !string.IsNullOrEmpty(a.ApplicationPath)
+                                                                   && (Helpers.TagHelper.ParseFilename(a.ApplicationPath).DiscNumber == 1 ||
+                                                                        Helpers.TagHelper.ParseFilename(a.ApplicationPath).IsSideA));
+
+                                mainApplicationPath = firstApp?.ApplicationPath ?? additionalApps.FirstOrDefault()?.ApplicationPath ?? gameFiles.First();
+                            }
+
+                            if (!string.IsNullOrEmpty(mainApplicationPath))
+                            {
+                                game.ApplicationPath = mainApplicationPath;
+                            }
+
+                            // FIXED: Correctly map the unzipped file to the Additional App's placeholder
+                            foreach (var additionalApp in additionalApps)
+                            {
+                                string expectedFileName = Path.GetFileName(additionalApp.ApplicationPath);
+                                string realExtractedPath = gameFiles.FirstOrDefault(path => Path.GetFileName(path).Equals(expectedFileName, StringComparison.OrdinalIgnoreCase));
+
+                                if (!string.IsNullOrEmpty(realExtractedPath))
+                                {
+                                    additionalApp.ApplicationPath = realExtractedPath;
+                                }
+
+                                additionalApp.Status = "Installed";
+                                additionalApp.Installed = true;
+                            }
                         }
                     }
                     else
                     {
-                        // Safe defensive fallback in case matching index correlations had string formatting gaps
                         Debug.WriteLine($"[Extraction] Warning: Unzipped files couldn't correlate directly to LaunchBox Game ID: {batchItem.LaunchboxId}");
                     }
                 }
-
-
             }
 
-            //PluginHelper.DataManager.Save();
-
-            //if (PluginHelper.LaunchBoxMainViewModel != null)
-            //    PluginHelper.LaunchBoxMainViewModel.RefreshData();
+            // Force save the LaunchBox database changes for the batch
+            PluginHelper.DataManager.Save();
         }
 
         /// <summary>
@@ -600,14 +610,14 @@ namespace RommStar.Core.Services
 
         }
 
-        /// <summary>
-        /// Correlates a generic zip entry filename back to its parent queue model inside multi-game background batches.
-        /// </summary>
-        private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipFileName)
+        private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipEntryFullName)
         {
             return batchItems.FirstOrDefault(item =>
-                zipFileName.Contains(item.GameNameSanitised, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(Path.GetFileNameWithoutExtension(zipFileName), item.GameNameSanitised, StringComparison.OrdinalIgnoreCase)
+                // 1. Single File / Sibling Match: The path ends exactly with the MasterFilename
+                zipEntryFullName.EndsWith(item.MasterFilename, StringComparison.OrdinalIgnoreCase) ||
+
+                // 2. Multi-Disc Match: The path contains the MasterFilename as a folder directory
+                zipEntryFullName.Contains($"/{item.MasterFilename}/", StringComparison.OrdinalIgnoreCase)
             );
         }
 

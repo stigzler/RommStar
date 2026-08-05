@@ -136,8 +136,7 @@ namespace RommStar.Core.Services
                     if (success && File.Exists(targetZipPath))
                     {
                         // 7. Handoff to LaunchboxDataService for extraction and IGame updates
-                        // Note: The signature for ProcessDownloadedRomBatchAsync will be fixed in Phase 3.
-                        // await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, currentBatch);
+                        await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, currentBatch);
 
                         // 8. Cleanup & remove from queue on success
                         foreach (var completedItem in currentBatch)
@@ -146,7 +145,8 @@ namespace RommStar.Core.Services
                         }
                         _settingsService.Save();
 
-                       // try { File.Delete(targetZipPath); } catch { /* Ignore cleanup errors */ }
+                       try { File.Delete(targetZipPath); } 
+                        catch { /* Ignore cleanup errors */ }
                     }
                     else
                     {

@@ -31,12 +31,9 @@ namespace RommStar.Core
 
         private readonly LaunchboxStateService _launchboxStateService;
         private readonly LoggingService _loggingService;
+        private readonly RomBatchService _romBatchService;
         private readonly IServiceProvider _serviceProvider;
         private readonly SettingsService _settingsService;
-        private readonly RomBatchService _romBatchService;
-
-
-
         internal static PluginHost Instance {
             get {
                 lock (_padlock)
@@ -209,10 +206,7 @@ namespace RommStar.Core
             return null;
         }
 
-
-
-
-
+        // Left in given possible ongoign difficulties with inkore givne this is plugin not an app. 
         //private void EnsureInkoreResourcesLoaded()
         //{
         //    var app = Application.Current;
