@@ -140,6 +140,7 @@ namespace RommStar.Core.Services
                 PluginHelper.DataManager.Save();
                 _notificationService.SendNotification($"{game.Title} ({game.Platform}) Installed", 1);
                 lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.None);
+                Thread.Sleep(500);
             }
             catch (OperationCanceledException)
             {
@@ -164,7 +165,11 @@ namespace RommStar.Core.Services
             finally
             {
                 RestoreGameLaunchEmulatorExe();
-                LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+
+                await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+
+                //await LaunchboxViewsHelper.SoftRefreshUi();
+
             }
         }
 

@@ -23,12 +23,17 @@ namespace RommStar.Core.Helpers
             await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
                 var window = Application.Current.MainWindow;
+
                 if (window != null)
                 {
                     // Hack 1: Force the WPF rendering engine to re-evaluate the visual tree
                     window.InvalidateVisual();
                     window.UpdateLayout();
                 }
+
+                bool inListView = PluginHelper.LaunchBoxMainViewModel.ListView;
+                if (inListView) PluginHelper.LaunchBoxMainViewModel.EnterListView();
+                else PluginHelper.LaunchBoxMainViewModel.EnterImagesView();
 
                 // Hack 2: Force the GameDetailsView DataContext to bounce to update the side panel
                 var detailsView = PluginHelper.LaunchBoxMainViewModel.ContentView as FrameworkElement;
@@ -134,33 +139,36 @@ namespace RommStar.Core.Helpers
 
         internal static async Task UpdatePlayButtonUi(IGame game)
         {
+            // Pre-calculate state to minimize UI thread work
+            bool isInstalling = (game.Status == "Installing");
+
+            // Ensure the passed game object reflects its updated status safely
+            if (game.Installed == true && isInstalling)
+            {
+                game.Status = "Installed";
+                isInstalling = false;
+            }
+
             await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
                 var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
                 if (view == null) return;
 
-                // Ensure the passed game object reflects its updated status
-                if (game.Installed == true && game.Status == "Installing")
-                {
-                    game.Status = "Installed"; // Or your standard ready state, ensuring it's no longer "Installing"
-                }
-
                 var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
                 if (playButton == null) return;
-
-                // Force the button's data context to re-evaluate if it's caching the old IGame model
-                var currentDataContext = playButton.DataContext;
-                playButton.DataContext = null;
-                playButton.DataContext = currentDataContext;
 
                 var parent = VisualTreeHelper.GetParent(playButton) as Panel;
                 if (parent == null) return;
 
-                var dropdownButton = parent.Children.OfType<Button>().FirstOrDefault(b => b != playButton);
+                var overlayContainer = parent.Children.OfType<Border>().FirstOrDefault(x => (string)x.Tag == "InstallingOverlay");
 
-                var overlayContainer = parent.Children.OfType<Border>().FirstOrDefault(x => x.Tag as string == "InstallingOverlay");
+                // --- OPTIMIZATION 1: Exit Early ---
+                // If the game isn't installing, and there is no overlay to hide, do absolutely nothing. 
+                // This eliminates all lag/blinking when the user is just browsing normal games.
+                if (!isInstalling && overlayContainer == null) return;
 
-                if (overlayContainer == null)
+                // --- OPTIMIZATION 2: Lazy Overlay Creation ---
+                if (overlayContainer == null && isInstalling)
                 {
                     overlayContainer = new Border
                     {
@@ -176,10 +184,7 @@ namespace RommStar.Core.Helpers
                         IsHitTestVisible = false
                     };
 
-                    if (parent is Grid)
-                    {
-                        Grid.SetColumnSpan(overlayContainer, 3);
-                    }
+                    if (parent is Grid) Grid.SetColumnSpan(overlayContainer, 3);
 
                     var stackPanel = new StackPanel
                     {
@@ -203,19 +208,29 @@ namespace RommStar.Core.Helpers
                     parent.Children.Add(overlayContainer);
                 }
 
-                bool isInstalling = (game.Status == "Installing");
-
-                playButton.Opacity = isInstalling ? 0 : 1;
-                playButton.IsHitTestVisible = !isInstalling;
-
-                if (dropdownButton != null)
+                // --- OPTIMIZATION 3: State-Aware UI Updates ---
+                // Only update the opacities if they are not already in the correct state.
+                if (overlayContainer != null)
                 {
-                    dropdownButton.Opacity = isInstalling ? 0 : 1;
-                    dropdownButton.IsHitTestVisible = !isInstalling;
-                }
+                    double targetOverlayOpacity = isInstalling ? 1 : 0;
+                    double targetButtonOpacity = isInstalling ? 0 : 1;
 
-                overlayContainer.Opacity = isInstalling ? 1 : 0;
-                overlayContainer.IsHitTestVisible = isInstalling;
+                    if (overlayContainer.Opacity != targetOverlayOpacity)
+                    {
+                        overlayContainer.Opacity = targetOverlayOpacity;
+                        overlayContainer.IsHitTestVisible = isInstalling;
+
+                        playButton.Opacity = targetButtonOpacity;
+                        playButton.IsHitTestVisible = !isInstalling;
+
+                        var dropdownButton = parent.Children.OfType<Button>().FirstOrDefault(b => b != playButton);
+                        if (dropdownButton != null)
+                        {
+                            dropdownButton.Opacity = targetButtonOpacity;
+                            dropdownButton.IsHitTestVisible = !isInstalling;
+                        }
+                    }
+                }
 
             }), System.Windows.Threading.DispatcherPriority.Background);
         }

@@ -333,7 +333,7 @@ namespace RommStar.Core.Services
             PluginHelper.DataManager.Save();
 
             // Trigger a non-destructive visual update of the UI
-            _ = LaunchboxViewsHelper.SoftRefreshUi();
+            await LaunchboxViewsHelper.SoftRefreshUi();
 
         }
 
