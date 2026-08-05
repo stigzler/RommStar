@@ -33,6 +33,9 @@ namespace RommStar.Core
         private readonly LoggingService _loggingService;
         private readonly IServiceProvider _serviceProvider;
         private readonly SettingsService _settingsService;
+        private readonly RomBatchService _romBatchService;
+
+
 
         internal static PluginHost Instance {
             get {
@@ -59,6 +62,7 @@ namespace RommStar.Core
             _loggingService = _serviceProvider.GetRequiredService<LoggingService>();
             _settingsService = _serviceProvider.GetRequiredService<SettingsService>();
             _launchboxStateService = _serviceProvider.GetRequiredService<LaunchboxStateService>();
+            _romBatchService = _serviceProvider.GetRequiredService<RomBatchService>();
 
             _loggingService.LogClear();
             _loggingService.Log($"Logging started at {DateTime.Now:dd.MM.yy - HH:mm:ss}");
@@ -73,6 +77,9 @@ namespace RommStar.Core
             switch (eventType)
             {
                 case SystemEventTypes.PluginInitialized:
+                    break;
+                case SystemEventTypes.LaunchBoxStartupCompleted:
+                    _romBatchService.StartService();
                     break;
                 case SystemEventTypes.GameStarting:
                     break;

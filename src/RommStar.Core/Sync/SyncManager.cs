@@ -33,18 +33,14 @@ namespace RommStar.Core.Sync
 
         private readonly Channel<DownloadJob> _fileDownloadQueue = Channel.CreateUnbounded<DownloadJob>();
 
-        private readonly RommService _rommService;
-
         private readonly LaunchboxDataService _launchboxService;
-
-        private readonly SettingsService _settingsService;
-
         /// <summary>
         /// Channel pipelines handling FIFO operations natively across background threads
         /// </summary>
         private readonly Channel<PlatformSyncTask> _platformQueue = Channel.CreateUnbounded<PlatformSyncTask>();
 
-
+        private readonly RommService _rommService;
+        private readonly SettingsService _settingsService;
         /// <summary>
         /// Used primarily as the default initial fallback server or design-time tracking context.
         /// Macro and file tasks resolve their specific target servers natively via contextual properties.
@@ -92,6 +88,171 @@ namespace RommStar.Core.Sync
                     catch (ObjectDisposedException) { }
                 }
             }
+        }
+
+        // =========================================================================
+        // MACRO MANAGEMENT: ENQUEUE PLATFORM RUN
+        // =========================================================================
+        public void QueuePlatformSync(string lbPlatformName, string lbPlatformRomFolder, IPlatformFolder[] lbMediaFolders, string emulatorId,
+            List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer, int romCount)
+        {
+            var uiJobCard = new PlatformSyncJob
+            {
+                Id = Guid.NewGuid(),
+                LaunchBoxPlatformName = lbPlatformName,
+                ServerName = targetServer.ServerName,
+                Status = SyncStatus.Queued,
+                RomCount = romCount,
+                SupressSuccessLogItems = _settingsService.Settings.HideSuccessEntries
+            };
+
+            // Safely push to UI Collection from background hooks if necessary
+            ActiveSyncJobs.Add(uiJobCard);
+
+            var task = new PlatformSyncTask
+            {
+                PlatformName = lbPlatformName,
+                LaunchBoxRomFolder = lbPlatformRomFolder,
+                PlatformMediaFolders = lbMediaFolders,
+                EmulatorID = emulatorId,
+                RommPlatformIds = rommPlatformIds,
+                UiCard = uiJobCard,
+                TargetServer = targetServer,
+                SyncSettings = syncSettings,
+
+                DownloadRomFiles = syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
+                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
+                        || syncSettings.SyncProfile == SyncProfileTypes.DownloadRom,
+
+                UpsertIGame = (syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
+                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
+                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame
+                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia),
+
+                DownloadMediaFiles = syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia
+                                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
+
+            };
+
+            // REGISTER THE TASK CTS SO IT CAN BE RECOVERED BY THE CANCEL BUTTON CLICK
+            _activeTokens[uiJobCard.Id] = task.Cts;
+
+            _platformQueue.Writer.TryWrite(task);
+        }
+
+        private void EnqueueBatchRomDownloadJob(PlatformSyncTask platformTask, IGame game, RomDTO romDto, List<int> allRommIds, string masterFilename,
+            long totalSizeBytes, string serverId)
+        {
+
+            // Prevent duplicate entries if the user scans the platform twice
+            var existingQueue = _settingsService.Settings.RomDownloadQueue;
+            if (existingQueue.Any(q => q.LaunchboxId == game.Id))
+            {
+                return; // Already in the queue, do nothing
+            }
+
+            var queueItem = new RomQueueItem
+            {
+                LaunchboxId = game.Id,
+                PlatformName = platformTask.PlatformName,
+                PlatformStub = romDto.PlatformStub ?? string.Empty,
+                MasterFilename = masterFilename,
+                IsMultiFileGame = romDto.HasMultipleFiles == true,
+                RommIds = allRommIds,
+                TotalSizeBytes = totalSizeBytes,
+                GameNameSanitised = RommStar.Core.Helpers.StringsHelper.SanitizeFileName(game.Title),
+                AddedAt = DateTime.UtcNow,
+                IsPriority = false,
+                ServerId = serverId
+            };
+
+            existingQueue.Add(queueItem);
+            _settingsService.Save();
+
+            // Optional: Log it for UI transparency
+            platformTask.UiCard.AddLog($"Queued {game.Title} rom file/s for batch download.", PlatformSyncJob.LogType.Info);
+        }
+
+        //        await Task.WhenAll(mediaTasks);
+        //    }
+        //}
+        // =========================================================================
+        // MICRO-LEVEL FILE PIPELINE HANDLERS
+        // =========================================================================
+        private void EnqueueFileDownload(DownloadJob job)
+        {
+            _activeFileCounters.AddOrUpdate(job.JobId, 1, (key, current) => current + 1);
+            if (job.UiCard != null) job.UiCard.TotalItems++;
+
+            _fileDownloadQueue.Writer.TryWrite(job);
+        }
+
+        /// <summary>
+        /// Centralized wrapper ensuring identical Job formatting logic across all execution patterns
+        /// </summary>
+        private void EnqueueRomDownloadJob(PlatformSyncTask platformTask, RommServer currentSnapshot,
+            int romId, RomFileDTO fileDto, string targetDirectory, string romName)
+        {
+            //TODO: needs testing - emulatorId correct for all 4 calls?
+            string emulatorId = _launchboxService.EmulatorId;
+
+            EnqueueFileDownload(new DownloadJob
+            {
+                JobId = platformTask.Id,
+                JobType = DownloadJobType.Rom,
+                RomName = romName,
+                LaunchBoxPlatformName = platformTask.PlatformName,
+                ServerContext = currentSnapshot,
+                UiCard = platformTask.UiCard,
+                CancellationToken = platformTask.Cts.Token,
+                RelativeUrl = $"/api/v1/roms/{romId}/files/{fileDto.Id}/download",
+                DestinationPath = Path.Combine(targetDirectory, fileDto.FileName),
+                OnSuccessCallback = () => { }
+            });
+        }
+
+        //            // Direct parallel execution lane bypass instead of using macro FIFO channels
+        //            mediaTasks.Add(StreamFileFromNetworkAsync(apiRelativeUrl, item.TargetLocalPath, targetServer, CancellationToken.None));
+        //        }
+        /// <summary>
+        /// Core Helper Methods
+        /// </summary>
+        /// <param name="platformIds"></param>
+        /// <param name="server"></param>
+        /// <returns></returns>
+        private async Task<RomCollectionDTO> FetchMetadataFromRommAsync(List<int> platformIds,
+            RommServer server, int offset, CancellationToken cancellationToken)
+        {
+            var apiResult = await _rommService.GetRomCollectionAsync(server, platformIds, offset, cancellationToken);
+
+            if (!apiResult.IsSuccess)
+            {
+                //Debug.WriteLine($"Romm Collection Paging offset: {apiResult.Data.Offset}");
+                // TODO: Error handling
+            }
+
+            if (apiResult.Data != null)
+            {
+                return apiResult.Data;
+            }
+
+            return new RomCollectionDTO();
+        }
+
+        /// <summary>
+        /// Formats execution metrics into human-readable timing strings based on task limits.
+        /// </summary>
+        private string FormatElapsedTime(TimeSpan time)
+        {
+            if (time.TotalMinutes >= 1)
+            {
+                return $"{Math.Floor(time.TotalMinutes)}m {time.Seconds}s";
+            }
+            if (time.TotalSeconds >= 1)
+            {
+                return $"{time.TotalSeconds:F2}s";
+            }
+            return $"{time.TotalMilliseconds:F0}ms";
         }
 
         /// <summary>
@@ -177,102 +338,6 @@ namespace RommStar.Core.Sync
 
         //            // Map standard API path string for the download engine call
         //            string apiRelativeUrl = item.DownloadUrl.Replace(targetServer.BaseUrl, "").TrimStart('/');
-
-        //            // Direct parallel execution lane bypass instead of using macro FIFO channels
-        //            mediaTasks.Add(StreamFileFromNetworkAsync(apiRelativeUrl, item.TargetLocalPath, targetServer, CancellationToken.None));
-        //        }
-
-        //        await Task.WhenAll(mediaTasks);
-        //    }
-        //}
-
-        // =========================================================================
-        // MACRO MANAGEMENT: ENQUEUE PLATFORM RUN
-        // =========================================================================
-        public void QueuePlatformSync(string lbPlatformName, string lbPlatformRomFolder, IPlatformFolder[] lbMediaFolders, string emulatorId,
-            List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer, int romCount)
-        {
-            var uiJobCard = new PlatformSyncJob
-            {
-                Id = Guid.NewGuid(),
-                LaunchBoxPlatformName = lbPlatformName,
-                ServerName = targetServer.ServerName,
-                Status = SyncStatus.Queued,
-                RomCount = romCount,
-                SupressSuccessLogItems = _settingsService.Settings.HideSuccessEntries
-            };
-
-            // Safely push to UI Collection from background hooks if necessary
-            ActiveSyncJobs.Add(uiJobCard);
-
-            var task = new PlatformSyncTask
-            {
-                PlatformName = lbPlatformName,
-                LaunchBoxRomFolder = lbPlatformRomFolder,
-                PlatformMediaFolders = lbMediaFolders,
-                EmulatorID = emulatorId,
-                RommPlatformIds = rommPlatformIds,
-                UiCard = uiJobCard,
-                TargetServer = targetServer,
-                SyncSettings = syncSettings,
-
-                DownloadRomFiles = syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
-                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
-                        || syncSettings.SyncProfile == SyncProfileTypes.DownloadRom,
-
-                UpsertIGame = (syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
-                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
-                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame
-                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia),
-
-                DownloadMediaFiles = syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadMedia
-                                        || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
-
-            };
-
-            // REGISTER THE TASK CTS SO IT CAN BE RECOVERED BY THE CANCEL BUTTON CLICK
-            _activeTokens[uiJobCard.Id] = task.Cts;
-
-            _platformQueue.Writer.TryWrite(task);
-        }
-
-
-        // =========================================================================
-        // MICRO-LEVEL FILE PIPELINE HANDLERS
-        // =========================================================================
-        private void EnqueueFileDownload(DownloadJob job)
-        {
-            _activeFileCounters.AddOrUpdate(job.JobId, 1, (key, current) => current + 1);
-            if (job.UiCard != null) job.UiCard.TotalItems++;
-
-            _fileDownloadQueue.Writer.TryWrite(job);
-        }
-
-        /// <summary>
-        /// Core Helper Methods
-        /// </summary>
-        /// <param name="platformIds"></param>
-        /// <param name="server"></param>
-        /// <returns></returns>
-        private async Task<RomCollectionDTO> FetchMetadataFromRommAsync(List<int> platformIds,
-            RommServer server, int offset, CancellationToken cancellationToken)
-        {
-            var apiResult = await _rommService.GetRomCollectionAsync(server, platformIds, offset, cancellationToken);
-
-            if (!apiResult.IsSuccess)
-            {
-                //Debug.WriteLine($"Romm Collection Paging offset: {apiResult.Data.Offset}");
-                // TODO: Error handling
-            }
-
-            if (apiResult.Data != null)
-            {
-                return apiResult.Data;
-            }
-
-            return new RomCollectionDTO();
-        }
-
         private void ScheduleMediaDownloads(RomDTO rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServer server, IGame iGame)
         {
             // Extract extensionless ground-truth filename from your unified RommFilename property
@@ -415,23 +480,6 @@ namespace RommStar.Core.Sync
                 }
             }
         }
-
-        /// <summary>
-        /// Formats execution metrics into human-readable timing strings based on task limits.
-        /// </summary>
-        private string FormatElapsedTime(TimeSpan time)
-        {
-            if (time.TotalMinutes >= 1)
-            {
-                return $"{Math.Floor(time.TotalMinutes)}m {time.Seconds}s";
-            }
-            if (time.TotalSeconds >= 1)
-            {
-                return $"{time.TotalSeconds:F2}s";
-            }
-            return $"{time.TotalMilliseconds:F0}ms";
-        }
-
         // =========================================================================
         // MACRO SEQUENTIAL PIPELINE PROCESSOR (Paging Stream Integration)
         // =========================================================================
@@ -614,13 +662,24 @@ namespace RommStar.Core.Sync
                                             );
                                         }
 
-                                        if (installRoms)
-                                        {
-                                            EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, fileEntry,
-                                                targetDirectory, detailedRomDto.Name);
-                                        }
+                                        //if (installRoms)
+                                        //{
+                                        //    EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, fileEntry,
+                                        //        targetDirectory, detailedRomDto.Name);
+                                        //} 
+
+                                        if (targetedGame != null && detailedRomDto.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRomDto.Id.Value))
 
                                         platformTask.UiCard.ProcessedItems++;
+                                    }
+
+                                    if (installRoms && targetedGame != null)
+                                    {
+                                        long totalSize = detailedRomDto.CombinedFilesSizeBytes ?? 0;
+                                        string masterFile = detailedRomDto.RommFilename ?? string.Empty;
+
+                                        EnqueueBatchRomDownloadJob(platformTask, targetedGame, detailedRomDto, new List<int> { detailedRomDto.Id ?? 0 },
+                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString());
                                     }
 
                                     if (targetedGame != null && detailedRomDto.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRomDto.Id.Value))
@@ -695,11 +754,13 @@ namespace RommStar.Core.Sync
                                                     : Constants.romPlaceholder;
                                             }
 
-                                            if (installRoms)
-                                            {
-                                                EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, singleFile,
-                                                    targetDirectory, detailedRomDto.Name);
-                                            }
+
+                                            // >>>>>>>>> REF A <<<<<<<<<<<<<<<
+                                            //if (installRoms)
+                                            //{
+                                            //    EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, singleFile,
+                                            //        targetDirectory, detailedRomDto.Name);
+                                            //}
                                         }
                                     }
                                     else if (!string.IsNullOrEmpty(detailedRomDto.RommFilename))
@@ -711,6 +772,26 @@ namespace RommStar.Core.Sync
                                                 ? Path.Combine(targetDirectory, detailedRomDto.RommFilename)
                                                 : Constants.romPlaceholder;
                                         }
+                                    }
+
+                                    // gmni asked me to replce REF A above witht this and put it here for some reason
+                                    // todo: needs testing.
+                                    if (installRoms && targetedGame != null)
+                                    {
+                                        long totalSize = detailedRomDto.CombinedFilesSizeBytes ?? 0;
+                                        string masterFile = string.Empty;
+
+                                        if (hasFiles)
+                                        {
+                                            masterFile = detailedRomDto.Files.First().FileName ?? string.Empty;
+                                        }
+                                        else if (!string.IsNullOrEmpty(detailedRomDto.RommFilename))
+                                        {
+                                            masterFile = detailedRomDto.RommFilename;
+                                        }
+
+                                        EnqueueBatchRomDownloadJob(platformTask, targetedGame, detailedRomDto, new List<int> { detailedRomDto.Id ?? 0 },
+                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString());
                                     }
 
                                     if (targetedGame != null && detailedRomDto.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRomDto.Id.Value))
@@ -808,10 +889,10 @@ namespace RommStar.Core.Sync
                                         masterGameInstance.ApplicationPath = Path.Combine(targetDirectory, masterFile.FileName);
                                     }
 
-                                    if (installRoms)
-                                    {
-                                        EnqueueRomDownloadJob(platformTask, currentServer, masterRom.Id ?? 0, masterFile, targetDirectory, masterRom.Name);
-                                    }                                    
+                                    //if (installRoms)
+                                    //{
+                                    //    EnqueueRomDownloadJob(platformTask, currentServer, masterRom.Id ?? 0, masterFile, targetDirectory, masterRom.Name);
+                                    //}                                    
                                 }
                             }
                             else if (!string.IsNullOrEmpty(masterRom.RommFilename))
@@ -893,10 +974,10 @@ namespace RommStar.Core.Sync
                                                     targetDirectory, variantLabel);
                                             }
 
-                                            if (installRoms)
-                                            {
-                                                EnqueueRomDownloadJob(platformTask, currentServer, detailedVariant.Id ?? 0, fileEntry, targetDirectory, detailedVariant.Name);
-                                            }
+                                            //if (installRoms)
+                                            //{
+                                            //    EnqueueRomDownloadJob(platformTask, currentServer, detailedVariant.Id ?? 0, fileEntry, targetDirectory, detailedVariant.Name);
+                                            //}
                                         }
                                     }
                                     else if (!string.IsNullOrEmpty(detailedVariant.RommFilename))
@@ -912,7 +993,27 @@ namespace RommStar.Core.Sync
                                 }
                             }
 
-                           // platformTask.UiCard.ProcessedItems += cluster.Count;
+                            // Inside Pass 2, immediately after the variantRoms loop finishes for the current cluster:
+                            if (installRoms && masterGameInstance != null)
+                            {
+                                // Aggregate the file sizes across the master AND all variants using the API's combined field
+                                long totalGroupSize = sortedCluster.Sum(r => r.CombinedFilesSizeBytes ?? 0);
+
+                                string masterFile = string.Empty;
+                                if (masterHasFiles)
+                                {
+                                    masterFile = masterRom.Files.First().FileName ?? string.Empty;
+                                }
+                                else if (!string.IsNullOrEmpty(masterRom.RommFilename))
+                                {
+                                    masterFile = masterRom.RommFilename;
+                                }
+
+                                EnqueueBatchRomDownloadJob(platformTask, masterGameInstance, masterRom, allGroupIds, masterFile, totalGroupSize,
+                                    platformTask.TargetServer.Id.ToString());
+                            }
+
+                            // platformTask.UiCard.ProcessedItems += cluster.Count;
                         }
 
                         // Enforce download queue tracking restrictions
@@ -983,31 +1084,6 @@ namespace RommStar.Core.Sync
                 }
             }
         }
-
-        /// <summary>
-        /// Centralized wrapper ensuring identical Job formatting logic across all execution patterns
-        /// </summary>
-        private void EnqueueRomDownloadJob(PlatformSyncTask platformTask, RommServer currentSnapshot,
-            int romId, RomFileDTO fileDto, string targetDirectory, string romName)
-        {
-            //TODO: needs testing - emulatorId correct for all 4 calls?
-            string emulatorId = _launchboxService.EmulatorId;
-
-            EnqueueFileDownload(new DownloadJob
-            {
-                JobId = platformTask.Id,
-                JobType = DownloadJobType.Rom,
-                RomName = romName,
-                LaunchBoxPlatformName = platformTask.PlatformName,
-                ServerContext = currentSnapshot,
-                UiCard = platformTask.UiCard,
-                CancellationToken = platformTask.Cts.Token,
-                RelativeUrl = $"/api/v1/roms/{romId}/files/{fileDto.Id}/download",
-                DestinationPath = Path.Combine(targetDirectory, fileDto.FileName),
-                OnSuccessCallback = () => { }
-            });
-        }
-
         private async Task<string> StreamFileFromNetworkAsync(string absoluteUrl, string targetPath, RommServer server,
             CancellationToken cancellationToken = default)
         {

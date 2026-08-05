@@ -47,53 +47,60 @@ namespace RommStar.Core.Services
                         continue;
                     }
 
-                    // 1. Sort queue: Priorities first, then oldest added
-                    var sortedCandidates = queue
+                    // 1. Identify the most pressing item to determine our target platform and server for this run
+                     var mostPressingItem = queue
+                        .OrderByDescending(q => q.IsPriority)
+                        .ThenBy(q => q.AddedAt)
+                        .FirstOrDefault();
+
+                    if (mostPressingItem == null) continue;
+
+                    string targetPlatform = mostPressingItem.PlatformName;
+                    string targetServerId = mostPressingItem.ServerId;
+
+                    // 2. Filter candidates ONLY for the exact target platform and server to prevent cross-contamination
+                    var platformCandidates = queue
+                        .Where(q => q.PlatformName == targetPlatform && q.ServerId == targetServerId)
                         .OrderByDescending(q => q.IsPriority)
                         .ThenBy(q => q.AddedAt)
                         .ToList();
 
-                    // 2. Build the batch based on target filesize
+                    // 3. Build the batch based on target filesize using the correct property
                     List<RomQueueItem> currentBatch = new();
                     long currentBatchSize = 0;
 
-                    // TODO: this needs testing. 
-                    // setup using platform specific extended settings if set. If not, use global defaults
                     var platExtSyncSetts = _settingsService.Settings.PlatformSyncSettings
-                        .FirstOrDefault(pss => pss.LaunchboxPlatformName == currentBatch[0].PlatformName)?.ExtendedSyncSettings;
+                        .FirstOrDefault(pss => pss.LaunchboxPlatformName == targetPlatform)?.ExtendedSyncSettings;
 
                     if (platExtSyncSetts == null) platExtSyncSetts = _settingsService.Settings.GlobalExtendedSyncSettings;
 
-                    long targetSize = platExtSyncSetts.TargetRomBatchFilesizeGb;
+                    // Apply GB to Bytes conversion formula
+                    long targetSizeBytes = platExtSyncSetts.TargetRomBatchFilesizeGb * 1024L * 1024L * 1024L;
 
-                    foreach (var item in sortedCandidates)
+                    foreach (var item in platformCandidates)
                     {
+                        // If the batch already has items, and adding this one pushes us over the limit, stop here.
+                        if (currentBatch.Count > 0 && (currentBatchSize + item.TotalSizeBytes) > targetSizeBytes)
+                            break;
+
                         currentBatch.Add(item);
                         currentBatchSize += item.TotalSizeBytes;
-
-                        // Stop adding if we hit the limit (but ensure at least 1 item is always processed)
-                        if (currentBatchSize >= targetSize)
-                            break;
                     }
 
-                    // 3. Pre-flight Disk Space Check (Supports Relative, Absolute, and UNC Network Paths)
+                    // 4. Pre-flight Disk Space Check (Supports Relative, Absolute, and UNC Network Paths)
                     string rawPath = platExtSyncSetts.TempDownloadsPath;
 
-                    // If it is a relative path (e.g. "TemporaryDownloads"), resolve it relative to the plugin folder
                     if (!Path.IsPathRooted(rawPath))
                     {
                         string pluginFolder = Path.GetDirectoryName(typeof(SettingsService).Assembly.Location);
                         rawPath = Path.Combine(pluginFolder, rawPath);
                     }
 
-                    // Standardizes slashes and normalizes paths cleanly (e.g. standardizes UNC network pathing)
                     string tempDir = Path.GetFullPath(rawPath);
 
-                    // Safely ensure directory or network hierarchy exists
                     if (!Directory.Exists(tempDir))
                         Directory.CreateDirectory(tempDir);
 
-                    // Call our new Win32 space helper instead of DriveInfo
                     long availableFreeSpace = Helpers.FileSystemHelper.GetAvailableFreeSpace(tempDir);
                     long requiredSpace = (long)(currentBatchSize * 2.5);
 
@@ -104,32 +111,42 @@ namespace RommStar.Core.Services
                         continue;
                     }
 
-                    // 4. Flatten all RomM IDs for the API request
+                    // 5. Flatten all RomM IDs and resolve the specific Server Context
                     List<int> allRommIdsToDownload = currentBatch.SelectMany(b => b.RommIds).Distinct().ToList();
                     string zipFilename = $"batch_{Guid.NewGuid()}.zip";
                     string targetZipPath = Path.Combine(tempDir, zipFilename);
 
-                    // Grab the active server context (assumes index 0 for now, or fetch by ID if implemented)
-                    var activeServer = _settingsService.Settings.RommServers.FirstOrDefault();
-                    if (activeServer == null) continue;
+                    // Fetch the exact server originally used to queue these items
+                    var activeServer = _settingsService.Settings.RommServers.FirstOrDefault(s => s.Id.ToString() == targetServerId);
 
-                    // 5. Download the Zip
+                    if (activeServer == null)
+                    {
+                        Debug.WriteLine($"[RomBatchService] Error: Dead server context ({targetServerId}). Removing invalid batch from queue.");
+                        foreach (var badItem in currentBatch)
+                        {
+                            _settingsService.Settings.RomDownloadQueue.Remove(badItem);
+                        }
+                        _settingsService.Save();
+                        continue;
+                    }
+
+                    // 6. Download the Zip
                     bool success = await _rommService.DownloadRomsToDiskAsync(activeServer, allRommIdsToDownload, targetZipPath, CancellationToken.None);
 
                     if (success && File.Exists(targetZipPath))
                     {
-                        // 6. Handoff to LaunchboxDataService for extraction and IGame updates
-                        // TODO: this needs updating to present system
-                        //await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, currentBatch);
+                        // 7. Handoff to LaunchboxDataService for extraction and IGame updates
+                        // Note: The signature for ProcessDownloadedRomBatchAsync will be fixed in Phase 3.
+                        // await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, currentBatch);
 
-                        // 7. Cleanup & remove from queue on success
+                        // 8. Cleanup & remove from queue on success
                         foreach (var completedItem in currentBatch)
                         {
                             _settingsService.Settings.RomDownloadQueue.Remove(completedItem);
                         }
                         _settingsService.Save();
 
-                        try { File.Delete(targetZipPath); } catch { /* Ignore cleanup errors */ }
+                       // try { File.Delete(targetZipPath); } catch { /* Ignore cleanup errors */ }
                     }
                     else
                     {
