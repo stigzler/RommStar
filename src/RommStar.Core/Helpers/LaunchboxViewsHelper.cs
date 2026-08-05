@@ -16,6 +16,32 @@ namespace RommStar.Core.Helpers
     internal static class LaunchboxViewsHelper
     {
         /// <summary>
+        /// Forces a gentle visual refresh of the LaunchBox UI without resetting the user's scroll position or rebuilding the lists.
+        /// </summary>
+        internal static async Task SoftRefreshUi()
+        {
+            await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var window = Application.Current.MainWindow;
+                if (window != null)
+                {
+                    // Hack 1: Force the WPF rendering engine to re-evaluate the visual tree
+                    window.InvalidateVisual();
+                    window.UpdateLayout();
+                }
+
+                // Hack 2: Force the GameDetailsView DataContext to bounce to update the side panel
+                var detailsView = PluginHelper.LaunchBoxMainViewModel.ContentView as FrameworkElement;
+                if (detailsView != null)
+                {
+                    var currentContext = detailsView.DataContext;
+                    detailsView.DataContext = null;
+                    detailsView.DataContext = currentContext;
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        /// <summary>
         /// Recursively searches the visual tree for a FrameworkElement of type T 
         /// that has a specific Binding path on the given DependencyProperty.
         /// </summary>

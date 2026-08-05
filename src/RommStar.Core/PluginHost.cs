@@ -81,9 +81,11 @@ namespace RommStar.Core
                 case SystemEventTypes.GameStarting:
                     break;
                 case SystemEventTypes.BigBoxShutdownBeginning:
+                    _romBatchService.StopService();
                     _launchboxStateService.DoShutdownOperations();
                     break;
                 case SystemEventTypes.LaunchBoxShutdownBeginning:
+                    _romBatchService.StopService();
                     _launchboxStateService.DoShutdownOperations();
                     break;
                 case SystemEventTypes.SelectionChanged:

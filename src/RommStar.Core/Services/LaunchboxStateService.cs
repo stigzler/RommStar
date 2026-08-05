@@ -20,6 +20,7 @@ namespace RommStar.Core.Services
         private readonly SettingsService _settingsService;
         private readonly RommService _rommService;
         private readonly NotificationService _notificationService;
+        private CancellationTokenSource _onDemandCts = new CancellationTokenSource();
 
         public LaunchboxStateService(
                     LaunchboxDataService launchboxDataService,
@@ -38,6 +39,7 @@ namespace RommStar.Core.Services
 
         internal void DoShutdownOperations()
         {
+            _onDemandCts.Cancel();
             // Ensure that any manipulation of the last launch Emulator's application path
             // as part of the Game Install strategy is restored 
             RestoreGameLaunchEmulatorExe();
@@ -49,15 +51,15 @@ namespace RommStar.Core.Services
             ILaunchBoxMainViewModel lbvm = PluginHelper.LaunchBoxMainViewModel;
             lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Indeterminate);
 
+            // Declare this outside the try block so the catch block can see it for cleanup
+            string targetZipPath = string.Empty;
+
             try
             {
-                // 1. Extract the RomM IDs (csv) from the custom field Romm_RomIds
-                // Note: For games with sibling roms (NOT multi-disk), the one set to Default in Romm is set first in the RomIds list. This used later
                 var rommIdField = game.GetAllCustomFields().FirstOrDefault(f => f.Name == "Romm_RomIds");
                 if (rommIdField == null || string.IsNullOrWhiteSpace(rommIdField.Value))
                 {
                     Debug.WriteLine($"[VIP Install] No romm_RomIds found for {game.Title}. Aborting.");
-                    // TODO: have to return something that indicates stop Installing Status
                     return;
                 }
 
@@ -67,9 +69,8 @@ namespace RommStar.Core.Services
                     .Where(id => id > 0)
                     .ToList();
 
-                if (rommIdsToDownload.Count == 0) return; // TODO: Again - indicated installing status needs changing
+                if (rommIdsToDownload.Count == 0) return;
 
-                // 2. Intercept and remove from the Background Queue (if it's already in the queue but waiting)
                 var queue = _settingsService.Settings.RomDownloadQueue;
                 var existingQueuedItem = queue.FirstOrDefault(q => q.LaunchboxId == game.Id);
                 if (existingQueuedItem != null)
@@ -78,14 +79,12 @@ namespace RommStar.Core.Services
                     _settingsService.Save();
                 }
 
-                // 3. Prepare the Download Path (Relative, Absolute, or Network UNC)
                 var serverId = _settingsService.Settings.PlatformSyncSettings.First(pss =>
                                     pss.LaunchboxPlatformName == game.Platform).RommServerId;
 
                 var activeServer = _settingsService.Settings.RommServers.FirstOrDefault(s => s.Id == serverId);
-                if (activeServer == null) return; // TODO: Again - indicated installing status needs changing
+                if (activeServer == null) return;
 
-                // figure if platform using global or specific settings:
                 var platExtSyncSetts = _settingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss =>
                         pss.LaunchboxPlatformName == game.Platform)?.ExtendedSyncSettings;
 
@@ -99,31 +98,23 @@ namespace RommStar.Core.Services
                     rawPath = Path.Combine(pluginFolder, rawPath);
                 }
 
-                // Setup Temp Dir for download
                 string tempDir = Path.GetFullPath(rawPath);
+                if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
 
-                if (!Directory.Exists(tempDir))
-                    Directory.CreateDirectory(tempDir);
+                // POPULATE THE SCOPED VARIABLE HERE
+                targetZipPath = Path.Combine(tempDir, $"vip_{game.Id}_{Guid.NewGuid()}.zip");
 
-                string zipFilename = $"vip_{game.Id}_{Guid.NewGuid()}.zip";
-                string targetZipPath = Path.Combine(tempDir, zipFilename);
-
-                // 3.5 Get the romm platform stub - use first rom as all same platform
                 var apiReturn = await _rommService.GetRomDetailsAsync(activeServer, rommIdsToDownload[0]);
-                if (!apiReturn.IsSuccess) return; // TODO: Need to feedback to user/log somehow.
+                if (!apiReturn.IsSuccess) return;
 
                 RomDTO firstRomDTO = apiReturn.Data;
                 string platformStub = firstRomDTO.PlatformStub;
 
-                //LaunchboxViewsHelper.UpdateStatusTextUi($"Installing {game.Title} ({game.Platform})");
-
-
-                // 4. Download immediately to disk
-                bool success = await _rommService.DownloadRomsToDiskAsync(activeServer, rommIdsToDownload, targetZipPath, CancellationToken.None);
+                // Pass the live cancellation token to the stream!
+                bool success = await _rommService.DownloadRomsToDiskAsync(activeServer, rommIdsToDownload, targetZipPath, _onDemandCts.Token);
 
                 if (success && File.Exists(targetZipPath))
                 {
-                    // 5. Build a temporary "Job Item" to hand off to your existing extraction method
                     var vipBatchItem = new RomQueueItem
                     {
                         LaunchboxId = game.Id,
@@ -134,19 +125,10 @@ namespace RommStar.Core.Services
                         MasterFilename = firstRomDTO.RommFilename
                     };
 
-                    // Construct map of files and type of file (atm game vs soundtrack as audio files are stored in a rom's Files collection for some reason)
-                    Dictionary<string, string> fullpathCategoryMap = new Dictionary<string, string>();
-                    foreach (var file in firstRomDTO.Files)
-                    {
-                        fullpathCategoryMap.Add(file.FullPath, file.Category);
-                    }
+                    // Pass the live cancellation token to the extraction method!
+                    await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem }, _onDemandCts.Token);
 
-                   // await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem }, fullpathCategoryMap, game);
-                    await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, new List<RomQueueItem> { vipBatchItem });
-
-
-                    // 6. Cleanup the zip file
-                    try { File.Delete(targetZipPath); } catch { /* Ignore locked file errors */ }
+                    try { File.Delete(targetZipPath); } catch { }
                 }
                 else
                 {
@@ -155,42 +137,36 @@ namespace RommStar.Core.Services
                     game.Status = "Not Installed";
                 }
 
-                // Force LaunchBox to save state and refresh
                 PluginHelper.DataManager.Save();
-
-                //PluginHelper.LaunchBoxMainViewModel.RefreshData();
-
-
-                if (PluginHelper.LaunchBoxMainViewModel != null)
-                {
-                    IGame[] selectedIGames = PluginHelper.StateManager.GetAllSelectedGames();
-                    if (selectedIGames.Contains(game))
-                    {
-                        //PluginHelper.LaunchBoxMainViewModel.RefreshData();
-                    }
-                }
-
                 _notificationService.SendNotification($"{game.Title} ({game.Platform}) Installed", 1);
-                lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.None);    
+                lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.None);
+            }
+            catch (OperationCanceledException)
+            {
+                // Caught when LaunchBox shuts down mid-download.
+                Debug.WriteLine($"[VIP Install] Installation of {game.Title} aborted due to application shutdown.");
 
+                game.Status = "Not Installed"; // Add this line to reset UI state
+                game.Installed = false;
+
+                // Clean up the partial zip file!
+                if (!string.IsNullOrEmpty(targetZipPath) && File.Exists(targetZipPath))
+                {
+                    try { File.Delete(targetZipPath); } catch { }
+                }
             }
             catch (Exception ex)
             {
                 lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Error);
                 game.Status = "Not Installed";
                 _notificationService.SendErrorNotification($"Error installing {game.Title} ({game.Platform}): {ex.Message}", 2);
-
             }
             finally
             {
-
-                // Ensure LaunchBox is taken out of its "fake launch" state
                 RestoreGameLaunchEmulatorExe();
-
-                // Change PLay button from "Installing" to "Play"
                 LaunchboxViewsHelper.UpdatePlayButtonUi(game);
             }
-        } 
+        }
 
 
         internal async Task OnGameSelectionChanged()

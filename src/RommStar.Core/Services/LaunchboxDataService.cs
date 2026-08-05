@@ -19,11 +19,10 @@ namespace RommStar.Core.Services
     {
         internal string? EmulatorId = null;
         private bool _deleteOldServerRoms = true;
+        private LoggingService _loggingService;
         private IPlatform _operationalPlatform;
         private string? _operativeServerId = null;
         private bool _overwriteMetadata = true;
-
-        private LoggingService _loggingService;
         /// <summary>
         /// Used in conjunction with _platformLbGameDatabaseIds. Lookup once presence of launchboxDatabaseID Game
         /// </summary>
@@ -144,7 +143,7 @@ namespace RommStar.Core.Services
         /// <param name="tempZipPath"></param>
         /// <param name="romQueueItems">List of game/roms</param>
         /// <returns></returns>
-        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems)
+        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems, CancellationToken token)
         {
             if (romQueueItems == null || romQueueItems.Count == 0) return;
 
@@ -173,6 +172,11 @@ namespace RommStar.Core.Services
             {
                 foreach (ZipArchiveEntry entry in archive.Entries)
                 {
+
+                    // Ttripwire. It checks the token before processing the next file. 
+                    // If the user closed LaunchBox, it throws OperationCanceledException instantly, bubbling back to calling method
+                    token.ThrowIfCancellationRequested();
+
                     if (string.IsNullOrEmpty(entry.Name)) continue;
 
                     string entryFullName = entry.FullName.Replace('\\', '/');
@@ -327,6 +331,10 @@ namespace RommStar.Core.Services
 
             // Force save the LaunchBox database changes for the batch
             PluginHelper.DataManager.Save();
+
+            // Trigger a non-destructive visual update of the UI
+            _ = LaunchboxViewsHelper.SoftRefreshUi();
+
         }
 
         /// <summary>
