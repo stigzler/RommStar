@@ -19,12 +19,12 @@ namespace RommStar.Core.Services
         private readonly LaunchboxDataService _launchboxDataService;
         private readonly RommService _rommService;
         private readonly SettingsService _settingsService;
-        private readonly NotificationService _notificationService; 
+        private readonly NotificationService _notificationService;
         private CancellationTokenSource _cts;
         private bool _isRunning = false;
 
         public RomBatchService(SettingsService settingsService, RommService rommService, LaunchboxDataService launchboxDataService,
-            NotificationService notificationService            )
+            NotificationService notificationService)
         {
             _settingsService = settingsService;
             _rommService = rommService;
@@ -115,15 +115,162 @@ namespace RommStar.Core.Services
                     // Apply GB to Bytes conversion formula
                     long targetSizeBytes = platExtSyncSetts.TargetRomBatchFilesizeGb * 1024L * 1024L * 1024L;
 
-                    foreach (var item in platformCandidates)
-                    {
-                        // If the batch already has items, and adding this one pushes us over the limit, stop here.
-                        if (currentBatch.Count > 0 && (currentBatchSize + item.TotalSizeBytes) > targetSizeBytes)
-                            break;
 
-                        currentBatch.Add(item);
-                        currentBatchSize += item.TotalSizeBytes;
+                    // Overwrite or skip existing local roms
+                    if (false)
+                    {
+                        // Selective Roms process -----------------------------------------------------------------
+                        // If settings dictate, exclude roms that already exist in the LB roms location
+
+                        // 1. Pre-calculate the platform's base ROM rules before the loop
+                        bool individualGameFolders = (platExtSyncSetts != null && platExtSyncSetts.ApplySettings) ?
+                            platExtSyncSetts.UseIndividualGameFolders :
+                            _settingsService.Settings.GlobalExtendedSyncSettings.UseIndividualGameFolders;
+
+                        IPlatform platform = PluginHelper.DataManager.GetPlatformByName(targetPlatform);
+                        string romRoot = Helpers.FileSystemHelper.ResolvedRompath(platform.Folder, platform.Name);
+                        bool queueModified = false;
+
+                        // 2. Build the batch, filtering out items that already exist on disk
+                        foreach (var item in platformCandidates)
+                        {
+                            // Predict the final destination directory
+                            string targetDirectory = individualGameFolders ?
+                                Path.Combine(romRoot, item.GameNameSanitised) :
+                                romRoot;
+
+                            // Combine to get the exact predicted file path
+                            // Controls for multi-file (ffs)
+                            //string primaryFilepath = string.Empty;
+                            bool skipDownload = true;
+                            string candidatePath;
+                            if (item.IsMultiFileGame)
+                            {
+                                // this also include multi-file games that have siblings sets (eg. FFVIII, two diff region sets. These get split into different items
+                                // so don't need to process in sibling set below. BY design.
+                                foreach (var file in item.MultiFiles)
+                                {
+                                    if (file.Category == "game")
+                                    {
+                                        candidatePath = Path.Combine(targetDirectory, item.MasterFilename, file.FileName);
+                                        if (!File.Exists(candidatePath))
+                                        {
+                                            skipDownload = false;
+                                            break;
+                                        }
+                                    }
+                                    else if (file.Category == "soundtrack")
+                                    {
+                                        candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", item.MasterFilename, file.FileName);
+                                        // todo: >1 soundtrack logic to go here once nail how works for 1 vs >1 soundtracks. 
+                                    }
+                                }
+                            }
+                            else if (item.RommIds.Count > 1)
+                            {
+                                // This is a single instance sibling set (e.g. Buck Rogers - different versions)
+                                foreach (var file in item.MultiFiles)
+                                {
+                                    if (file.Category == "game")
+                                    {
+                                        candidatePath = Path.Combine(targetDirectory, file.FileName);
+                                        if (!File.Exists(candidatePath))
+                                        {
+                                            skipDownload = false;
+                                            break;
+                                        }
+                                    }
+                                    else if (file.Category == "soundtrack")
+                                    {
+                                        candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", item.MasterFilename, file.FileName);
+                                        // todo: >1 soundtrack logic to go here once nail how works for 1 vs >1 soundtracks. 
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+                                // Single file
+                                if (!File.Exists(Path.Combine(targetDirectory, item.MasterFilename))) skipDownload = false;
+                                // todo: soundtrack stuff
+                            }
+
+
+                            //= item.IsMultiFileGame? Path.Combine(targetDirectory, item.MasterFilename, "dave") : Path.Combine(targetDirectory, item.MasterFilename);
+
+                            // 3. THE CHECK: Does this file already exist in LaunchBox?
+                            if (skipDownload)
+                            {
+                                //Debug.WriteLine($"[RomBatchService] Skipping {item.GameNameSanitised}, file already exists at {primaryFilepath}.");
+
+                                // Remove it from the live queue so we don't process it again
+                                _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.LaunchboxId == item.LaunchboxId);
+                                queueModified = true;
+
+                                // Optionally, update the LaunchBox UI to reflect it's actually installed
+                                var existingGame = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                                if (existingGame != null && existingGame.Installed == false)
+                                {
+                                    existingGame.Installed = true;
+                                    existingGame.Status = "Installed";
+                                    //existingGame.ApplicationPath = primaryFilepath; // control for multi-file
+                                    PluginHelper.DataManager.Save();
+                                }
+
+                                continue; // Skip adding to currentBatch and move to the next candidate
+                            }
+                            else
+                            {
+                                var existingGame = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                                if (existingGame != null && existingGame.Installed == true)
+                                {
+                                    existingGame.Installed = false;
+                                    existingGame.Status = "Installing";
+                                    //existingGame.ApplicationPath = primaryFilepath; // control for multi-file
+                                    PluginHelper.DataManager.Save();
+                                }
+                            }
+
+                            // If the batch already has items, and adding this one pushes us over the limit, stop here.
+                            if (currentBatch.Count > 0 && (currentBatchSize + item.TotalSizeBytes) > targetSizeBytes)
+                                break;
+
+                            currentBatch.Add(item);
+                            currentBatchSize += item.TotalSizeBytes;
+                        }
+
+                        // Ensure we save the queue if we pruned any already-installed games
+                        if (queueModified)
+                        {
+                            _settingsService.Save();
+                        }
+
+                        // If every single candidate was already installed on disk, 
+                        // currentBatch is empty. Skip the rest of the network/download logic!
+                        if (currentBatch.Count == 0)
+                        {
+                            continue;
+                        }
+
+                        // END Selective Roms Process -------------------------------------------------------------------------
+
                     }
+
+                    else
+
+                    {
+                        // OVERWRITE ROMS
+                        foreach (var item in platformCandidates)
+                        {
+                            // If the batch already has items, and adding this one pushes us over the limit, stop here.
+                            if (currentBatch.Count > 0 && (currentBatchSize + item.TotalSizeBytes) > targetSizeBytes)
+                                break;
+
+                            currentBatch.Add(item);
+                            currentBatchSize += item.TotalSizeBytes;
+                        }
+                    }
+
 
                     // 4. Pre-flight Disk Space Check (Supports Relative, Absolute, and UNC Network Paths)
                     string rawPath = platExtSyncSetts.TempDownloadsPath;
@@ -162,7 +309,7 @@ namespace RommStar.Core.Services
                         Debug.WriteLine($"[RomBatchService] Error: Dead server context ({targetServerId}). Removing invalid batch from queue.");
                         foreach (var badItem in currentBatch)
                         {
-                            _settingsService.Settings.RomDownloadQueue.Remove(badItem);
+                            _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.LaunchboxId == badItem.LaunchboxId);
                         }
                         _settingsService.Save();
                         continue;
@@ -176,7 +323,7 @@ namespace RommStar.Core.Services
                         if (game != null && game.Status != "Installing")
                         {
                             game.Status = "Installing";
-                           //_ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                            //_ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
                         }
                     }
 
@@ -202,7 +349,7 @@ namespace RommStar.Core.Services
                         // 8. Cleanup & remove from queue on success
                         foreach (var completedItem in currentBatch)
                         {
-                            _settingsService.Settings.RomDownloadQueue.Remove(completedItem);
+                            _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.LaunchboxId == completedItem.LaunchboxId);
                         }
                         _settingsService.Save();
 
@@ -241,8 +388,9 @@ namespace RommStar.Core.Services
                     RevertBatchInstallingStatus(currentBatch); // Unlock the UI before shutting down
 
                     // Nuke the partial zip so it doesn't leave corrupted junk, but leave the queue intact!
-                    try { if (File.Exists(targetZipPath)) File.Delete(targetZipPath); } 
-                    catch (Exception ex) {
+                    try { if (File.Exists(targetZipPath)) File.Delete(targetZipPath); }
+                    catch (Exception ex)
+                    {
                         Debug.WriteLine($"[RomBatchService] ERROR whilst trying to delete temporary zip file: {ex.Message}");
                     }
                     break;

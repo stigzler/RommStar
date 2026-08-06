@@ -50,7 +50,7 @@ namespace RommStar.Core.Plugins.GameMenuItems
         {
             if (PluginHelper.StateManager.GetAllSelectedGames()?.Length == 0) return "Can't Sync: No Game Selected";
             if (PluginHelper.StateManager.GetAllSelectedGames()?.Length > 1) return "Can't Sync: Multiple Games Selected";
-            if (string.IsNullOrEmpty(_selectedGame.Platform)) return "Can't Sync: No Game Platform";
+            if (string.IsNullOrEmpty(_selectedGame?.Platform)) return "Can't Sync: No Game Platform";
 
             return $"Sync Platform: {_selectedGame.Platform}";
         }

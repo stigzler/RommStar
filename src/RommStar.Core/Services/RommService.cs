@@ -173,6 +173,7 @@ namespace RommStar.Core.Services
                 // HttpCompletionOption.ResponseHeadersRead is CRITICAL for large files. 
                 // It prevents HttpClient from buffering the 2GB zip into memory.
                 using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
+                Debug.WriteLine($"[RommService] Response headers: {string.Join(", ", response.Headers)}");
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -191,6 +192,7 @@ namespace RommStar.Core.Services
             catch (Exception ex)
             {
                 Debug.WriteLine($"[RommService] ZIP Download Exception: {ex.Message}");
+
                 if (File.Exists(targetFilePath))
                 {
                     try { File.Delete(targetFilePath); } catch { }

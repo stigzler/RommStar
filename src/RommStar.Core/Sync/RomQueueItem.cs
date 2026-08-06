@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using RommStar.Core.Dtos.Romm;
 
 namespace RommStar.Core.Sync
 {
@@ -21,6 +22,7 @@ namespace RommStar.Core.Sync
         public string PlatformStub { get; set; } = string.Empty;
         public string ServerId { get; set; } = string.Empty;
         public bool NotifyLaunchboxOnCompletion { get; set; } = false;
+        public List<RomFileDTO>? MultiFiles { get; set; } = new();
 
         /// <summary>
         /// This accommodates sibling/disc set romsets for games. 
