@@ -1,4 +1,5 @@
-﻿using RommStar.Core.Sync;
+﻿using RommStar.Core.Helpers;
+using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,6 +7,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using Unbroken.LaunchBox.Plugins;
+using Unbroken.LaunchBox.Plugins.Data;
 using Unbroken.LaunchBox.Plugins.RetroAchievements;
 
 namespace RommStar.Core.Services
@@ -44,11 +48,30 @@ namespace RommStar.Core.Services
             Debug.WriteLine("[RomBatchService] Shutdown requested. Aborting active background tasks.");
         }
 
+        private void RevertBatchInstallingStatus(List<RomQueueItem> batch)
+        {
+            if (batch == null || batch.Count == 0) return;
+
+            foreach (var item in batch)
+            {
+                var game = Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                if (game != null && game.Status == "Installing")
+                {
+                    game.Status = "Not Installed";
+                    // Fire and forget the UI update to remove the spinner overlay
+                    _ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                }
+            }
+            Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.Save();
+        }
+
         private async Task ProcessQueueLoopAsync(CancellationToken token)
         {
             while (_isRunning && !token.IsCancellationRequested)
             {
                 string targetZipPath = string.Empty;
+                List<RomQueueItem> currentBatch = new();
+
 
                 try
                 {
@@ -61,10 +84,10 @@ namespace RommStar.Core.Services
                     }
 
                     // 1. Identify the most pressing item to determine our target platform and server for this run
-                     var mostPressingItem = queue
-                        .OrderByDescending(q => q.IsPriority)
-                        .ThenBy(q => q.AddedAt)
-                        .FirstOrDefault();
+                    var mostPressingItem = queue
+                       .OrderByDescending(q => q.IsPriority)
+                       .ThenBy(q => q.AddedAt)
+                       .FirstOrDefault();
 
                     if (mostPressingItem == null) continue;
 
@@ -79,7 +102,7 @@ namespace RommStar.Core.Services
                         .ToList();
 
                     // 3. Build the batch based on target filesize using the correct property
-                    List<RomQueueItem> currentBatch = new();
+                    currentBatch = new();
                     long currentBatchSize = 0;
 
                     var platExtSyncSetts = _settingsService.Settings.PlatformSyncSettings
@@ -143,6 +166,29 @@ namespace RommStar.Core.Services
                         continue;
                     }
 
+                    // 5.5 Lock UI for batch items to prevent manual install conflicts
+                    foreach (var item in currentBatch)
+                    {
+                        var game = Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                        if (game != null && game.Status != "Installing")
+                        {
+                            game.Status = "Installing";
+                           // _ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                        }
+                    }
+                    Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.Save();
+                    await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        // If user browsing the same platform as the download, refresh to update Install badges. Otherwise don't to reduce UI noise.
+                        // Note: AT LB startup, it defaults to display your last platform, but GetSelectedPlatform() returns null
+                        // therefor refresh on null or same platform. 
+                        IPlatform selectedPlatform = PluginHelper.StateManager.GetSelectedPlatform();
+                        if (selectedPlatform == null || selectedPlatform.Name == targetPlatform)
+                        {
+                            _ = LaunchboxViewsHelper.SoftRefreshUi();
+                        }
+                    }));
+
                     // 6. Download the Zip
                     bool success = await _rommService.DownloadRomsToDiskAsync(activeServer, allRommIdsToDownload, targetZipPath, token);
                     if (success && File.Exists(targetZipPath))
@@ -156,15 +202,16 @@ namespace RommStar.Core.Services
                         }
                         _settingsService.Save();
 
-                       try { File.Delete(targetZipPath); } 
-                        catch { /* Ignore cleanup errors */ }
-
-
-
+                        try { File.Delete(targetZipPath); }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[RomBatchService] ERROR whilst trying to delete temporary zip file: {ex.Message}");
+                        }
                     }
                     else
                     {
                         Debug.WriteLine("[RomBatchService] Batch download failed. Retrying in 10 seconds...");
+                        RevertBatchInstallingStatus(currentBatch); // Unlock the UI
                         await Task.Delay(10000, token);
                     }
                 }
@@ -173,13 +220,26 @@ namespace RommStar.Core.Services
                     // This catches the exact moment the user closes LaunchBox mid-download or mid-unzip.
                     Debug.WriteLine("[RomBatchService] Daemon aborted via application shutdown.");
 
+                    RevertBatchInstallingStatus(currentBatch); // Unlock the UI before shutting down
+
                     // Nuke the partial zip so it doesn't leave corrupted junk, but leave the queue intact!
-                    try { if (File.Exists(targetZipPath)) File.Delete(targetZipPath); } catch { }
+                    try { if (File.Exists(targetZipPath)) File.Delete(targetZipPath); } 
+                    catch (Exception ex) {
+                        Debug.WriteLine($"[RomBatchService] ERROR whilst trying to delete temporary zip file: {ex.Message}");
+                    }
                     break;
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"[RomBatchService] Critical error in queue loop: {ex.Message}");
+                    RevertBatchInstallingStatus(currentBatch); // Unlock the UI before shutting down
+
+                    try { if (File.Exists(targetZipPath)) File.Delete(targetZipPath); }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine($"[RomBatchService] ERROR whilst trying to delete temporary zip file: {e.Message}");
+                    }
+
                     await Task.Delay(10000, token); // Pass token to delay so it can wake up instantly on close
                 }
             }

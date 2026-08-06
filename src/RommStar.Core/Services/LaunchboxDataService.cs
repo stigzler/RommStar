@@ -346,25 +346,9 @@ namespace RommStar.Core.Services
                     IPlatform selectedPlatform = PluginHelper.StateManager.GetSelectedPlatform();
                     if (selectedPlatform == null || selectedPlatform.Name == platform.Name)
                     {
-                        var detailsView = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
-                        var detailsContext = detailsView?.DataContext;
-
-                        //PluginHelper.DataManager.ForceReload();
                         _ =  LaunchboxViewsHelper.SoftRefreshUi();
-
-                        detailsView.DataContext = detailsContext;
-
-                        //var dave = PluginHelper.LaunchBoxMainViewModel.GameDetailsView;
-                        //LaunchboxViewsHelper.UpdatePlayButtonUi(game);
-
-
-
-                    }
-                    //PluginHelper.LaunchBoxMainViewModel.RefreshData();
-
+                    }  
                 }));
-
-               // 
             }
 
         }

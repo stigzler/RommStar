@@ -31,11 +31,6 @@ namespace RommStar.Core.Helpers
                     window.UpdateLayout();
                 }
 
-                //bool inListView = PluginHelper.LaunchBoxMainViewModel.ListView;
-                //if (inListView) PluginHelper.LaunchBoxMainViewModel.EnterListView();
-                //else PluginHelper.LaunchBoxMainViewModel.EnterImagesView();
-
-                // Hack 2: Force the GameDetailsView DataContext to bounce to update the side panel
                 var contentView = PluginHelper.LaunchBoxMainViewModel.ContentView as FrameworkElement;
                 if (contentView != null)
                 {

@@ -8,11 +8,11 @@ using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.Badges
 {
-    internal class RommSynced : IGameBadge
+    internal class RommSyncedBadge : IGameBadge
     {
         public string Name => "Synced with Romm";
 
-        public string UniqueId => "rommstarSynced";
+        public string UniqueId => "rommStarSynced";
 
         public Image DefaultIcon => Properties.Resources.romm40pxOutlined;
 
