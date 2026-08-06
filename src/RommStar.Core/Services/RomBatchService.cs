@@ -19,14 +19,17 @@ namespace RommStar.Core.Services
         private readonly LaunchboxDataService _launchboxDataService;
         private readonly RommService _rommService;
         private readonly SettingsService _settingsService;
+        private readonly NotificationService _notificationService; 
         private CancellationTokenSource _cts;
         private bool _isRunning = false;
 
-        public RomBatchService(SettingsService settingsService, RommService rommService, LaunchboxDataService launchboxDataService)
+        public RomBatchService(SettingsService settingsService, RommService rommService, LaunchboxDataService launchboxDataService,
+            NotificationService notificationService            )
         {
             _settingsService = settingsService;
             _rommService = rommService;
             _launchboxDataService = launchboxDataService;
+            _notificationService = notificationService;
         }
         public void StartService()
         {
@@ -71,7 +74,6 @@ namespace RommStar.Core.Services
             {
                 string targetZipPath = string.Empty;
                 List<RomQueueItem> currentBatch = new();
-
 
                 try
                 {
@@ -167,15 +169,17 @@ namespace RommStar.Core.Services
                     }
 
                     // 5.5 Lock UI for batch items to prevent manual install conflicts
+
                     foreach (var item in currentBatch)
                     {
                         var game = Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.GetGameById(item.LaunchboxId);
                         if (game != null && game.Status != "Installing")
                         {
                             game.Status = "Installing";
-                           // _ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                           //_ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
                         }
                     }
+
                     Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.Save();
                     await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
@@ -194,13 +198,27 @@ namespace RommStar.Core.Services
                     if (success && File.Exists(targetZipPath))
                     {
                         // 7. Handoff to LaunchboxDataService for extraction and IGame updates
-                        await _launchboxDataService.ProcessDownloadedRomBatchAsync(targetZipPath, currentBatch, token);
+                        await _launchboxDataService.UnzipRomsAndUpdateIGamesBatchAsync(targetZipPath, currentBatch, token);
                         // 8. Cleanup & remove from queue on success
                         foreach (var completedItem in currentBatch)
                         {
                             _settingsService.Settings.RomDownloadQueue.Remove(completedItem);
                         }
                         _settingsService.Save();
+
+                        // 9. RAISE THE NOTIFICATION (Only when the entire platform is finished)
+                        if (currentBatch.FirstOrDefault()?.NotifyLaunchboxOnCompletion == true)
+                        {
+                            // Check the live queue to see if this platform still has pending downloads
+                            bool platformHasMoreItems = _settingsService.Settings.RomDownloadQueue
+                                .Any(q => q.PlatformName == targetPlatform && q.ServerId == targetServerId);
+
+                            // If nothing is left for this platform, the whole system is done!
+                            if (!platformHasMoreItems)
+                            {
+                                _notificationService.SendInfoNotification($"Romm Files Sync complete for [{targetPlatform}].", 1);
+                            }
+                        }
 
                         try { File.Delete(targetZipPath); }
                         catch (Exception ex)

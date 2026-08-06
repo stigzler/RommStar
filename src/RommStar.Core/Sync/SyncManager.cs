@@ -8,7 +8,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.Intrinsics.Arm;
+using System.Text;
 using System.Threading.Channels;
+using System.Windows;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
 
@@ -41,6 +43,7 @@ namespace RommStar.Core.Sync
 
         private readonly RommService _rommService;
         private readonly SettingsService _settingsService;
+        private readonly NotificationService _notificationService;
         /// <summary>
         /// Used primarily as the default initial fallback server or design-time tracking context.
         /// Macro and file tasks resolve their specific target servers natively via contextual properties.
@@ -53,7 +56,8 @@ namespace RommStar.Core.Sync
         public ObservableCollection<PlatformSyncJob> ActiveSyncJobs { get; } = new();
 
 
-        public SyncManager(RommServer initialServer, RommService rommService, LaunchboxDataService launchboxService, SettingsService settingsService)
+        public SyncManager(RommServer initialServer, RommService rommService, LaunchboxDataService launchboxService, SettingsService settingsService,
+            NotificationService notificationService)
         {
             // Thread-safe client initialization without global default authorization headers
             _client = new HttpClient();
@@ -66,6 +70,7 @@ namespace RommStar.Core.Sync
             _rommService = rommService;
             _launchboxService = launchboxService;
             _settingsService = settingsService;
+            _notificationService = notificationService;
         }
 
         public event Action<PlatformSyncJob>? OnSyncCompletedNotification;
@@ -93,8 +98,8 @@ namespace RommStar.Core.Sync
         // =========================================================================
         // MACRO MANAGEMENT: ENQUEUE PLATFORM RUN
         // =========================================================================
-        public void QueuePlatformSync(string lbPlatformName, string lbPlatformRomFolder, IPlatformFolder[] lbMediaFolders, string emulatorId,
-            List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer, int romCount)
+        public async Task QueuePlatformSync(string lbPlatformName, string lbPlatformRomFolder, IPlatformFolder[] lbMediaFolders, string emulatorId,
+            List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer, int romCount, bool notifyLaunchboxOnMeatadataDone = false)
         {
             var uiJobCard = new PlatformSyncJob
             {
@@ -103,7 +108,9 @@ namespace RommStar.Core.Sync
                 ServerName = targetServer.ServerName,
                 Status = SyncStatus.Queued,
                 RomCount = romCount,
-                SupressSuccessLogItems = _settingsService.Settings.HideSuccessEntries
+                SupressSuccessLogItems = _settingsService.Settings.HideSuccessEntries,
+                
+                
             };
 
             // Safely push to UI Collection from background hooks if necessary
@@ -119,6 +126,7 @@ namespace RommStar.Core.Sync
                 UiCard = uiJobCard,
                 TargetServer = targetServer,
                 SyncSettings = syncSettings,
+                NotifyLauncboxWhenMetadataComplete = notifyLaunchboxOnMeatadataDone,
 
                 DownloadRomFiles = syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom
                         || syncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia
@@ -141,7 +149,7 @@ namespace RommStar.Core.Sync
         }
 
         private void EnqueueBatchRomDownloadJob(PlatformSyncTask platformTask, IGame game, RomDTO romDto, List<int> allRommIds, string masterFilename,
-            long totalSizeBytes, string serverId)
+            long totalSizeBytes, string serverId, bool notifyLaunchbox = false)
         {
 
             // Prevent duplicate entries if the user scans the platform twice
@@ -163,7 +171,8 @@ namespace RommStar.Core.Sync
                 GameNameSanitised = RommStar.Core.Helpers.StringsHelper.SanitizeFileName(game.Title),
                 AddedAt = DateTime.UtcNow,
                 IsPriority = false,
-                ServerId = serverId
+                ServerId = serverId,
+                NotifyLaunchboxOnCompletion = notifyLaunchbox
             };
 
             existingQueue.Add(queueItem);
@@ -478,12 +487,20 @@ namespace RommStar.Core.Sync
                     if (job.UiCard != null) job.UiCard.ProcessedItems++;
                     _activeFileCounters.AddOrUpdate(job.JobId, 0, (key, current) => current - 1);
                 }
+
+
+                // HERE!
+
             }
         }
         // =========================================================================
         // MACRO SEQUENTIAL PIPELINE PROCESSOR (Paging Stream Integration)
         // =========================================================================
 
+        /// <summary>
+        /// Do you like monoliths?
+        /// </summary>
+        /// <returns></returns>
         private async Task StartPlatformQueueProcessorAsync()
         {
             while (await _platformQueue.Reader.WaitToReadAsync())
@@ -638,9 +655,7 @@ namespace RommStar.Core.Sync
                                         {
                                             platformTask.UiCard.WarningCount++;
                                             platformTask.UiCard.AddLog($"Could not construct or add Launchbox Game for '{detailedRomDto.Name}' from Romm. Multi-disc game.", PlatformSyncJob.LogType.Warning);
-                                        }
-
-                                       
+                                        }                                       
                                     }
 
                                     foreach (var fileEntry in detailedRomDto.Files)
@@ -679,7 +694,7 @@ namespace RommStar.Core.Sync
                                         string masterFile = detailedRomDto.RommFilename ?? string.Empty;
 
                                         EnqueueBatchRomDownloadJob(platformTask, targetedGame, detailedRomDto, new List<int> { detailedRomDto.Id ?? 0 },
-                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString());
+                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString(), platformTask.NotifyLauncboxWhenMetadataComplete);
                                     }
 
                                     if (targetedGame != null && detailedRomDto.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRomDto.Id.Value))
@@ -791,7 +806,7 @@ namespace RommStar.Core.Sync
                                         }
 
                                         EnqueueBatchRomDownloadJob(platformTask, targetedGame, detailedRomDto, new List<int> { detailedRomDto.Id ?? 0 },
-                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString());
+                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString(), platformTask.NotifyLauncboxWhenMetadataComplete);
                                     }
 
                                     if (targetedGame != null && detailedRomDto.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRomDto.Id.Value))
@@ -1010,7 +1025,7 @@ namespace RommStar.Core.Sync
                                 }
 
                                 EnqueueBatchRomDownloadJob(platformTask, masterGameInstance, masterRom, allGroupIds, masterFile, totalGroupSize,
-                                    platformTask.TargetServer.Id.ToString());
+                                    platformTask.TargetServer.Id.ToString(), platformTask.NotifyLauncboxWhenMetadataComplete);
                             }
 
                             // platformTask.UiCard.ProcessedItems += cluster.Count;
@@ -1076,14 +1091,23 @@ namespace RommStar.Core.Sync
                         // FIX: Ensure cleaning dictionaries always fires to prevent data leaks across sync retry bounds
                         _activeFileCounters.TryRemove(platformTask.Id, out _);
                         _activeTokens.TryRemove(platformTask.Id, out _);
+
+
                     }
 
-                    // redundant?
-                    //_activeFileCounters.TryRemove(platformTask.Id, out _);
-                    //_activeTokens.TryRemove(platformTask.Id, out _);
+                    if (platformTask.NotifyLauncboxWhenMetadataComplete)
+                        
+                    {
+                        StringBuilder sb = new StringBuilder($"Romm Metadata/Media Sync complete for [{platformTask.PlatformName}].");
+                        if (platformTask.DownloadRomFiles) sb.Append($" Downloading rom files in the background. You can quit Launchbox at any time. " +
+                            $"Downloads will be resumed on restart.");
+                        _notificationService.SendInfoNotification(sb.ToString(),2);
+                    }
                 }
             }
         }
+
+
         private async Task<string> StreamFileFromNetworkAsync(string absoluteUrl, string targetPath, RommServer server,
             CancellationToken cancellationToken = default)
         {

@@ -15,6 +15,7 @@ namespace RommStar.Core.Sync
         public bool DownloadMediaFiles { get; set; } = false;
         public bool DownloadRomFiles { get; set; } = false;
         public string? EmulatorID { get; set; }
+        public bool NotifyLauncboxWhenMetadataComplete { get; set; } = false;
 
         /// <summary>
         /// 2. This references the property on the UiCard above

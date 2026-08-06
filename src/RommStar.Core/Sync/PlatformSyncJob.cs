@@ -34,6 +34,7 @@ namespace RommStar.Core.Sync
         private int _romCount;
 
         [ObservableProperty]
+
         private int _warningCount;
 
         [ObservableProperty]

@@ -138,13 +138,23 @@ namespace RommStar.Core.Services
             .ToList();
         }
 
+
+        internal string GetLaunchboxRomsFolderPath(string launchboxPlatformName)
+        {
+            string romFolder = PluginHelper.DataManager.GetPlatformByName(launchboxPlatformName)?.Folder;
+            if (string.IsNullOrEmpty(romFolder)) romFolder = $"Games\\{launchboxPlatformName}";
+            if (Directory.Exists(romFolder)) return romFolder;
+            return string.Empty;
+        }
+
+
         /// <summary>
         /// This moves the unzipped game files from the temp locaiton to the right locaiton on disk
         /// </summary>
         /// <param name="tempZipPath"></param>
         /// <param name="romQueueItems">List of game/roms</param>
         /// <returns></returns>
-        public async Task ProcessDownloadedRomBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems,
+        public async Task UnzipRomsAndUpdateIGamesBatchAsync(string tempZipPath, List<RomQueueItem> romQueueItems,
             CancellationToken token, bool isBackgroundBatch = true)
         {
             if (romQueueItems == null || romQueueItems.Count == 0) return;
@@ -219,7 +229,7 @@ namespace RommStar.Core.Services
                     if (!Directory.Exists(destDirectoryPath))
                         Directory.CreateDirectory(destDirectoryPath);
 
-                   // todo: need to find a way to log back to ui.
+                    // todo: need to find a way to log back to ui.
                     if (File.Exists(fullDestinationPath))
                     {
                         _loggingService.Log($"Attempting copying an unzipped game file where the file already exists: {fullDestinationPath}");
@@ -232,7 +242,7 @@ namespace RommStar.Core.Services
                         entry.ExtractToFile(fullDestinationPath, overwrite: true);
                         _loggingService.Log($"File extracted and copied successfully.", Primitives.LoggingLevel.Debug);
                     }
-                    catch (Exception e) 
+                    catch (Exception e)
                     {
                         _loggingService.Log($"Could not unzip to target destination. Exception: {e.Message}");
                     }
@@ -329,16 +339,14 @@ namespace RommStar.Core.Services
                         Debug.WriteLine($"[Extraction] Warning: Unzipped files couldn't correlate directly to LaunchBox Game ID: {batchItem.LaunchboxId}");
                     }
                 }
-            }
 
-            // Force save the LaunchBox database changes for the batch
-            PluginHelper.DataManager.Save();
+                // game finished processing here
+                // Force save the LaunchBox database changes for the batch
+                PluginHelper.DataManager.Save();
 
-            // Only trigger the background UI hacks if this is the background daemon!
-            // The manual VIP install handles its own UI updates via UpdatePlayButtonUi.
-            if (isBackgroundBatch)
-            {
-                await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                // Only trigger the background UI hacks if this is the background daemon!
+                // The manual VIP install handles its own UI updates via UpdatePlayButtonUi.
+                await Application.Current.Dispatcher.BeginInvoke(new Action(async () =>
                 {
                     // If user browsing the same platform as the download, refresh to update Install badges. Otherwise don't to reduce UI noise.
                     // Note: AT LB startup, it defaults to display your last platform, but GetSelectedPlatform() returns null
@@ -346,10 +354,12 @@ namespace RommStar.Core.Services
                     IPlatform selectedPlatform = PluginHelper.StateManager.GetSelectedPlatform();
                     if (selectedPlatform == null || selectedPlatform.Name == platform.Name)
                     {
-                        _ =  LaunchboxViewsHelper.SoftRefreshUi();
-                    }  
+                        if (game != null) await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                        _ = LaunchboxViewsHelper.SoftRefreshUi();
+                    }
                 }));
             }
+
 
         }
 
@@ -455,17 +465,17 @@ namespace RommStar.Core.Services
             //    return (null, MetadataSyncAction.Update);
             //}
 
-            bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue && 
+            bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue &&
                                             _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
 
             bool hasMatchingRommId = rommDTO.Id.HasValue && _platformRommIds.Contains(rommDTO.Id.Value.ToString());
 
             bool hasMatchingServerId = !string.IsNullOrEmpty(_operativeServerId) &&
-                                       (_platformServerIds.Contains(_operativeServerId) || 
+                                       (_platformServerIds.Contains(_operativeServerId) ||
                                        _platformHelperMap.Any(m => m.RommServerId == _operativeServerId));
 
             MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId,
-                rommDTO.HasMultipleFiles.GetValueOrDefault() );
+                rommDTO.HasMultipleFiles.GetValueOrDefault());
 
             MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
             IGame game = null;

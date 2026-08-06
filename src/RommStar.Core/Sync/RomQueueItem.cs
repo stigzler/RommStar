@@ -20,6 +20,7 @@ namespace RommStar.Core.Sync
         public string PlatformName { get; set; } = string.Empty;
         public string PlatformStub { get; set; } = string.Empty;
         public string ServerId { get; set; } = string.Empty;
+        public bool NotifyLaunchboxOnCompletion { get; set; } = false;
 
         /// <summary>
         /// This accommodates sibling/disc set romsets for games. 

@@ -34,6 +34,8 @@ namespace RommStar.Core
         private readonly RomBatchService _romBatchService;
         private readonly IServiceProvider _serviceProvider;
         private readonly SettingsService _settingsService;
+        private readonly NotificationService _notificationsService;
+
         internal static PluginHost Instance {
             get {
                 lock (_padlock)
@@ -60,6 +62,7 @@ namespace RommStar.Core
             _settingsService = _serviceProvider.GetRequiredService<SettingsService>();
             _launchboxStateService = _serviceProvider.GetRequiredService<LaunchboxStateService>();
             _romBatchService = _serviceProvider.GetRequiredService<RomBatchService>();
+            _notificationsService = _serviceProvider.GetRequiredService<NotificationService>();
 
             _loggingService.LogClear();
             _loggingService.Log($"Logging started at {DateTime.Now:dd.MM.yy - HH:mm:ss}");
@@ -131,6 +134,11 @@ namespace RommStar.Core
                     break;
             }
 
+        }
+
+        internal async void SyncPlatform(string platformName)
+        {
+            await _launchboxStateService.SyncPlatform(platformName);
         }
 
 

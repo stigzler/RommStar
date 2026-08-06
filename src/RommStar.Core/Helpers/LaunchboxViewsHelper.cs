@@ -10,38 +10,53 @@ using System.Windows.Data;
 using System.Windows.Media;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
+using System.Runtime.CompilerServices;
 
 namespace RommStar.Core.Helpers
 {
     internal static class LaunchboxViewsHelper
     {
         /// <summary>
-        /// Forces a gentle visual refresh of the LaunchBox UI without resetting the user's scroll position or rebuilding the lists.
+        /// Total hack, but works!
+        /// Basically simulates clicking out of lb and then back in again by spawning invisible wpf window then closing it
+        /// Tried all kinds of other less hacky ways (using the api, manipulating the views) but this was only way that worked. 
         /// </summary>
+        /// <returns></returns>
         internal static async Task SoftRefreshUi()
         {
-            await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            await System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {
-                var window = Application.Current.MainWindow;
-
-                if (window != null)
+                var mainWindow = System.Windows.Application.Current.MainWindow;
+                if (mainWindow != null)
                 {
-                    // Hack 1: Force the WPF rendering engine to re-evaluate the visual tree
-                    window.InvalidateVisual();
-                    window.UpdateLayout();
-                }
+                    // 1. Create a completely invisible, temporary window off-screen
+                    var dummyWindow = new System.Windows.Window
+                    {
+                        Width = 0,
+                        Height = 0,
+                        WindowStyle = System.Windows.WindowStyle.None,
+                        AllowsTransparency = true,
+                        Background = System.Windows.Media.Brushes.Transparent,
+                        ShowInTaskbar = false,
+                        ShowActivated = true, // This is the magic property that steals focus
+                        Owner = mainWindow,
+                        WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
+                        Left = -10000,
+                        Top = -10000
+                    };
 
-                var contentView = PluginHelper.LaunchBoxMainViewModel.ContentView as FrameworkElement;
-                if (contentView != null)
-                {
-                    var currentContext = contentView.DataContext;              
-                    contentView.DataContext = null;
-                    contentView.DataContext = currentContext;
-                }
+                    // 2. Show it (Simulates the user clicking away to another app)
+                    dummyWindow.Show();
 
+                    // 3. Close it immediately (Simulates the user clicking back into LaunchBox)
+                    dummyWindow.Close();
+
+                    // 4. Give the UI a gentle nudge to process the activation changes
+                    mainWindow.InvalidateVisual();
+                    mainWindow.UpdateLayout();
+                }
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
-
         /// <summary>
         /// Recursively searches the visual tree for a FrameworkElement of type T 
         /// that has a specific Binding path on the given DependencyProperty.
@@ -131,10 +146,11 @@ namespace RommStar.Core.Helpers
             playButton.InvalidateVisual();
         }
 
-
-
-        internal static async Task UpdatePlayButtonUi(IGame game)
+        internal static async Task UpdatePlayButtonUi(IGame game, [CallerMemberName] string callerName = "")
         {
+            // 1. This will print to your Visual Studio Output window instantly!
+            System.Diagnostics.Debug.WriteLine($"[DIAGNOSTIC] UpdatePlayButtonUi was called by: {callerName} for game: {game?.Title}");
+
             // Pre-calculate state to minimize UI thread work
             bool isInstalling = (game.Status == "Installing");
 
@@ -218,6 +234,13 @@ namespace RommStar.Core.Helpers
 
                         playButton.Opacity = targetButtonOpacity;
                         playButton.IsHitTestVisible = !isInstalling;
+
+                        // Force the button's data bindings to re-evaluate.
+                        // Because this is inside the state-change block, it only bounces
+                        // exactly when a download starts or finishes, never during normal browsing.
+                        var currentContext = playButton.DataContext;
+                        playButton.DataContext = null;
+                        playButton.DataContext = currentContext;
 
                         var dropdownButton = parent.Children.OfType<Button>().FirstOrDefault(b => b != playButton);
                         if (dropdownButton != null)
