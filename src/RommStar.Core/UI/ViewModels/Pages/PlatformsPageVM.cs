@@ -645,9 +645,17 @@ namespace RommStar.Core.UI.ViewModels.Pages
             if (platform == null)
             {
                 SetInfoBar(LaunchboxRommPlatformsInfoBar, true,
-                    InfoBarSeverity.Error, "Sync Platform Error", "Platform cannot be retrieved fom the Launchbox database." +
+                    InfoBarSeverity.Error, "Sync Platform Error", "Platform cannot be retrieved from the Launchbox database." +
                     " This can happen if Launchbox and RommStar Platform adds/deletes fall out of sync.");
                 return;
+            }
+
+            if (_syncManager.PlatformQueuedAndIncomplete(SelectedPlatform.LaunchboxPlatformName))
+            {
+                SetInfoBar(LaunchboxRommPlatformsInfoBar, true,
+                    InfoBarSeverity.Error, "Sync Platform Error", "A Sync Job for this Platform is already in the queue.");
+                return;
+
             }
 
             string platformDefaultEmulatorID = _launchboxDataService.GetPlatformDefaultEmulatorID(SelectedPlatform.LaunchboxPlatformName);

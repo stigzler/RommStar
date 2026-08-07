@@ -96,6 +96,11 @@ namespace RommStar.Core.Sync
             }
         }
 
+        internal bool PlatformQueuedAndIncomplete(string platformName)
+          {
+            return ActiveSyncJobs.Any(j => j.LaunchBoxPlatformName == platformName && j.Status < SyncStatus.Completed);
+        }
+
         // =========================================================================
         // MACRO MANAGEMENT: ENQUEUE PLATFORM RUN
         // =========================================================================
