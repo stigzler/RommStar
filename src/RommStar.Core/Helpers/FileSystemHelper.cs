@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.DirectoryServices.ActiveDirectory;
+﻿using RommStar.Core.Primitives;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+using System.Security.Cryptography;
+using System;
 
 namespace RommStar.Core.Helpers
 {
@@ -36,9 +33,46 @@ namespace RommStar.Core.Helpers
             return long.MaxValue;
         }
 
+        /// <summary>
+        /// Checks if file present on disk. Can also verify via sha1
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="sha1"></param>
+        /// <returns></returns>
+        public static bool LocalFilePresent(string path, string expectedSha1 = null)
+        {
+            // 1. Basic existence check
+            if (!File.Exists(path)) return false;
+
+            // 2. Bypass hashing if no expected hash was provided
+            if (string.IsNullOrWhiteSpace(expectedSha1)) return true;
+
+            string localHash = string.Empty;
+
+            try
+            {
+                // 3. Open the file in a read-only, shared state to prevent locking crashes
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var sha1Hasher = SHA1.Create())
+                {
+                    var hashBytes = sha1Hasher.ComputeHash(stream);
+                    localHash = BitConverter.ToString(hashBytes).Replace("-", "");
+                }
+            }
+            catch (Exception ex)
+            {
+                // If the file is locked by the downloader or system, log it if needed, but fail gracefully
+                System.Diagnostics.Debug.WriteLine($"[Hash Check] Failed to hash file {path}: {ex.Message}");
+                return false;
+            }
+
+            // 4. Compare the generated hash against the expected hash (ignoring case)
+            return localHash.Equals(expectedSha1.Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
         public static string ResolvedRompath(string directoryPath, string platformName = null)
         {
-            if (string.IsNullOrEmpty(   directoryPath))
+            if (string.IsNullOrEmpty(directoryPath))
             {
                 return Path.Combine(Constants.LaunchboxRootDir, "Games", platformName);
             }

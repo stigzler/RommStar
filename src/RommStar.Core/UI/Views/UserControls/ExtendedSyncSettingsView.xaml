@@ -9,6 +9,7 @@
             xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels"
             xmlns:sys="clr-namespace:System;assembly=mscorlib"
             xmlns:sync="clr-namespace:RommStar.Core.Sync"
+             xmlns:prims="clr-namespace:RommStar.Core.Primitives"
             xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
@@ -23,6 +24,7 @@
 
             <converters:SyncProfileConverter x:Key="SyncProfileConverter" />
             <converters:ByteToGigabyteConverter x:Key="ByteToGigabyteConverter" />
+            <converters:EnumDescriptionConverter x:Key="EnumDescConverter" />
 
             <ObjectDataProvider x:Key="SyncProfileEnum"
                             MethodName="GetValues"
@@ -31,7 +33,15 @@
                     <x:Type TypeName="sync:SyncProfileTypes" />
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
-            
+
+            <ObjectDataProvider x:Key="FileCheckMethodEnum"
+                        MethodName="GetValues"
+                        ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="prims:FileCheckMethod" />
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -63,6 +73,21 @@
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.TextBulletListSquareEdit_20_Regular}" />
             </ui:SettingsCard.HeaderIcon>
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.OverwriteMetadata, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </ui:SettingsCard>  
+
+        <ui:SettingsCard Grid.Row="0" Header="Local Rom File Check Method" Description="During sync, whether to check for existing any local rom files by existence only, or with an additional SHA1 check (slower but more reliable)">
+            <ui:SettingsCard.HeaderIcon>
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DocumentTable_20_Regular}" />
+            </ui:SettingsCard.HeaderIcon>
+            <ComboBox ItemsSource="{Binding Source={StaticResource FileCheckMethodEnum}}"
+                        SelectedItem="{Binding ExtendedSyncSettings.FileCheckMethod, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <!-- Binds to the enum itself, but passes it through our converter -->
+                        <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
         </ui:SettingsCard>
 
         <ui:SettingsCard Grid.Row="0" Header="Overwrite Media" Description="If a media item already exists, does not overwrite with RomM media. Useful where you are using Launchbox for Media updates.">
@@ -79,26 +104,11 @@
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.ForceMediaPriority, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Remove Old Server Roms" IsEnabled="False"
-                         Description="DEV: Disabled - now removes old server roms autoamtically. Sig code needed to preserve option. If local launchbox platform contains roms from a previously assigned server, these are deleted.">
-            <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
-            </ui:SettingsCard.HeaderIcon>
-            <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.DeleteOldServerRoms, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Individual Game Folders" IsEnabled="False"
-                         Description="DEV: Disabled. Files now put where app dictates. Downloaded roms are placed in their own folders in the Platform Rom Directory">
+        <ui:SettingsCard Grid.Row="0" Header="Temporary Rom Files Download Path" 
+                        Description="Where to download RomM's temporary zip files to before extraction to your installation.">
             <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
-            </ui:SettingsCard.HeaderIcon>
-            <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.UseIndividualGameFolders, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        </ui:SettingsCard>
-
-        <ui:SettingsCard Grid.Row="0" Header="Temporary Rom Download Path" 
-                        Description="[TBD]">
-            <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.FolderZip_20_Regular}" />
             </ui:SettingsCard.HeaderIcon>
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -113,14 +123,30 @@
         </ui:SettingsCard>
 
         <ui:SettingsCard Grid.Row="0" Header="Bulk Rom Batch Size (GB)" 
-                         Description="[TBD]">
+                         Description="RommStar downloads RomM files in batches. This is the maximum size of these batches. Must be greater than the likely largest rom size for a platform. ">
+            <ui:SettingsCard.HeaderIcon>
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DocumentFolder_20_Regular}" />
+            </ui:SettingsCard.HeaderIcon>
+            <ui:NumberBox MinWidth="100"                
+                Value="{Binding ExtendedSyncSettings.TargetRomBatchFilesizeGb, ElementName=root, 
+                Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ByteToGigabyteConverter}}" />
+        </ui:SettingsCard>
+
+        <ui:SettingsCard Grid.Row="0" Header="Remove Old Server Roms" IsEnabled="False"
+                        Description="DEV: Disabled - now removes old server roms autoamtically. Sig code needed to preserve option. If local launchbox platform contains roms from a previously assigned server, these are deleted.">
             <ui:SettingsCard.HeaderIcon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
             </ui:SettingsCard.HeaderIcon>
-            <ui:NumberBox MinWidth="100"                
-                Value="{Binding ExtendedSyncSettings.TargetRomBatchFilesizeBytes, ElementName=root, 
-                Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ByteToGigabyteConverter}}" />
+            <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.DeleteOldServerRoms, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </ui:SettingsCard>
-        
+
+        <ui:SettingsCard Grid.Row="0" Header="Individual Game Folders" IsEnabled="False"
+                        Description="DEV: Disabled. Files now put where app dictates. Downloaded roms are placed in their own folders in the Platform Rom Directory">
+            <ui:SettingsCard.HeaderIcon>
+                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
+            </ui:SettingsCard.HeaderIcon>
+            <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.UseIndividualGameFolders, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </ui:SettingsCard>
+
     </StackPanel>
 </UserControl>

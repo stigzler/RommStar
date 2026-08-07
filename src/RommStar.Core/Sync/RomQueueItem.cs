@@ -22,6 +22,11 @@ namespace RommStar.Core.Sync
         public bool IsQuarantined { get; set; } = false;
 
         /// <summary>
+        /// Is part of a sibling set
+        /// </summary>
+        public bool IsSiblingSet { get; set; } = false;
+
+        /// <summary>
         /// HOlds any errors experienced during the rom download
         /// </summary>
         public string LastError { get; set; } = string.Empty;

@@ -65,7 +65,7 @@ namespace RommStar.Core.Services
 
             // Determine the database lookup path based on whether a virtual placeholder override is requested
             string cleanAppPath = usePlaceholderPath
-                ? Constants.romPlaceholder
+                ? Constants.RomPlaceholder
                 : Path.Combine(targetDirectory, fileDto.FileName);
 
             var existingApps = parentGame.GetAllAdditionalApplications();
@@ -564,7 +564,7 @@ namespace RommStar.Core.Services
                 game = PluginHelper.DataManager.AddNewGame(rommDTO.Name);
                 game.Installed = false;
                 game.Status = "Not Installed";
-                game.ApplicationPath = Constants.romPlaceholder;
+                game.ApplicationPath = Constants.RomPlaceholder;
                 //game.ApplicationPath = $"Plugins\\RommStar\\DummyPath\\{rommDTO.PlatformStub}\\{rommDTO.Name}" ;
 
 

@@ -64,7 +64,7 @@ namespace RommStar.Core.Services
                 return;
             }
 
-            if (_syncManager.PlatformQueuedAndIncomplete(platform.Name)) ;
+            if (_syncManager.PlatformQueuedAndIncomplete(platform.Name)) 
             {
                 _notificationService.SendErrorNotification($"{errorPrefix}. A Sync Job for this Platform is already in the queue.");
                 return;

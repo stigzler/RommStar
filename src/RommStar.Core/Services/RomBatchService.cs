@@ -122,9 +122,9 @@ namespace RommStar.Core.Services
                     // ISOLATION CHECK: If the next item has failed previously, set flag to force it to process entirely alone
                     bool isIsolationMode = platformCandidates.FirstOrDefault()?.RetryCount > 0;
 
-                    // Todo: below needs to be a setting, likly platform scope
+                    // Todo: below needs to be a setting, likely platform scope
                     // Overwrite or skip existing local roms
-                    if (false)
+                    if (true)
                     {
                         // Selective Roms process -----------------------------------------------------------------
                         // If settings dictate, exclude roms that already exist in the LB roms location
@@ -153,6 +153,7 @@ namespace RommStar.Core.Services
                             string candidatePath;
                             if (item.IsMultiFileGame)
                             {
+                                // MULTI-FILE ROM FILTER ============================================
                                 // this also include multi-file games that have siblings sets (eg. FFVIII, two diff region sets. These get split into different items
                                 // so don't need to process in sibling set below. BY design.
                                 foreach (var file in item.MultiFiles)
@@ -165,16 +166,37 @@ namespace RommStar.Core.Services
                                             skipDownload = false;
                                             break;
                                         }
+                                        else
+                                        {
+                                            // This check forces a download if the metadata sweep sets the main igame.ApplicationPath to the
+                                            // default "Game Installation Required" path. Bit hack as the main logic for updating the applicationPath
+                                            // is in UnzipRomsAndUpdateIGamesBatchAsync and this won't fire without the download. 
+                                            //IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                                            //if (game == null ||
+                                            //    game.ApplicationPath == Constants.RomPlaceholder)
+                                            //    skipDownload = false;
+                                            //break;
+                                        }
                                     }
                                     else if (file.Category == "soundtrack")
                                     {
-                                        candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", item.MasterFilename, file.FileName);
+                                        candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", platform.Name, item.MasterFilename, file.FileName);
+                                        if (!File.Exists(candidatePath))
+                                        {
+                                            skipDownload = false;
+                                            break;
+                                        }
+
                                         // todo: >1 soundtrack logic to go here once nail how works for 1 vs >1 soundtracks. 
                                     }
                                 }
                             }
+
+
                             else if (item.RommIds.Count > 1)
                             {
+                                // SIBLING-FILE ROM FILTER ============================================
+
                                 // This is a single instance sibling set (e.g. Buck Rogers - different versions)
                                 foreach (var file in item.MultiFiles)
                                 {
@@ -186,11 +208,32 @@ namespace RommStar.Core.Services
                                             skipDownload = false;
                                             break;
                                         }
+                                        else
+                                        {
+                                            // This check forces a download if the metadata sweep sets the main igame.ApplicationPath to the
+                                            // default "Game Installation Required" path. Bit hack as the main logic for updating the applicationPath
+                                            // is in UnzipRomsAndUpdateIGamesBatchAsync and this won't fire without the download. 
+                                            //IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                                            //if (game == null ||
+                                            //    game.ApplicationPath == Constants.RomPlaceholder)
+                                            //    skipDownload = false;                                            
+                                            //break;
+                                        }
                                     }
                                     else if (file.Category == "soundtrack")
                                     {
-                                        candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", item.MasterFilename, file.FileName);
-                                        // todo: >1 soundtrack logic to go here once nail how works for 1 vs >1 soundtracks. 
+                                        candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", platform.Name, item.MasterFilename, file.FileName);
+                                        if (!File.Exists(candidatePath))
+                                        {
+                                            skipDownload = false;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                                            if (game == null) skipDownload = false;
+                                            break;
+                                        }
                                     }
 
                                 }
@@ -199,7 +242,7 @@ namespace RommStar.Core.Services
                             {
                                 // Single file
                                 if (!File.Exists(Path.Combine(targetDirectory, item.MasterFilename))) skipDownload = false;
-                                // todo: soundtrack stuff
+                                // todo: soundtrack stuff - not sure need to as any soundtrack converts asingle file to a multi-file rom?
                             }
 
 
@@ -223,6 +266,10 @@ namespace RommStar.Core.Services
                                     //existingGame.ApplicationPath = primaryFilepath; // control for multi-file
                                     PluginHelper.DataManager.Save();
                                 }
+                                else
+                                {
+
+                                }
 
                                 continue; // Skip adding to currentBatch and move to the next candidate
                             }
@@ -240,7 +287,8 @@ namespace RommStar.Core.Services
                                 }
                             }
 
-                            // ISOLATION BREAK: If we are in isolation mode, stop after adding exactly 1 item!
+                            // ISOLATION BREAK: If we are in isolation mode (triggered following abortive download), stop after adding exactly 1 item!
+                            // focuses retries on problem rom alone.
                             if (isIsolationMode && currentBatch.Count > 0)
                                 break;
 
@@ -262,6 +310,22 @@ namespace RommStar.Core.Services
                         // currentBatch is empty. Skip the rest of the network/download logic!
                         if (currentBatch.Count == 0)
                         {
+                            // We must check platformCandidates because currentBatch is completely empty!
+                            bool requestedNotification = platformCandidates.FirstOrDefault()?.NotifyLaunchboxOnCompletion == true;
+
+                            if (requestedNotification)
+                            {
+                                // 2. Check if the live queue has anything else pending for this platform
+                                bool platformHasMoreItems = _settingsService.Settings.RomDownloadQueue
+                                    .Any(q => q.PlatformName == targetPlatform && q.ServerId == targetServerId);
+
+                                // 3. If the queue is clear, raise the custom skipped message
+                                if (!platformHasMoreItems)
+                                {
+                                    _notificationService.SendInfoNotification($"Romm Files Sync complete for [{targetPlatform}]. All required files were already present on disk.", 1);
+                                }
+                            }
+
                             continue;
                         }
 

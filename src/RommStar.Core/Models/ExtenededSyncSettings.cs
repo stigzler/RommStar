@@ -1,4 +1,5 @@
-﻿using RommStar.Core.Sync;
+﻿using RommStar.Core.Primitives;
+using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +23,11 @@ namespace RommStar.Core.Models
         public string TempDownloadsPath { get; set; } = "TemporaryDownloads";
         public long TargetRomBatchFilesizeGb { get; set; } = 2; // 2GB
         public bool UseIndividualGameFolders { get; set; } = false;
+
+        /// <summary>
+        /// When processing metadata and checking if local rom exists, the method to use (SHA1 slower)
+        /// </summary>
+        public FileCheckMethod FileCheckMethod { get; set; } = FileCheckMethod.FileOnly;
 
         /// <summary>
         /// If local launchbox platform contains roms from a previously assigned server, these are deleted. 

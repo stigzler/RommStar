@@ -76,6 +76,8 @@ namespace RommStar.Core.Sync
 
         public event Action<PlatformSyncJob>? OnSyncCompletedNotification;
 
+
+
         public void CancelPlatformSync(Guid jobId)
         {
             var card = ActiveSyncJobs.FirstOrDefault(j => j.Id == jobId);
@@ -208,7 +210,10 @@ namespace RommStar.Core.Sync
             }
             else if (romDto.SiblingRoms != null && romDto.SiblingRoms.Count > 0)
             {
+                queueItem.IsSiblingSet = true;
                 // Single file sibling rom
+                // Urgh - below doesn't work. Sadly, .files is only the single sib file, and .siblingfiles
+                // only contains the file name not the extension! Bit of a daft oversight on romm's part..
                 queueItem.MultiFiles = romDto.Files;
             }
 
@@ -683,7 +688,8 @@ namespace RommStar.Core.Sync
                                         {
                                             if (installRoms && !string.IsNullOrEmpty(primaryFile.FileName))
                                             {
-                                                targetedGame.ApplicationPath = Constants.romPlaceholder;
+                                                // primaryFile holds CRC etc
+                                                targetedGame.ApplicationPath = Constants.RomPlaceholder;
                                             }
 
                                             string actionLabel = actionPerformed.ToString();
@@ -804,16 +810,9 @@ namespace RommStar.Core.Sync
                                                 // unless we are explicitly running a profile that downloads the file right now.
                                                 targetedGame.ApplicationPath = installRoms
                                                     ? Path.Combine(targetDirectory, singleFile.FileName)
-                                                    : Constants.romPlaceholder;
-                                            }
-
-
-                                            // >>>>>>>>> REF A <<<<<<<<<<<<<<<
-                                            //if (installRoms)
-                                            //{
-                                            //    EnqueueRomDownloadJob(platformTask, currentServer, detailedRomDto.Id ?? 0, singleFile,
-                                            //        targetDirectory, detailedRomDto.Name);
-                                            //}
+                                                    : Constants.RomPlaceholder;
+                                                // also good
+                                            }                         
                                         }
                                     }
                                     else if (!string.IsNullOrEmpty(detailedRomDto.RommFilename))
@@ -823,12 +822,10 @@ namespace RommStar.Core.Sync
                                             // CRITICAL FIX: Same logic for the filename fallback path
                                             targetedGame.ApplicationPath = installRoms
                                                 ? Path.Combine(targetDirectory, detailedRomDto.RommFilename)
-                                                : Constants.romPlaceholder;
+                                                : Constants.RomPlaceholder;
                                         }
                                     }
 
-                                    // gmni asked me to replce REF A above witht this and put it here for some reason
-                                    // todo: needs testing.
                                     if (installRoms && targetedGame != null)
                                     {
                                         long totalSize = detailedRomDto.CombinedFilesSizeBytes ?? 0;

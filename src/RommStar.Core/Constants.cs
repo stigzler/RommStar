@@ -22,7 +22,7 @@ namespace RommStar.Core
         /// This has to be relevant to launchbox root to ensure multi-version rom games show the 
         /// multi version badge 🤷
         /// </summary>
-        internal static readonly string romPlaceholder = Path.Combine(@"Plugins\RommStar", "Game Installation Required");
+        internal static readonly string RomPlaceholder = Path.Combine(@"Plugins\RommStar", "Game Installation Required");
 
         internal static readonly Dictionary<string, RatingDefinition> AgeRatingLookup = new(StringComparer.OrdinalIgnoreCase)
         {

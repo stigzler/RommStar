@@ -1,4 +1,12 @@
-﻿
+﻿# Batch install
+
+## Rom / iGame scenarios
+
+|iGame exists|Local Roms exist|Outcome|
+|-|-|-|
+|T|T|Exclude rom + no igame acitons|
+|F|T|Ensure|F|T|Ensure|
+
 # On Demand Install
 
 ## Games with siblings
