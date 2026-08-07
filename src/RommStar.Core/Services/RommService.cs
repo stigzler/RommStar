@@ -152,17 +152,15 @@ namespace RommStar.Core.Services
             }
         }
 
-        public async Task<bool> DownloadRomsToDiskAsync(RommServer server, List<int> romIds, string targetFilePath, CancellationToken externalToken = default)
+        public async Task<string> DownloadRomsToDiskAsync(RommServer server, List<int> romIds, string targetFilePath, CancellationToken externalToken = default)
         {
-            if (romIds == null || romIds.Count == 0) return false;
+            if (romIds == null || romIds.Count == 0) return "No ROM IDs provided.";
 
-            // Build the query parameter string properly
             string idsParam = string.Join(',', romIds);
             string filenameParam = Path.GetFileName(targetFilePath);
-
             string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/roms/download?rom_ids={idsParam}&filename={filenameParam}";
 
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromHours(2)); // Zip downloads can take a long time!
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromHours(2));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, externalToken);
 
             try
@@ -170,15 +168,14 @@ namespace RommStar.Core.Services
                 var request = new HttpRequestMessage(HttpMethod.Get, endpointUrl);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", server.ApiToken);
 
-                // HttpCompletionOption.ResponseHeadersRead is CRITICAL for large files. 
-                // It prevents HttpClient from buffering the 2GB zip into memory.
+                // TEST
+                //if (endpointUrl.Contains("391")) throw new Exception("Test DownloadRomsToDiskAsync Exception on Atari 5200 id 391");
+
                 using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
-                Debug.WriteLine($"[RommService] Response headers: {string.Join(", ", response.Headers)}");
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Debug.WriteLine($"[RommService] ZIP Download failed: {response.StatusCode}");
-                    return false;
+                    return $"HTTP Error: {(int)response.StatusCode} {response.StatusCode}";
                 }
 
                 using (var sourceStream = await response.Content.ReadAsStreamAsync(linkedCts.Token))
@@ -187,17 +184,15 @@ namespace RommStar.Core.Services
                     await sourceStream.CopyToAsync(targetStream, linkedCts.Token);
                 }
 
-                return true;
+                return string.Empty; // Success
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[RommService] ZIP Download Exception: {ex.Message}");
-
                 if (File.Exists(targetFilePath))
                 {
                     try { File.Delete(targetFilePath); } catch { }
                 }
-                return false;
+                return $"Exception: {ex.Message}";
             }
         }
 
@@ -223,6 +218,9 @@ namespace RommStar.Core.Services
             {
                 var request = new HttpRequestMessage(method, url);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", server.ApiToken);
+
+                // Test --------------------
+                // Test end
 
                 var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
 

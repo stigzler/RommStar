@@ -60,6 +60,7 @@ namespace RommStar.Core.Services
                 var game = Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.GetGameById(item.LaunchboxId);
                 if (game != null && game.Status == "Installing")
                 {
+                    // todo: update this to lb api background update
                     game.Status = "Not Installed";
                     // Fire and forget the UI update to remove the spinner overlay
                     _ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
@@ -87,9 +88,10 @@ namespace RommStar.Core.Services
 
                     // 1. Identify the most pressing item to determine our target platform and server for this run
                     var mostPressingItem = queue
-                       .OrderByDescending(q => q.IsPriority)
-                       .ThenBy(q => q.AddedAt)
-                       .FirstOrDefault();
+                        .Where(q => q != null) // <-- Safely filter out mid-thread collision nulls on the fly
+                        .OrderByDescending(q => q.IsPriority)
+                        .ThenBy(q => q.AddedAt)
+                        .FirstOrDefault();
 
                     if (mostPressingItem == null) continue;
 
@@ -98,10 +100,12 @@ namespace RommStar.Core.Services
 
                     // 2. Filter candidates ONLY for the exact target platform and server to prevent cross-contamination
                     var platformCandidates = queue
-                        .Where(q => q.PlatformName == targetPlatform && q.ServerId == targetServerId)
+                        .Where(q => q != null && q.PlatformName == targetPlatform && q.ServerId == targetServerId && !q.IsQuarantined)
                         .OrderByDescending(q => q.IsPriority)
                         .ThenBy(q => q.AddedAt)
                         .ToList();
+
+                    if (platformCandidates.Count == 0) continue; // Safety check in case the most pressing item was quarantined mid-loop
 
                     // 3. Build the batch based on target filesize using the correct property
                     currentBatch = new();
@@ -115,7 +119,10 @@ namespace RommStar.Core.Services
                     // Apply GB to Bytes conversion formula
                     long targetSizeBytes = platExtSyncSetts.TargetRomBatchFilesizeGb * 1024L * 1024L * 1024L;
 
+                    // ISOLATION CHECK: If the next item has failed previously, set flag to force it to process entirely alone
+                    bool isIsolationMode = platformCandidates.FirstOrDefault()?.RetryCount > 0;
 
+                    // Todo: below needs to be a setting, likly platform scope
                     // Overwrite or skip existing local roms
                     if (false)
                     {
@@ -226,10 +233,16 @@ namespace RommStar.Core.Services
                                 {
                                     existingGame.Installed = false;
                                     existingGame.Status = "Installing";
+                                    // do above via: PluginHelper.DataManager.BackgroundReloadSave(new Action(() => { game.Status = "Installing"; }));
+
                                     //existingGame.ApplicationPath = primaryFilepath; // control for multi-file
                                     PluginHelper.DataManager.Save();
                                 }
                             }
+
+                            // ISOLATION BREAK: If we are in isolation mode, stop after adding exactly 1 item!
+                            if (isIsolationMode && currentBatch.Count > 0)
+                                break;
 
                             // If the batch already has items, and adding this one pushes us over the limit, stop here.
                             if (currentBatch.Count > 0 && (currentBatchSize + item.TotalSizeBytes) > targetSizeBytes)
@@ -253,7 +266,6 @@ namespace RommStar.Core.Services
                         }
 
                         // END Selective Roms Process -------------------------------------------------------------------------
-
                     }
 
                     else
@@ -262,6 +274,10 @@ namespace RommStar.Core.Services
                         // OVERWRITE ROMS
                         foreach (var item in platformCandidates)
                         {
+                            // ISOLATION BREAK: If we are in isolation mode, stop after adding exactly 1 item!
+                            if (isIsolationMode && currentBatch.Count > 0)
+                                break;
+
                             // If the batch already has items, and adding this one pushes us over the limit, stop here.
                             if (currentBatch.Count > 0 && (currentBatchSize + item.TotalSizeBytes) > targetSizeBytes)
                                 break;
@@ -322,12 +338,16 @@ namespace RommStar.Core.Services
                         var game = Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.GetGameById(item.LaunchboxId);
                         if (game != null && game.Status != "Installing")
                         {
-                            game.Status = "Installing";
-                            //_ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                            //game.Status = "Installing";
+                            PluginHelper.DataManager.BackgroundReloadSave(new Action(() => { game.Status = "Installing"; game.Installed = false; }));
+                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                _ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                            }));
                         }
                     }
+                    //Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.Save();
 
-                    Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.Save();
                     await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         // If user browsing the same platform as the download, refresh to update Install badges. Otherwise don't to reduce UI noise.
@@ -341,7 +361,9 @@ namespace RommStar.Core.Services
                     }));
 
                     // 6. Download the Zip
-                    bool success = await _rommService.DownloadRomsToDiskAsync(activeServer, allRommIdsToDownload, targetZipPath, token);
+                    string downloadError = await _rommService.DownloadRomsToDiskAsync(activeServer, allRommIdsToDownload, targetZipPath, token);
+                    bool success = string.IsNullOrEmpty(downloadError); 
+                    
                     if (success && File.Exists(targetZipPath))
                     {
                         // 7. Handoff to LaunchboxDataService for extraction and IGame updates
@@ -375,9 +397,42 @@ namespace RommStar.Core.Services
                     }
                     else
                     {
-                        Debug.WriteLine("[RomBatchService] Batch download failed. Retrying in 10 seconds...");
-                        RevertBatchInstallingStatus(currentBatch); // Unlock the UI
-                        await Task.Delay(10000, token);
+                        Debug.WriteLine($"[RomBatchService] Batch download failed. Error: {downloadError}");
+
+                        // todo: make this a setting?? Necessary?
+                        int maxRetries = 3; // Hardcoded max retries
+
+                        foreach (var badItem in currentBatch)
+                        {
+                            badItem.RetryCount++;
+
+                            // If it hit the max limit, quarantine it!
+                            if (badItem.RetryCount >= maxRetries)
+                            {
+                                badItem.IsQuarantined = true;
+                                badItem.LastError = downloadError;
+
+                                // If we are in isolation mode, we know the exact game name that failed
+                                string gameName = currentBatch.Count == 1 ? badItem.GameNameSanitised : "A batch of games";
+                                _notificationService.SendErrorNotification($"Quarantined '{gameName}' ({badItem.PlatformName}) after {maxRetries} failed downloads. Check settings to retry.", 3);
+
+                                // Revert the UI state permanently for the quarantined item
+                                var game = Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.GetGameById(badItem.LaunchboxId);
+                                if (game != null)
+                                {
+                                    game.Status = "Not Installed";
+                                    _ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                                }
+                            }
+                        }
+
+                        _settingsService.Save(); // Save the incremented counters and quarantine states
+                        PluginHelper.DataManager.Save(); // Save any UI reversions
+
+                        // Only revert the UI for items still in the active queue (not quarantined)
+                        RevertBatchInstallingStatus(currentBatch.Where(b => !b.IsQuarantined).ToList());
+
+                        await Task.Delay(2000, token); // Brief pause before continuing
                     }
                 }
                 catch (OperationCanceledException)

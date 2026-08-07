@@ -155,11 +155,11 @@ namespace RommStar.Core.Helpers
             bool isInstalling = (game.Status == "Installing");
 
             // Ensure the passed game object reflects its updated status safely
-            if (game.Installed == true && isInstalling)
-            {
-                game.Status = "Installed";
-                isInstalling = false;
-            }
+            //if (game.Installed == true && isInstalling)
+            //{
+            //    game.Status = "Installed";
+            //    isInstalling = false;
+            //}
 
             await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
             {

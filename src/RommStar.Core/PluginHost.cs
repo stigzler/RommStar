@@ -4,19 +4,12 @@ using RommStar.Core.Mappers;
 using RommStar.Core.Primitives;
 using RommStar.Core.Services;
 using RommStar.Core.Sync;
-using RommStar.Core.Temp;
 using RommStar.Core.UI.ViewModels.Pages;
 using RommStar.Core.UI.ViewModels.Windows;
-using RommStar.Core.UI.Views;
 using RommStar.Core.UI.Views.Windows;
 using System.IO;
 using System.Reflection;
 using System.Windows;
-using System.Windows.Automation.Peers;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Media;
-using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core

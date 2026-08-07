@@ -1,6 +1,7 @@
 ﻿using iNKORE.UI.WPF.Helpers;
 using iNKORE.UI.WPF.Modern.Controls;
 using RommStar.Core.Dtos.Romm;
+using RommStar.Core.Extensions;
 using RommStar.Core.Helpers;
 using RommStar.Core.Models;
 using RommStar.Core.Sync;
@@ -8,6 +9,7 @@ using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
@@ -119,13 +121,23 @@ namespace RommStar.Core.Services
             var lbPlatformRommPlatforms = ((List<PlatformDTO>)apiQuery.Data).Where(rp => rommPlatformIds.Contains(rp.RommId)).ToList();
 
             int? combinedRomCount = lbPlatformRommPlatforms.Sum(p => p.RomCount);
-
+            
             // Do Sync
+
+            // TODO: Need to check somewhere above that there isn't already a sync ongoing for the platform. Prevent overlapping syncs.
 
             await _syncManager?.QueuePlatformSync(launchboxPlatformName, platformRomsFolder, mediaFolders, platformDefaultEmulatorID, rommPlatformIds,
                 resolvedExtSyncSettings, rommServer, (int)combinedRomCount, notifyLaunchboxOnMeatadataDone: true);
 
-            _notificationService.SendInfoNotification($"Started RomM sync for [{launchboxPlatformName}]. Results can be seen in [Tools > RommStar > Sync Jobs]");
+            StringBuilder sb = new StringBuilder($"Started RomM sync for [{launchboxPlatformName}].\r\n" +
+                $"Scheme: {resolvedExtSyncSettings.SyncProfile.GetCustomName()}.\r\n");
+            if (resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia ||
+                resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom ||
+                resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.DownloadRom)
+            {
+                sb.Append($"Rom files will download in the background, persisting across Launchbox sessions.");
+            }
+            _notificationService.SendInfoNotification(sb.ToString(), 3);
         }
 
         private async Task InstallGameOnDemandAsync(IGame game)
@@ -193,7 +205,9 @@ namespace RommStar.Core.Services
                 string platformStub = firstRomDTO.PlatformStub;
 
                 // Pass the live cancellation token to the stream!
-                bool success = await _rommService.DownloadRomsToDiskAsync(activeServer, rommIdsToDownload, targetZipPath, _onDemandCts.Token);
+                string downloadApiReturn = await _rommService.DownloadRomsToDiskAsync(activeServer, rommIdsToDownload, targetZipPath, _onDemandCts.Token);
+
+                bool success = string.IsNullOrEmpty(downloadApiReturn);
 
                 if (success && File.Exists(targetZipPath))
                 {
