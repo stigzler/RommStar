@@ -29,6 +29,7 @@ namespace RommStar.Core.Properties
         /// </summary>
         public bool HideSuccessEntries { get; set; } = true;
 
+
         /// <summary>
         /// User-set space for temporary downloads. Eg: when the Romm API 
         /// downloads the zipped rom collection files to.
