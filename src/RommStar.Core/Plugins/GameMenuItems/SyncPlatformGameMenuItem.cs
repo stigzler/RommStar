@@ -38,21 +38,37 @@ namespace RommStar.Core.Plugins.GameMenuItems
         }
 
         private bool IsValidForOperation() {
-            if (PluginHelper.StateManager.GetAllSelectedGames()?.Length == 1 &&
-                !string.IsNullOrEmpty( PluginHelper.StateManager.GetAllSelectedGames()?[0].Platform) 
-                ) 
-                return true;
+            //if (PluginHelper.StateManager.GetAllSelectedGames()?.Length == 1 &&
+            //    !string.IsNullOrEmpty( PluginHelper.StateManager.GetAllSelectedGames()?[0].Platform) 
+            //    ) 
+            //    return true;
 
-            return false;
+            //return false;
+            // return string.IsNullOrEmpty(_selectedGame?.Platform);
+
+            if (PluginHelper.StateManager.GetAllSelectedGames()?.Length == 0) return false;
+            if (!SelectedGamesSamePlatform()) return false;
+            if (string.IsNullOrEmpty(_selectedGame?.Platform)) return false;
+
+            return true;
+
         }
 
         private string DynamicCaption()
         {
             if (PluginHelper.StateManager.GetAllSelectedGames()?.Length == 0) return "Can't Sync: No Game Selected";
-            if (PluginHelper.StateManager.GetAllSelectedGames()?.Length > 1) return "Can't Sync: Multiple Games Selected";
+            if (!SelectedGamesSamePlatform()) return "Can't Sync: Platforms Mismatch";
             if (string.IsNullOrEmpty(_selectedGame?.Platform)) return "Can't Sync: No Game Platform";
 
             return $"Sync Platform: {_selectedGame.Platform}";
+        }
+
+        private bool SelectedGamesSamePlatform()
+        {
+            return PluginHelper.StateManager.GetAllSelectedGames()
+                .Select(g => g.Platform)
+                .Distinct()
+                .Count() == 1;
         }
 
     }

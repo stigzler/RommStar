@@ -150,36 +150,37 @@ namespace RommStar.Core.Sync
         }
 
         private void EnqueueBatchRomDownloadJob(PlatformSyncTask platformTask, IGame game, RomDTO romDto, List<int> allRommIds, string masterFilename,
-                    long totalSizeBytes, string serverId, bool notifyLaunchbox = false, List<string>? siblingVariantRoms = null)
+                    long totalSizeBytes, string serverId, List<RomQueueItem> stagedQueue, bool notifyLaunchbox = false, List<string>? siblingVariantRoms = null)
         {
             var existingQueue = _settingsService.Settings.RomDownloadQueue;
 
-            // 1. Check if the game is already in the queue (including the null-safety threading check)
-            var existingItem = existingQueue.FirstOrDefault(q => q != null && q.LaunchboxId == game.Id);
+            // 1. Check if the game is already in the persisted settings queue
+            var existingPersistedItem = existingQueue.FirstOrDefault(q => q != null && q.LaunchboxId == game.Id);
 
-            if (existingItem != null)
+            if (existingPersistedItem != null)
             {
-                // 2. The item already exists. Is it quarantined?
-                if (existingItem.IsQuarantined)
+                // 2. The item already exists in the live queue. Is it quarantined?
+                if (existingPersistedItem.IsQuarantined)
                 {
-                    // The user is re-running the sync, which implies they want to try again.
-                    // Reset the quarantine flag and retry counters!
-                    existingItem.IsQuarantined = false;
-                    existingItem.RetryCount = 0;
-                    existingItem.LastError = string.Empty;
-                    existingItem.AddedAt = DateTime.UtcNow;
-                    existingItem.NotifyLaunchboxOnCompletion = notifyLaunchbox;
+                    existingPersistedItem.IsQuarantined = false;
+                    existingPersistedItem.RetryCount = 0;
+                    existingPersistedItem.LastError = string.Empty;
+                    existingPersistedItem.AddedAt = DateTime.UtcNow;
+                    existingPersistedItem.NotifyLaunchboxOnCompletion = notifyLaunchbox;
 
                     _settingsService.Save();
                     platformTask.UiCard.AddLog($"Re-queued quarantined item '{game.Title}' for batch download.", PlatformSyncJob.LogType.Info);
                 }
+                return; // Return immediately to avoid duplicates
+            }
 
-                // If it exists and ISN'T quarantined, it's just patiently waiting in line. 
-                // We return immediately to avoid duplicating it.
+            // 3. Check if we have already staged this item during THIS sync run
+            if (stagedQueue.Any(q => q != null && q.LaunchboxId == game.Id))
+            {
                 return;
             }
 
-            // 3. The item does not exist at all. Safely build and insert a brand new queue item.
+            // 4. The item does not exist at all. Safely build and insert a brand new queue item to the STAGED list.
             var queueItem = new RomQueueItem
             {
                 LaunchboxId = game.Id,
@@ -200,18 +201,19 @@ namespace RommStar.Core.Sync
             {
                 queueItem.MultiFiles = romDto.Files;
             }
-            else if (romDto.SiblingRoms.Count > 0)
+            else if (romDto.SiblingRoms != null && romDto.SiblingRoms.Count > 0)
             {
                 // Single file sibling rom
                 queueItem.MultiFiles = romDto.Files;
             }
 
-            existingQueue.Add(queueItem);
-            _settingsService.Save();
+            // ADD TO STAGED QUEUE ONLY - NO SETTINGS SAVE HERE
+            stagedQueue.Add(queueItem);
 
             // Optional: Log it for UI transparency
-            platformTask.UiCard.AddLog($"Queued '{game.Title}' rom file/s for batch download.", PlatformSyncJob.LogType.Info);
+            platformTask.UiCard.AddLog($"Staged '{game.Title}' rom file/s for batch download.", PlatformSyncJob.LogType.Info);
         }
+
 
         // =========================================================================
         // MICRO-LEVEL FILE PIPELINE HANDLERS
@@ -587,6 +589,9 @@ namespace RommStar.Core.Sync
                         // This handles 'sibling' roms (romm concept) - eg. different versions of the same game
                         var siblingClusters = new Dictionary<int, List<RomDTO>>();
 
+                        // Initialize our deferred staging list - defers batchromdownmload start until after metadata sync complete. 
+                        var stagedBatchDownloadItems = new List<RomQueueItem>();
+
                         do
                         {
                             if (platformTask.Cts.Token.IsCancellationRequested) break;
@@ -722,7 +727,7 @@ namespace RommStar.Core.Sync
                                         string masterFile = detailedRomDto.RommFilename ?? string.Empty;
 
                                         EnqueueBatchRomDownloadJob(platformTask, targetedGame, detailedRomDto, new List<int> { detailedRomDto.Id ?? 0 },
-                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString(), platformTask.NotifyLauncboxWhenMetadataComplete);
+                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString(), stagedBatchDownloadItems, platformTask.NotifyLauncboxWhenMetadataComplete);
                                     }
 
                                     if (targetedGame != null && detailedRomDto.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRomDto.Id.Value))
@@ -834,7 +839,7 @@ namespace RommStar.Core.Sync
                                         }
 
                                         EnqueueBatchRomDownloadJob(platformTask, targetedGame, detailedRomDto, new List<int> { detailedRomDto.Id ?? 0 },
-                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString(), platformTask.NotifyLauncboxWhenMetadataComplete);
+                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString(), stagedBatchDownloadItems, platformTask.NotifyLauncboxWhenMetadataComplete);
                                     }
 
                                     if (targetedGame != null && detailedRomDto.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRomDto.Id.Value))
@@ -1058,7 +1063,7 @@ namespace RommStar.Core.Sync
                                 }
 
                                 EnqueueBatchRomDownloadJob(platformTask, masterGameInstance, masterRom, allGroupIds, masterFile, totalGroupSize,
-                                    platformTask.TargetServer.Id.ToString(), platformTask.NotifyLauncboxWhenMetadataComplete);
+                                    platformTask.TargetServer.Id.ToString(), stagedBatchDownloadItems, platformTask.NotifyLauncboxWhenMetadataComplete);
                             }
 
                             // platformTask.UiCard.ProcessedItems += cluster.Count;
@@ -1073,14 +1078,37 @@ namespace RommStar.Core.Sync
 
                         PluginHelper.DataManager.Save();
 
+                        PluginHelper.LaunchBoxMainViewModel?.RefreshData();
+
+
+
+
+                       // await LaunchboxViewsHelper.SoftRefreshUi();
+
+                        Thread.Sleep(1000);
+
+                        // Now populate the batchRomDownload list - background daemon will pick these up
+                        if (stagedBatchDownloadItems.Count > 0 && !platformTask.Cts.Token.IsCancellationRequested)
+                        {
+                            foreach (var stagedItem in stagedBatchDownloadItems)
+                            {
+                                // Double check it wasn't added by another parallel process
+                                if (!_settingsService.Settings.RomDownloadQueue.Any(q => q != null && q.LaunchboxId == stagedItem.LaunchboxId))
+                                {
+                                    _settingsService.Settings.RomDownloadQueue.Add(stagedItem);
+                                }
+                            }
+
+                            // Atomically save the queue once
+                            _settingsService.Save();
+                        }
+
                         // Update any LB UIs
                         if (PluginHelper.LaunchBoxMainViewModel != null)
                         {
                             await Application.Current.Dispatcher.BeginInvoke(new Action(async () =>
                             { _ = LaunchboxViewsHelper.SoftRefreshUi(); }));
                         }
-
-                        //PluginHelper.LaunchBoxMainViewModel.RefreshData();
 
                         // Stopped the stopwatch right before evaluating the final status strings:
                         jobStopwatch.Stop();
@@ -1130,16 +1158,13 @@ namespace RommStar.Core.Sync
                         // FIX: Ensure cleaning dictionaries always fires to prevent data leaks across sync retry bounds
                         _activeFileCounters.TryRemove(platformTask.Id, out _);
                         _activeTokens.TryRemove(platformTask.Id, out _);
-
-
                     }
 
                     if (platformTask.NotifyLauncboxWhenMetadataComplete)
-
                     {
                         StringBuilder sb = new StringBuilder($"Romm Metadata/Media Sync complete for [{platformTask.PlatformName}].");
-                        //if (platformTask.DownloadRomFiles) sb.Append($" Downloading rom files in the background. You can quit Launchbox at any time. " +
-                        //    $"Downloads will be resumed on restart.");
+                        if (platformTask.DownloadRomFiles) sb.Append($" Downloading rom files started in the background. You can quit Launchbox at any time. " +
+                            $"Downloads will be resumed on restart.");
                         _notificationService.SendInfoNotification(sb.ToString(), 2);
                     }
                 }

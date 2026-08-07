@@ -129,13 +129,13 @@ namespace RommStar.Core.Services
             await _syncManager?.QueuePlatformSync(launchboxPlatformName, platformRomsFolder, mediaFolders, platformDefaultEmulatorID, rommPlatformIds,
                 resolvedExtSyncSettings, rommServer, (int)combinedRomCount, notifyLaunchboxOnMeatadataDone: true);
 
-            StringBuilder sb = new StringBuilder($"Started RomM sync for [{launchboxPlatformName}].\r\n" +
-                $"Scheme: {resolvedExtSyncSettings.SyncProfile.GetCustomName()}.\r\n");
+            StringBuilder sb = new StringBuilder($"Started RomM sync for [{launchboxPlatformName}]:\r\n" +
+                $"{resolvedExtSyncSettings.SyncProfile.GetCustomName()}.");
             if (resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia ||
                 resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom ||
                 resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.DownloadRom)
             {
-                sb.Append($"Rom files will download in the background, persisting across Launchbox sessions.");
+                sb.Append($"\r\n\r\nRom files will download in the background, persisting across Launchbox sessions.");
             }
             _notificationService.SendInfoNotification(sb.ToString(), 3);
         }

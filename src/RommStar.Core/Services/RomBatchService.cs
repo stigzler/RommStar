@@ -335,18 +335,21 @@ namespace RommStar.Core.Services
 
                     foreach (var item in currentBatch)
                     {
-                        var game = Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                        var game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
                         if (game != null && game.Status != "Installing")
                         {
                             //game.Status = "Installing";
-                            PluginHelper.DataManager.BackgroundReloadSave(new Action(() => { game.Status = "Installing"; game.Installed = false; }));
+                            //PluginHelper.DataManager.BackgroundReloadSave(new Action(() => { game.Status = "Installing"; game.Installed = false; }));
+                            game.Status = "Installing";
+                            game.Installed = false;
+
                             Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                             {
-                                _ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                               //_ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
                             }));
                         }
                     }
-                    //Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.Save();
+                    PluginHelper.DataManager.Save();
 
                     await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                     {
