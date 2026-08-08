@@ -138,6 +138,11 @@ namespace RommStar.Core.Services
                         string romRoot = Helpers.FileSystemHelper.ResolvedRompath(platform.Folder, platform.Name);
                         bool queueModified = false;
 
+                        // line up vars used in processes
+                        bool useSha1InFilecheck = syncSettings.FileCheckMethod == Primitives.FileCheckMethod.FileAndSHA1;
+                        string candidatePath = null;
+
+
                         // 2. Build the batch, filtering out items that already exist on disk
                         foreach (var item in platformCandidates)
                         {
@@ -148,7 +153,6 @@ namespace RommStar.Core.Services
 
                             // 2.1 Selective Download routine ===================================================
                             bool skipDownload = true;
-                            string candidatePath;
                             if (item.IsMultiFileGame)
                             {
                                 // MULTI-FILE ROM FILTER =--------------------------------------------
@@ -160,11 +164,11 @@ namespace RommStar.Core.Services
                                     // may be returning in another session and file may have been deleted. 
                                     if (file.Category == "game")
                                     {
-                                        candidatePath = Path.Combine(targetDirectory, item.MasterFilename, file.FileName);                                        
+                                        candidatePath = Path.Combine(targetDirectory, item.MasterFilename, file.FileName);
 
                                         if (!FileSystemHelper.LocalFilePresent(syncSettings.FileCheckMethod == Primitives.FileCheckMethod.FileAndSHA1,
                                             candidatePath, file.Sha1Hash))
-                                        {                                            
+                                        {
                                             skipDownload = false;
                                             IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
                                             if (game != null)
@@ -174,18 +178,19 @@ namespace RommStar.Core.Services
                                             }
                                             _ = LaunchboxViewsHelper.SoftRefreshUi();
                                             break;
-                                        }                       
+                                        }
                                     }
                                     else if (file.Category == "soundtrack")
                                     {
                                         candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", platform.Name, item.MasterFilename, file.FileName);
-                                        if (!FileSystemHelper.LocalFilePresent(syncSettings.FileCheckMethod == Primitives.FileCheckMethod.FileAndSHA1,
-                                            candidatePath, file.Sha1Hash))
-                                        {
-                                            skipDownload = false;
-                                            _ = LaunchboxViewsHelper.SoftRefreshUi();
-                                            break;
-                                        }
+
+                                    }
+
+                                    if (!FileSystemHelper.LocalFilePresent(useSha1InFilecheck, candidatePath, file.Sha1Hash))
+                                    {
+                                        skipDownload = false;
+                                        _ = LaunchboxViewsHelper.SoftRefreshUi();
+                                        break;
                                     }
                                 }
                             }
@@ -205,18 +210,7 @@ namespace RommStar.Core.Services
                                         {
                                             skipDownload = false;
                                             break;
-                                        }
-                                        else
-                                        {
-                                            // This check forces a download if the metadata sweep sets the main igame.ApplicationPath to the
-                                            // default "Game Installation Required" path. Bit hack as the main logic for updating the applicationPath
-                                            // is in UnzipRomsAndUpdateIGamesBatchAsync and this won't fire without the download. 
-                                            //IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
-                                            //if (game == null ||
-                                            //    game.ApplicationPath == Constants.RomPlaceholder)
-                                            //    skipDownload = false;                                            
-                                            //break;
-                                        }
+                                        }                    
                                     }
                                     else if (file.Category == "soundtrack")
                                     {
@@ -239,7 +233,11 @@ namespace RommStar.Core.Services
                             else
                             {
                                 // Single file
-                                if (!File.Exists(Path.Combine(targetDirectory, item.MasterFilename))) skipDownload = false;
+                                //if (!FileSystemHelper.LocalFilePresent(syncSettings.FileCheckMethod == Primitives.FileCheckMethod.FileAndSHA1,
+                                //            candidatePath, file.Sha1Hash))
+
+
+                                    if (!File.Exists(Path.Combine(targetDirectory, item.MasterFilename))) skipDownload = false;
                                 // todo: soundtrack stuff - not sure need to as any soundtrack converts asingle file to a multi-file rom?
                             }
 
@@ -407,7 +405,7 @@ namespace RommStar.Core.Services
 
                             Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                             {
-                               //_ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                                //_ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
                             }));
                         }
                     }
@@ -427,8 +425,8 @@ namespace RommStar.Core.Services
 
                     // 6. Download the Zip
                     string downloadError = await _rommService.DownloadRomsToDiskAsync(activeServer, allRommIdsToDownload, targetZipPath, token);
-                    bool success = string.IsNullOrEmpty(downloadError); 
-                    
+                    bool success = string.IsNullOrEmpty(downloadError);
+
                     if (success && File.Exists(targetZipPath))
                     {
                         // 7. Handoff to LaunchboxDataService for extraction and IGame updates

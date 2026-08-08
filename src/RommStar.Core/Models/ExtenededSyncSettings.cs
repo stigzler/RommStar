@@ -1,4 +1,5 @@
-﻿using RommStar.Core.Primitives;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using RommStar.Core.Primitives;
 using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
@@ -8,15 +9,19 @@ using System.Threading.Tasks;
 
 namespace RommStar.Core.Models
 {
+    // Todo: refactor this for proper MVVM - this is UI operating directly on the model. 
     /// <summary>
     /// ALL Properties should be nullable.
     /// Null in a PLatform-specific SyncProfileTypes will cause it to be ignored
     /// and the default global setting used.
     /// </summary>
-    public class ExtendedSyncSettings
+    public class ExtendedSyncSettings: ObservableObject
     {
-        public bool ApplySettings { get; set; } = false;
-        public SyncProfileTypes SyncProfile { get; set; } = SyncProfileTypes.CreateGame_DownloadMedia;
+        [ObservableProperty]
+        private bool _applySettings = false;
+
+        [ObservableProperty]
+        private SyncProfileTypes SyncProfile { get; set; } = SyncProfileTypes.UpdateMetadata_DownloadMedia;
         public bool OverwriteMetadata { get; set; } = true;
         public bool OverwriteExistingMedia { get; set; } = true;
         public bool OverwriteExistingRoms { get; set; } = true;

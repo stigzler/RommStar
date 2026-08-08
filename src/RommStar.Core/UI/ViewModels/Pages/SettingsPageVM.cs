@@ -4,6 +4,8 @@ using RommStar.Core.Properties;
 using RommStar.Core.Services;
 using RommStar.Core.UI.Views.UserControls;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Data;
 
 namespace RommStar.Core.UI.ViewModels.Pages
 {
@@ -38,7 +40,24 @@ namespace RommStar.Core.UI.ViewModels.Pages
             // Initialize the UI collection items from our Enums and settings data state
             PopulateMediaUICollections();
 
+            if (PluginSettings is INotifyPropertyChanged ps)
+            {
+                ps.PropertyChanged += OnSettingChanged;
+            }
+
+            if (PluginSettings.GlobalExtendedSyncSettings is INotifyPropertyChanged gess)
+            {
+                gess.PropertyChanged += OnSettingChanged;
+            }
+
         }
+
+        private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            SaveSettings();
+        }
+
+
         private void PopulateMediaUICollections()
         {
             SyncMediaTypes.Clear();
@@ -67,7 +86,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             }
         }
 
-        private void SaveSettings()
+        internal void SaveSettings()
         {
             // 1. Commit UI states back into the raw PluginSettings Data Models before saving to disk
             SaveProfileFromUI(SyncMediaTypes, PluginSettings.SyncMediaProfile);

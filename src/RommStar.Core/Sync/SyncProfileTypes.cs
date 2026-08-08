@@ -9,24 +9,24 @@ using RommStar.Core.CustomAttributes;
 
 namespace RommStar.Core.Sync
 {
-    [DefaultValue(SyncProfileTypes.CreateGame_DownloadMedia)]
+    [DefaultValue(SyncProfileTypes.UpdateMetadata_DownloadMedia)]
     public enum SyncProfileTypes
     {
-        [CustomName("Create Game, Download Media [Default]")]
-        [Description("Create Game in launchbox and get media from romm server. Best with auto-import off?")]
-        CreateGame_DownloadMedia,
+        [CustomName("Update Metadata, Download Media [Default]")]
+        [Description("Update Metadata in launchbox and get media from romm server. Best with auto-import off?")]
+        UpdateMetadata_DownloadMedia,
 
-        [CustomName("Create Game, Download Rom, Download Media")]
-        [Description("Create IGame in launchbox and get the rom and media from romm server. Auto-import needs to be off?")]
-        CreateGame_DownloadRom_DownloadMedia,
+        [CustomName("Update Metadata, Download Rom, Download Media")]
+        [Description("Update Metadata in launchbox and get the rom and media from romm server. Auto-import needs to be off?")]
+        UpdateMetadata_DownloadRom_DownloadMedia,
 
-        [CustomName("Create Game, Download Rom")]
-        [Description("Create IGame in launchbox and get the rom from romm server. Auto-import needs to be off?")]
-        CreateGame_DownloadRom,
+        [CustomName("Update Metadata, Download Rom")]
+        [Description("Update Metadata in launchbox and get the rom from romm server. Auto-import needs to be off?")]
+        UpdateMetadata_DownloadRom,
 
-        [CustomName("Create Game")]
-        [Description("Create Game only. Best with auto-import off?")]
-        CreateGame,
+        [CustomName("Update Metadata")]
+        [Description("Update Metadata only. Best with auto-import off?")]
+        UpdateMetadata,
 
         [CustomName("Download Rom")]
         [Description("Download Rom only. Can leave auto-import on?")]

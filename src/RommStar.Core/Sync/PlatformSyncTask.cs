@@ -31,7 +31,6 @@ namespace RommStar.Core.Sync
         /// GUID of the Sync Jobs UICard
         /// </summary>
         public Guid Id => UiCard.Id;
-
         public string LaunchBoxRomFolder { get; set; } = string.Empty;
         public bool NotifyLauncboxWhenMetadataComplete { get; set; } = false;
         public IPlatformFolder[] PlatformMediaFolders { get; set; }
@@ -43,11 +42,11 @@ namespace RommStar.Core.Sync
         /// Captures the specific server assigned to this run to eliminate cross-talk race conditions
         /// </summary>
         public RommServer TargetServer { get; set; } = null!;
-        public PlatformSyncJob UiCard { get; set; } = null!;
+        public PlatformSyncCardVM UiCard { get; set; } = null!;
 
         /// <summary>
         /// This is whether Sync should Insert/Create an IGame based on the Romm Game/Rom
         /// </summary>
-        public bool UpsertGame { get; set; } = true;
+        public bool UpdateMetadata { get; set; } = true;
     }
 }

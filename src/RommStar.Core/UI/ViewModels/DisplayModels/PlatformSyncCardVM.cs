@@ -1,17 +1,14 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.VisualBasic;
-using Microsoft.Xaml.Behaviors.Layout;
 using System.Collections.ObjectModel;
 using System.Windows;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace RommStar.Core.Sync
 {
     /// <summary>
     /// Observable Model designed to bind directly to iNKORE Card layout components.
     /// </summary>
-    public partial class PlatformSyncJob : ObservableObject
+    public partial class PlatformSyncCardVM : ObservableObject
     {
         [ObservableProperty]
         private int _errorCount;

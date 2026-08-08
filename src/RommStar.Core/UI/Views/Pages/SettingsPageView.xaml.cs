@@ -37,5 +37,7 @@ namespace RommStar.Core.UI.Views.Pages
         {
             ViewModel.OnPageVisibilityChanged((bool)e.NewValue);
         }
+
+  
     }
 }

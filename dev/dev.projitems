@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)docs\implementation.md" />
+    <None Include="$(MSBuildThisFileDirectory)docs\limitations.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\reserach.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\romDownloader.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\scope.md" />

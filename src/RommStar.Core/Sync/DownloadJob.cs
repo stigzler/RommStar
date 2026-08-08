@@ -20,7 +20,7 @@ namespace RommStar.Core.Sync
         public string DestinationPath { get; set; } = string.Empty;
         public string LaunchBoxPlatformName { get; set; } = string.Empty;
         public RommServer ServerContext { get; set; } = null!;
-        public PlatformSyncJob? UiCard { get; set; } // Null if bypassed via on-demand
+        public PlatformSyncCardVM? UiCard { get; set; } // Null if bypassed via on-demand
         public Action? OnSuccessCallback { get; set; }
         public CancellationToken CancellationToken { get; set; }
         public IGame IGame { get; set; }

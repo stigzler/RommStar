@@ -137,8 +137,8 @@ namespace RommStar.Core.Services
 
             StringBuilder sb = new StringBuilder($"Started RomM sync for [{launchboxPlatformName}]:\r\n" +
                 $"{resolvedExtSyncSettings.SyncProfile.GetCustomName()}.");
-            if (resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom_DownloadMedia ||
-                resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.CreateGame_DownloadRom ||
+            if (resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.UpdateMetadata_DownloadRom_DownloadMedia ||
+                resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.UpdateMetadata_DownloadRom ||
                 resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.DownloadRom)
             {
                 sb.Append($"\r\n\r\nRom files will download in the background, persisting across Launchbox sessions.");

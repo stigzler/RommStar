@@ -93,7 +93,7 @@ namespace RommStar.Core.Dtos.Romm
                             Name { get; set; }
 
         [JsonPropertyName("platform_slug")]
-        public string? 
+        public string?
                             PlatformStub { get; set; }
         [JsonPropertyName("regions")]
         public List<string>?
@@ -129,5 +129,18 @@ namespace RommStar.Core.Dtos.Romm
         [JsonPropertyName("youtube_video_id")]
         public string?
                             YoutubeVideoId { get; set; }
+
+        [JsonPropertyName("crc_hash")]
+        public string?
+                            CrcHash { get; set; }
+
+        [JsonPropertyName("md5_hash")]
+        public string?
+                            Md5Hash { get; set; }
+
+        [JsonPropertyName("sha1_hash")]
+        public string?
+                            Sha1Hash { get; set; }
+
     }
 }

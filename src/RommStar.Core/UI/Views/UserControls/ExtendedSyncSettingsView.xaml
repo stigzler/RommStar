@@ -202,15 +202,6 @@
             </StackPanel>
         </Expander>
 
-
-
-
-
-
-
-
-
-
         <ui:SettingsCard Grid.Row="0" Header="Remove Old Server Roms" IsEnabled="False" Visibility="Collapsed"
                         Description="DEV: Disabled - now removes old server roms autoamtically. Sig code needed to preserve option. If local launchbox platform contains roms from a previously assigned server, these are deleted.">
             <ui:SettingsCard.HeaderIcon>

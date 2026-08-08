@@ -17,6 +17,8 @@ namespace RommStar.Core.Plugins
         {
             IGameMenuItem syncPlatform = new SyncPlatformGameMenuItem(selectedGames.FirstOrDefault());
 
+            IGameMenuItem openAdmin = new OpenAdminWindowMenuItem();
+
             GameMenuItem uninstallGame = new GameMenuItem()
             {
                 Icon = Properties.Resources.rommIcon64px,
@@ -37,7 +39,7 @@ namespace RommStar.Core.Plugins
                 Icon = Properties.Resources.rommIcon64px,
                 Caption = "RomM",
                 Enabled = true,
-                Children = new List<IGameMenuItem>() { syncPlatform, uninstallGame}
+                Children = new List<IGameMenuItem>() { syncPlatform, uninstallGame, openAdmin }
             };
 
 

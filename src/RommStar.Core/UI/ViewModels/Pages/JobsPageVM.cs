@@ -15,7 +15,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
     public partial class JobsPageVM : ObservableObject
     {
         [ObservableProperty]
-        private ObservableCollection<PlatformSyncJob> _activeJobs;
+        private ObservableCollection<PlatformSyncCardVM> _activeJobs;
 
         [ObservableProperty]
         private bool _hideSuccessEntries = true;

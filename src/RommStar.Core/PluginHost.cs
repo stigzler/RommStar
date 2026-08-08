@@ -231,7 +231,7 @@ namespace RommStar.Core
 
 
 
-        private async Task LaunchAdminWindow()
+        internal async Task LaunchAdminWindow()
         {
             var adminWindow = _serviceProvider.GetRequiredService<MainWindowView>();
 
@@ -244,5 +244,6 @@ namespace RommStar.Core
             else
                 adminWindow.Show();
         }
+    
     }
 }
