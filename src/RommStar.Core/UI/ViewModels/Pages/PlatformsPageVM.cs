@@ -698,7 +698,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             int combinedRomCount = (int)SelectedPlatform.MatchedRommPlatforms.Sum(x => x.RomCount);
 
             // Queue PLatform
-            _syncManager?.QueuePlatformSync(SelectedPlatform.LaunchboxPlatformName, SelectedPlatform.LaunchboxPlatformRomFolder,
+            _syncManager?.EnqueuePlatformSync(SelectedPlatform.LaunchboxPlatformName, SelectedPlatform.LaunchboxPlatformRomFolder,
                 mediaFolders, platformDefaultEmulatorID, rommPlatformIds, resolvedExtSyncSettings, SelectedPlatform.AssignedServerItem.RommServer,
                 combinedRomCount);
 

@@ -12,19 +12,30 @@ namespace RommStar.Core.Sync
     {
         public CancellationTokenSource Cts { get; set; } = new();
 
+        /// <summary>
+        /// Whether Game Media should be downloaded with this sync
+        /// </summary>
         public bool DownloadMediaFiles { get; set; } = false;
-        public bool DownloadRomFiles { get; set; } = false;
-        public string? EmulatorID { get; set; }
-        public bool NotifyLauncboxWhenMetadataComplete { get; set; } = false;
 
         /// <summary>
-        /// 2. This references the property on the UiCard above
+        /// Whether Rom (and soundtrack) files should be downloaded with this sync
+        /// </summary>
+        public bool DownloadRomFiles { get; set; } = false;
+
+        /// <summary>
+        /// The launchbox EmulatorID (used in upserting iGame as needs emulator against it)
+        /// </summary>
+        public string? EmulatorID { get; set; }
+
+        /// <summary>
+        /// GUID of the Sync Jobs UICard
         /// </summary>
         public Guid Id => UiCard.Id;
-        public string PlatformName { get; set; } = string.Empty;
-        public string LaunchBoxRomFolder { get; set; } = string.Empty;
 
+        public string LaunchBoxRomFolder { get; set; } = string.Empty;
+        public bool NotifyLauncboxWhenMetadataComplete { get; set; } = false;
         public IPlatformFolder[] PlatformMediaFolders { get; set; }
+        public string PlatformName { get; set; } = string.Empty;
         public List<int> RommPlatformIds { get; set; } = new();
         public ExtendedSyncSettings SyncSettings { get; set; }
 
@@ -35,9 +46,8 @@ namespace RommStar.Core.Sync
         public PlatformSyncJob UiCard { get; set; } = null!;
 
         /// <summary>
-        /// TODO: this is computable from SyncSettings, but best set once rather than on each romm iteration
-        /// Depending on extent of SyncSettings, SyncSettings may be removable in the future. 
+        /// This is whether Sync should Insert/Create an IGame based on the Romm Game/Rom
         /// </summary>
-        public bool UpsertIGame { get; set; } = true;
+        public bool UpsertGame { get; set; } = true;
     }
 }

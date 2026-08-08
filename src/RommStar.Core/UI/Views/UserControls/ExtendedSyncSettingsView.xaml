@@ -65,74 +65,153 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-
         </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Overwrite Metadata" Description="If game already exists in Launchbox, overwrite the metadata with that from Romm.">
-            <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.TextBulletListSquareEdit_20_Regular}" />
-            </ui:SettingsCard.HeaderIcon>
-            <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.OverwriteMetadata, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        </ui:SettingsCard>  
+        <!-- OVERWRITES -->
+        <Expander IsExpanded="False" HorizontalContentAlignment="Stretch" Margin="5">
 
-        <ui:SettingsCard Grid.Row="0" Header="Local Rom File Check Method" Description="During sync, whether to check for existing any local rom files by existence only, or with an additional SHA1 check (slower but more reliable)">
-            <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DocumentTable_20_Regular}" />
-            </ui:SettingsCard.HeaderIcon>
-            <ComboBox ItemsSource="{Binding Source={StaticResource FileCheckMethodEnum}}"
+            <Expander.Header>
+                <Grid HorizontalAlignment="Left" 
+                                     Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Expander}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="Overwrites" VerticalAlignment="Center"/>
+
+                </Grid>
+            </Expander.Header>
+
+            <StackPanel Margin="20,5,0,10">
+                <ui:SettingsCard Grid.Row="0" Header="Overwrite Metadata" Description="If game already exists in Launchbox, overwrite the metadata with that from Romm.">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.TextBulletListSquareEdit_20_Regular}" />
+                    </ui:SettingsCard.HeaderIcon>
+                    <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.OverwriteMetadata, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </ui:SettingsCard>
+
+                <ui:SettingsCard Grid.Row="0" Header="Overwrite Media" Description="If a media item already exists, overwrite with that from RomM.">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ImageEdit_20_Regular}" />
+                    </ui:SettingsCard.HeaderIcon>
+                    <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.OverwriteExistingMedia, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </ui:SettingsCard>
+
+                <ui:SettingsCard Grid.Row="0" Header="Overwrite Roms" Description="If rom already exists, overwrite with that from RomM.">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SaveEdit_20_Regular}"/>
+                    </ui:SettingsCard.HeaderIcon>
+                    <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.OverwriteExistingRoms, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </ui:SettingsCard>
+
+            </StackPanel>
+        </Expander>
+
+        <!-- ROMS -->
+
+        <Expander IsExpanded="False" HorizontalContentAlignment="Stretch" Margin="5">
+
+            <Expander.Header>
+                <Grid HorizontalAlignment="Left" 
+                                     Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Expander}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="Roms" VerticalAlignment="Center"/>
+
+                </Grid>
+            </Expander.Header>
+
+            <StackPanel Margin="20,5,0,10">
+                <ui:SettingsCard Grid.Row="0" Header="Local Rom File Check Method" Description="Check for local rom files by existence only, or with an additional SHA1 check (slower but more reliable)">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SaveSync_20_Regular}" />
+                    </ui:SettingsCard.HeaderIcon>
+                    <ComboBox ItemsSource="{Binding Source={StaticResource FileCheckMethodEnum}}"
                         SelectedItem="{Binding ExtendedSyncSettings.FileCheckMethod, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <!-- Binds to the enum itself, but passes it through our converter -->
-                        <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </ui:SettingsCard>
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <!-- Binds to the enum itself, but passes it through our converter -->
+                                <TextBlock Text="{Binding Converter={StaticResource EnumDescConverter}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Overwrite Media" Description="If a media item already exists, does not overwrite with RomM media. Useful where you are using Launchbox for Media updates.">
-            <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ImageEdit_20_Regular}" />
-            </ui:SettingsCard.HeaderIcon>
-            <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.OverwriteExistingMedia, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        </ui:SettingsCard>
+                <ui:SettingsCard Grid.Row="0" Header="Temporary Rom Files Download Path" 
+                        Description="Where to download RomM's temporary zip files to before extraction to your installation.">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.FolderZip_20_Regular}" />
+                    </ui:SettingsCard.HeaderIcon>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0"  Width="auto" MaxWidth="500" Margin="0,0,10,0"
+                         Text="{Binding ExtendedSyncSettings.TempDownloadsPath, ElementName=root, Mode=TwoWay, 
+                                UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="1"  Content="Browse" Margin="0,0,10,0"></Button>
+                    </Grid>
+                </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Force Media Priority" Description="Forces RomM media being used as the primary source by giving it the '-00' suffix. Also preserves any existing Launchbox media.">
+                <ui:SettingsCard Grid.Row="0" Header="Bulk Rom Batch Size (GB)" 
+                         Description="RommStar downloads RomM files in batches. This is the maximum size of these batches. Must be greater than the likely largest rom size for a platform. ">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SaveMultiple_20_Regular}" />
+                    </ui:SettingsCard.HeaderIcon>
+                    <ui:NumberBox MinWidth="100"                
+                Value="{Binding ExtendedSyncSettings.TargetRomBatchFilesizeGb, ElementName=root, 
+                Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ByteToGigabyteConverter}}" />
+                </ui:SettingsCard>
+
+            </StackPanel>
+
+        </Expander>
+
+
+        <Expander IsExpanded="False" HorizontalContentAlignment="Stretch" Margin="5">
+
+            <Expander.Header>
+                <Grid HorizontalAlignment="Left" 
+                                     Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Expander}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0" Text="Media" VerticalAlignment="Center"/>
+
+                </Grid>
+            </Expander.Header>
+
+            <StackPanel Margin="20,5,0,10">
+                
+                       <ui:SettingsCard Grid.Row="0" Header="Force Media Priority" Description="Forces RomM media being used as the primary source by giving it the '-00' suffix. Also preserves any existing Launchbox media.">
             <ui:SettingsCard.HeaderIcon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ImageMultiple_20_Regular}" />
             </ui:SettingsCard.HeaderIcon>
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.ForceMediaPriority, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-        </ui:SettingsCard>
+        </ui:SettingsCard> 
+                
+                
+                
+            </StackPanel>
+        </Expander>
 
 
-        <ui:SettingsCard Grid.Row="0" Header="Temporary Rom Files Download Path" 
-                        Description="Where to download RomM's temporary zip files to before extraction to your installation.">
-            <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.FolderZip_20_Regular}" />
-            </ui:SettingsCard.HeaderIcon>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="auto" />
-                </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0"  Width="auto" MaxWidth="500" Margin="0,0,10,0"
-                         Text="{Binding ExtendedSyncSettings.TempDownloadsPath, ElementName=root, Mode=TwoWay, 
-                                UpdateSourceTrigger=PropertyChanged}" />
-                <Button Grid.Column="1"  Content="Browse" Margin="0,0,10,0"></Button>
-            </Grid>
-        </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Bulk Rom Batch Size (GB)" 
-                         Description="RommStar downloads RomM files in batches. This is the maximum size of these batches. Must be greater than the likely largest rom size for a platform. ">
-            <ui:SettingsCard.HeaderIcon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DocumentFolder_20_Regular}" />
-            </ui:SettingsCard.HeaderIcon>
-            <ui:NumberBox MinWidth="100"                
-                Value="{Binding ExtendedSyncSettings.TargetRomBatchFilesizeGb, ElementName=root, 
-                Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ByteToGigabyteConverter}}" />
-        </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Remove Old Server Roms" IsEnabled="False"
+
+
+
+
+
+
+        <ui:SettingsCard Grid.Row="0" Header="Remove Old Server Roms" IsEnabled="False" Visibility="Collapsed"
                         Description="DEV: Disabled - now removes old server roms autoamtically. Sig code needed to preserve option. If local launchbox platform contains roms from a previously assigned server, these are deleted.">
             <ui:SettingsCard.HeaderIcon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />
@@ -140,7 +219,7 @@
             <ui:ToggleSwitch IsOn="{Binding ExtendedSyncSettings.DeleteOldServerRoms, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
         </ui:SettingsCard>
 
-        <ui:SettingsCard Grid.Row="0" Header="Individual Game Folders" IsEnabled="False"
+        <ui:SettingsCard Grid.Row="0" Header="Individual Game Folders" IsEnabled="False" Visibility="Collapsed"
                         Description="DEV: Disabled. Files now put where app dictates. Downloaded roms are placed in their own folders in the Platform Rom Directory">
             <ui:SettingsCard.HeaderIcon>
                 <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Delete_20_Regular}" />

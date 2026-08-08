@@ -1,8 +1,9 @@
-﻿using RommStar.Core.Primitives;
+﻿using RommStar.Core.Models;
+using RommStar.Core.Primitives;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System;
 
 namespace RommStar.Core.Helpers
 {
@@ -34,18 +35,34 @@ namespace RommStar.Core.Helpers
         }
 
         /// <summary>
+        /// Checks if file present on disk. Can also verify via sha1 if check set
+        /// </summary>
+        /// <param name="useSha1">Whether to check the SHA1 or not</param>
+        /// <param name="path">Fullpath to file</param>
+        /// <param name="sha1">the SHA1 string</param>
+        /// <returns>True if passes checks</returns>
+        public static bool LocalFilePresent(bool useSha1, string path, string sha1)
+        {
+            if (!useSha1 && !File.Exists(path)) return false;
+
+            if (useSha1 && !FileSystemHelper.LocalFilePresent(path, sha1)) return false;
+
+            return true;
+        }
+
+        /// <summary>
         /// Checks if file present on disk. Can also verify via sha1
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="sha1"></param>
-        /// <returns></returns>
-        public static bool LocalFilePresent(string path, string expectedSha1 = null)
+        /// <param name="path">Fullpath to file</param>
+        /// <param name="sha1">the SHA1 string</param>
+        /// <returns>True if passes checks</returns>
+        public static bool LocalFilePresent(string path, string expectedSha1)
         {
             // 1. Basic existence check
             if (!File.Exists(path)) return false;
 
             // 2. Bypass hashing if no expected hash was provided
-            if (string.IsNullOrWhiteSpace(expectedSha1)) return true;
+            if (string.IsNullOrWhiteSpace(expectedSha1)) return false;
 
             string localHash = string.Empty;
 

@@ -111,27 +111,27 @@ namespace RommStar.Core.Services
                     currentBatch = new();
                     long currentBatchSize = 0;
 
-                    var platExtSyncSetts = _settingsService.Settings.PlatformSyncSettings
+                    var syncSettings = _settingsService.Settings.PlatformSyncSettings
                         .FirstOrDefault(pss => pss.LaunchboxPlatformName == targetPlatform)?.ExtendedSyncSettings;
 
-                    if (platExtSyncSetts == null) platExtSyncSetts = _settingsService.Settings.GlobalExtendedSyncSettings;
+                    if (syncSettings == null) syncSettings = _settingsService.Settings.GlobalExtendedSyncSettings;
 
                     // Apply GB to Bytes conversion formula
-                    long targetSizeBytes = platExtSyncSetts.TargetRomBatchFilesizeGb * 1024L * 1024L * 1024L;
+                    long targetSizeBytes = syncSettings.TargetRomBatchFilesizeGb * 1024L * 1024L * 1024L;
 
                     // ISOLATION CHECK: If the next item has failed previously, set flag to force it to process entirely alone
                     bool isIsolationMode = platformCandidates.FirstOrDefault()?.RetryCount > 0;
 
                     // Todo: below needs to be a setting, likely platform scope
                     // Overwrite or skip existing local roms
-                    if (true)
+                    if (!syncSettings.OverwriteExistingRoms)
                     {
                         // Selective Roms process -----------------------------------------------------------------
                         // If settings dictate, exclude roms that already exist in the LB roms location
 
                         // 1. Pre-calculate the platform's base ROM rules before the loop
-                        bool individualGameFolders = (platExtSyncSetts != null && platExtSyncSetts.ApplySettings) ?
-                            platExtSyncSetts.UseIndividualGameFolders :
+                        bool individualGameFolders = (syncSettings != null && syncSettings.ApplySettings) ?
+                            syncSettings.UseIndividualGameFolders :
                             _settingsService.Settings.GlobalExtendedSyncSettings.UseIndividualGameFolders;
 
                         IPlatform platform = PluginHelper.DataManager.GetPlatformByName(targetPlatform);
@@ -146,48 +146,46 @@ namespace RommStar.Core.Services
                                 Path.Combine(romRoot, item.GameNameSanitised) :
                                 romRoot;
 
-                            // Combine to get the exact predicted file path
-                            // Controls for multi-file (ffs)
-                            //string primaryFilepath = string.Empty;
+                            // 2.1 Selective Download routine ===================================================
                             bool skipDownload = true;
                             string candidatePath;
                             if (item.IsMultiFileGame)
                             {
-                                // MULTI-FILE ROM FILTER ============================================
-                                // this also include multi-file games that have siblings sets (eg. FFVIII, two diff region sets. These get split into different items
-                                // so don't need to process in sibling set below. BY design.
+                                // MULTI-FILE ROM FILTER =--------------------------------------------
+                                // this also include multi-file games that have siblings sets (eg. FFVIII, two diff region sets. These get split into different igames
+                                // so don't need to process in sibling set below. By design due to LB's auto cue sheet gen requiring it to work properly.
                                 foreach (var file in item.MultiFiles)
                                 {
+                                    // this is essentially a double check. Metadata sync checks if file already exists, but user
+                                    // may be returning in another session and file may have been deleted. 
                                     if (file.Category == "game")
                                     {
-                                        candidatePath = Path.Combine(targetDirectory, item.MasterFilename, file.FileName);
-                                        if (!File.Exists(candidatePath))
-                                        {
+                                        candidatePath = Path.Combine(targetDirectory, item.MasterFilename, file.FileName);                                        
+
+                                        if (!FileSystemHelper.LocalFilePresent(syncSettings.FileCheckMethod == Primitives.FileCheckMethod.FileAndSHA1,
+                                            candidatePath, file.Sha1Hash))
+                                        {                                            
                                             skipDownload = false;
+                                            IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                                            if (game != null)
+                                            {
+                                                game.Installed = false;
+                                                game.Status = "Not Installed";
+                                            }
+                                            _ = LaunchboxViewsHelper.SoftRefreshUi();
                                             break;
-                                        }
-                                        else
-                                        {
-                                            // This check forces a download if the metadata sweep sets the main igame.ApplicationPath to the
-                                            // default "Game Installation Required" path. Bit hack as the main logic for updating the applicationPath
-                                            // is in UnzipRomsAndUpdateIGamesBatchAsync and this won't fire without the download. 
-                                            //IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
-                                            //if (game == null ||
-                                            //    game.ApplicationPath == Constants.RomPlaceholder)
-                                            //    skipDownload = false;
-                                            //break;
-                                        }
+                                        }                       
                                     }
                                     else if (file.Category == "soundtrack")
                                     {
                                         candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", platform.Name, item.MasterFilename, file.FileName);
-                                        if (!File.Exists(candidatePath))
+                                        if (!FileSystemHelper.LocalFilePresent(syncSettings.FileCheckMethod == Primitives.FileCheckMethod.FileAndSHA1,
+                                            candidatePath, file.Sha1Hash))
                                         {
                                             skipDownload = false;
+                                            _ = LaunchboxViewsHelper.SoftRefreshUi();
                                             break;
                                         }
-
-                                        // todo: >1 soundtrack logic to go here once nail how works for 1 vs >1 soundtracks. 
                                     }
                                 }
                             }
@@ -353,7 +351,7 @@ namespace RommStar.Core.Services
 
 
                     // 4. Pre-flight Disk Space Check (Supports Relative, Absolute, and UNC Network Paths)
-                    string rawPath = platExtSyncSetts.TempDownloadsPath;
+                    string rawPath = syncSettings.TempDownloadsPath;
 
                     if (!Path.IsPathRooted(rawPath))
                     {

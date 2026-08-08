@@ -490,7 +490,7 @@
                                             <ColumnDefinition Width="auto" />
                                         </Grid.ColumnDefinitions>
 
-                                        <TextBlock Grid.Column="0" Text="Advanced Settings" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="0" Text="Platform Settings" VerticalAlignment="Center"/>
 
                                         <ui:ToggleSwitch Grid.Column="1" x:Name="HeaderToggle" Margin="0"
                                                          VerticalAlignment="Center" HorizontalAlignment="Right"
@@ -503,7 +503,7 @@
                                         <RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
 
-                                    <ui:SettingsCard Grid.Row="0" Header="Apply Advanced Settings" Description="These settings will overide the global defaults in Settings for this Platform.">
+                                    <ui:SettingsCard Grid.Row="0" Header="Apply Platform Settings" Description="These settings will overide the global defaults in Settings for this Platform.">
                                         <ui:ToggleSwitch IsOn="{Binding SelectedPlatform.ExtendedSyncSettings.ApplySettings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                     </ui:SettingsCard>
 

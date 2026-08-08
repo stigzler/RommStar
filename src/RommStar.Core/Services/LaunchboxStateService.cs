@@ -132,7 +132,7 @@ namespace RommStar.Core.Services
 
             // TODO: Need to check somewhere above that there isn't already a sync ongoing for the platform. Prevent overlapping syncs.
 
-            await _syncManager?.QueuePlatformSync(launchboxPlatformName, platformRomsFolder, mediaFolders, platformDefaultEmulatorID, rommPlatformIds,
+            await _syncManager?.EnqueuePlatformSync(launchboxPlatformName, platformRomsFolder, mediaFolders, platformDefaultEmulatorID, rommPlatformIds,
                 resolvedExtSyncSettings, rommServer, (int)combinedRomCount, notifyLaunchboxOnMeatadataDone: true);
 
             StringBuilder sb = new StringBuilder($"Started RomM sync for [{launchboxPlatformName}]:\r\n" +
