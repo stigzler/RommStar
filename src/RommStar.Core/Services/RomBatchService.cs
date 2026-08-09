@@ -199,7 +199,6 @@ namespace RommStar.Core.Services
                             else if (item.RommIds.Count > 1)
                             {
                                 // SIBLING-FILE ROM FILTER ============================================
-
                                 // This is a single instance sibling set (e.g. Buck Rogers - different versions)
                                 foreach (var file in item.MultiFiles)
                                 {

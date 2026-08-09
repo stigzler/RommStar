@@ -158,7 +158,8 @@ namespace RommStar.Core.Sync
         }
 
         private void EnqueueBatchRomDownloadJob(PlatformSyncTask platformTask, IGame game, RomDTO romDto, List<int> allRommIds, string masterFilename,
-                    long totalSizeBytes, string serverId, List<RomQueueItem> stagedQueue, bool notifyLaunchbox = false, List<string>? siblingVariantRoms = null)
+                    long totalSizeBytes, string serverId, List<RomQueueItem> stagedQueue, bool notifyLaunchbox = false,
+                    List<RomFileDTO>? aggregatedFiles = null)
         {
             var existingQueue = _settingsService.Settings.RomDownloadQueue;
 
@@ -205,16 +206,31 @@ namespace RommStar.Core.Sync
                 NotifyLaunchboxOnCompletion = notifyLaunchbox
             };
 
-            if (queueItem.IsMultiFileGame)
+            //if (queueItem.IsMultiFileGame)
+            //{
+            //    queueItem.MultiFiles = romDto.Files;
+            //}
+            //else if (romDto.SiblingRoms != null && romDto.SiblingRoms.Count > 0)
+            //{
+            //    queueItem.IsSiblingSet = true;
+            //    // Single masterSiblingRomDtoFile masterRomDtoSiblingDto rom
+            //    // Urgh - below doesn't work. Sadly, .files is only the single sib masterSiblingRomDtoFile, and .siblingfiles
+            //    // only contains the masterSiblingRomDtoFile name not the extension! Bit of a daft oversight on romm's part..
+            //    queueItem.MultiFiles = romDto.Files;
+            //}
+
+            if (aggregatedFiles != null && aggregatedFiles.Count > 0)
+            {
+                queueItem.IsSiblingSet = true;
+                queueItem.MultiFiles = aggregatedFiles; // Pack EVERYTHING into the manifest
+            }
+            else if (queueItem.IsMultiFileGame)
             {
                 queueItem.MultiFiles = romDto.Files;
             }
             else if (romDto.SiblingRoms != null && romDto.SiblingRoms.Count > 0)
             {
                 queueItem.IsSiblingSet = true;
-                // Single masterSiblingRomDtoFile masterRomDtoSiblingDto rom
-                // Urgh - below doesn't work. Sadly, .files is only the single sib masterSiblingRomDtoFile, and .siblingfiles
-                // only contains the masterSiblingRomDtoFile name not the extension! Bit of a daft oversight on romm's part..
                 queueItem.MultiFiles = romDto.Files;
             }
 
@@ -984,6 +1000,10 @@ namespace RommStar.Core.Sync
 
                             IGame masterIGameInstance = null;
 
+                            // Initialize the aggregator with the Master's files
+                            List<RomFileDTO> allClusterFiles = new List<RomFileDTO>();
+                            if (masterRomDto.Files != null) allClusterFiles.AddRange(masterRomDto.Files);
+
                             // 4. Sync the Master entry to LaunchBox
                             if (platformTask.UpdateMetadata)
                             {
@@ -1218,6 +1238,12 @@ namespace RommStar.Core.Sync
                                     }
                                 }
 
+                                // Dump the hydrated variant files (games + music) into the aggregator!
+                                if (detailedVariant.Files != null)
+                                {
+                                    allClusterFiles.AddRange(detailedVariant.Files);
+                                }
+
                                 bool variantHasFiles = detailedVariant.Files != null && detailedVariant.Files.Count > 0;
 
                                 if (masterIGameInstance != null)
@@ -1259,32 +1285,13 @@ namespace RommStar.Core.Sync
                             // Inside Pass 2, immediately after the variantRomDtoList loop finishes for the current cluster:
                             if (installRoms && masterIGameInstance != null)
                             {
-                                // Aggregate the masterSiblingRomDtoFile sizes across the master AND all variants using the API's combined field
                                 long totalGroupSize = sortedRomDtosList.Sum(r => r.CombinedFilesSizeBytes ?? 0);
 
                                 string masterFile = masterRomDto.RommFilename;
-                                //if (masterHasFiles)
-                                //{
-                                //    masterFile = masterRomDto.Files.First().FileName ?? string.Empty;
-                                //}
-                                //else if (!string.IsNullOrEmpty(masterRomDto.RommFilename))
-                                //{
-                                //    masterFile = masterRomDto.RommFilename;
-                                //}
-
-
-
-                                //if (!masterHasFiles)
-                                //{
-                                //    masterFile = masterRomDto.Files.First().FileName ?? string.Empty;
-                                //}
-                                //else if (!string.IsNullOrEmpty(masterRomDto.RommFilename))
-                                //{
-                                //    masterFile = masterRomDto.RommFilename;
-                                //}
 
                                 EnqueueBatchRomDownloadJob(platformTask, masterIGameInstance, masterRomDto, allRomDtoIds, masterFile, totalGroupSize,
-                                    platformTask.TargetServer.Id.ToString(), stagedBatchDownloadItems, platformTask.NotifyLauncboxWhenMetadataComplete);
+                                    platformTask.TargetServer.Id.ToString(), stagedBatchDownloadItems, platformTask.NotifyLauncboxWhenMetadataComplete,
+                                    aggregatedFiles: allClusterFiles);
                             }
 
                             // platformTask.UiCard.ProcessedItems += cluster.Count;

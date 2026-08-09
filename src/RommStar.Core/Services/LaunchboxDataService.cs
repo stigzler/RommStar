@@ -643,14 +643,30 @@ namespace RommStar.Core.Services
 
         }
 
+        //private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipEntryFullName)
+        //{
+        //    return batchItems.FirstOrDefault(item =>
+        //        // 1. Single File / Sibling Match: The path ends exactly with the MasterFilename
+        //        zipEntryFullName.EndsWith(item.MasterFilename, StringComparison.OrdinalIgnoreCase) ||
+
+        //        // 2. Multi-Disc Match: The path contains the MasterFilename as a folder directory
+        //        zipEntryFullName.Contains($"/{item.MasterFilename}/", StringComparison.OrdinalIgnoreCase)
+        //    );
+        //}
+
         private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipEntryFullName)
         {
             return batchItems.FirstOrDefault(item =>
-                // 1. Single File / Sibling Match: The path ends exactly with the MasterFilename
+                // 1. Check MasterFilename
                 zipEntryFullName.EndsWith(item.MasterFilename, StringComparison.OrdinalIgnoreCase) ||
+                zipEntryFullName.Contains($"/{item.MasterFilename}/", StringComparison.OrdinalIgnoreCase) ||
 
-                // 2. Multi-Disc Match: The path contains the MasterFilename as a folder directory
-                zipEntryFullName.Contains($"/{item.MasterFilename}/", StringComparison.OrdinalIgnoreCase)
+                // 2. Safely check all aggregated variant and sibling files
+                (item.MultiFiles != null && item.MultiFiles.Any(f =>
+                    !string.IsNullOrEmpty(f.FileName) &&
+                    (zipEntryFullName.EndsWith(f.FileName, StringComparison.OrdinalIgnoreCase) ||
+                     zipEntryFullName.Contains($"/{f.FileName}/", StringComparison.OrdinalIgnoreCase))
+                ))
             );
         }
 
