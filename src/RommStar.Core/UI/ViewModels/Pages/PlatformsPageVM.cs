@@ -447,6 +447,9 @@ namespace RommStar.Core.UI.ViewModels.Pages
         {
             if (value == null) return;
 
+            // first save settings - persists any changes to disk
+            _settingsService.Save();
+            
             if (((LaunchboxPlatformItemVM)value).AssignedServerItem == null)
             {
                 SelectedRommServer = null;
@@ -657,6 +660,9 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 return;
 
             }
+
+            // do a settigns save to ensure future processes have up to date settings
+            _settingsService.Save();
 
             string platformDefaultEmulatorID = _launchboxDataService.GetPlatformDefaultEmulatorID(SelectedPlatform.LaunchboxPlatformName);
 

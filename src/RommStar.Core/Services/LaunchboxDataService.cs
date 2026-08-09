@@ -282,7 +282,6 @@ namespace RommStar.Core.Services
                         var musicFiles = unzippedFiles.Where(f => f.StartsWith(normalizedMusicPrefix, StringComparison.OrdinalIgnoreCase)).ToList();
                         var gameFiles = unzippedFiles.Except(musicFiles).ToList();
 
-
                         // todo: this will always set the music to the first downloaded track. LB limitation as Romm
                         // may have more than 1 music file for each game/rom - h/e user will be able to choose the music track
                         // manually via Edit Metadata in LB. Maybe not a biggie? They can also order there music tracks on Romm

@@ -222,7 +222,7 @@ namespace RommStar.Core.Sync
             stagedQueue.Add(queueItem);
 
             // Optional: Log it for UI transparency
-            platformTask.UiCard.AddLog($"Staged '{game.Title}' rom masterSiblingRomDtoFile/s for batch download.", PlatformSyncCardVM.LogType.Info);
+            platformTask.UiCard.AddLog($"Queued [{game.Title}] rom file/s for download.", PlatformSyncCardVM.LogType.Info);
         }
 
 
@@ -522,7 +522,7 @@ namespace RommStar.Core.Sync
                         // if (iGameUpdated) PluginHelper.DataManager.Save()
 
                         // update sync log
-                        job.UiCard.AddLog($"Downloaded {typeLabel} ({Path.GetFileName(job.DestinationPath)}) for '{job.RomName}'", PlatformSyncCardVM.LogType.Success);
+                        job.UiCard.AddLog($"Downloaded {typeLabel} for [{job.RomName}] ({Path.GetFileName(job.DestinationPath)}) ", PlatformSyncCardVM.LogType.Success);
                     }
 
                     if (job.UiCard != null) job.UiCard.ProcessedItems++;
@@ -767,7 +767,7 @@ namespace RommStar.Core.Sync
                                             }
 
                                             string actionLabel = actionPerformed.ToString();
-                                            platformTask.UiCard.AddLog($"<Multi File Game> {actionLabel}d metadata for [{detailedRomDto.RommFilename}]. " +
+                                            platformTask.UiCard.AddLog($"{actionLabel}d metadata for [{detailedRomDto.RommFilename}] <Multi File Game>. " +
                                                 $"Already Installed: [{allRomFilesOnLocalDisk}]. Sub-Files: [{detailedRomDto.Files.Count()}]. Siblings: [{detailedRomDto.SiblingRoms?.Count()}]", PlatformSyncCardVM.LogType.Success);
                                         }
                                         else
@@ -869,7 +869,7 @@ namespace RommStar.Core.Sync
 
                                             // Dynamically logs: "Successfully Inserted metadata..." or "Successfully Updated metadata..."
                                             string actionLabel = actionPerformed.ToString();
-                                            platformTask.UiCard.AddLog($"<Single File Game> {actionLabel}d metadata for [{detailedRomDto.Name}]. " +
+                                            platformTask.UiCard.AddLog($"{actionLabel}d metadata for [{detailedRomDto.Name}] <Single File Game>. " +
                                                 $"Already Installed: [{allRomFilesOnLocalDisk}]", PlatformSyncCardVM.LogType.Success);
                                         }
                                         else
@@ -1030,6 +1030,7 @@ namespace RommStar.Core.Sync
 
                                         platformTask.UiCard.ProcessedItems++;
 
+                                        // MUSIC
                                         // Master masterSiblingRomDtoFile present. Now check master masterRomDtoSiblingDto sub files (will be music, NOT any other masterRomDtoSiblingDto roms),
                                         // as siblings with multi-masterSiblingRomDtoFile gets caught earlier by multi-masterSiblingRomDtoFile processor
                                         foreach (var masterRomDtoFile in masterRomDto.Files)
@@ -1069,51 +1070,51 @@ namespace RommStar.Core.Sync
                                         // master masterRomDtoSiblingDto sub files all present. Now check masterRomDtoSiblingDto files
                                         // todo: should really re-factor to recursive function, but sick of accommodating the masterRomDtoSiblingDto system in romm atp
                                         // also - I don't think it will go more than one level deep. 
-                                        foreach (SiblingRomDTO masterRomDtoSiblingDto in masterRomDto.SiblingRoms)
-                                        {
-                                            RomDTO siblingRomDTO;
-                                            var siblingRomQuery = await _rommService.GetRomDetailsAsync(currentServer, masterRomDtoSiblingDto.Id ?? 0, platformTask.Cts.Token);
-                                            if (siblingRomQuery.IsSuccess && siblingRomQuery.Data != null)
-                                            {
-                                                siblingRomDTO = siblingRomQuery.Data;
-                                            }
-                                            else
-                                            {
-                                                // safety fallback: not sure will happen, but mark game as uninstalled if does
-                                                allRomFilesOnLocalDisk = false;
-                                                break;
-                                            }
+                                        //foreach (SiblingRomDTO masterRomDtoSiblingDto in masterRomDto.SiblingRoms)
+                                        //{
+                                        //    RomDTO siblingRomDTO;
+                                        //    var siblingRomQuery = await _rommService.GetRomDetailsAsync(currentServer, masterRomDtoSiblingDto.Id ?? 0, platformTask.Cts.Token);
+                                        //    if (siblingRomQuery.IsSuccess && siblingRomQuery.Data != null)
+                                        //    {
+                                        //        siblingRomDTO = siblingRomQuery.Data;
+                                        //    }
+                                        //    else
+                                        //    {
+                                        //        // safety fallback: not sure will happen, but mark game as uninstalled if does
+                                        //        allRomFilesOnLocalDisk = false;
+                                        //        break;
+                                        //    }
 
-                                            // check the game rom (there will be only 1) via sha if setting dictates
-                                            if (!FileSystemHelper.LocalFilePresent(useSha1InFileChecks, masterRomFileDtoPath, masterRomFileDto.Sha1Hash))
-                                            {
-                                                allRomFilesOnLocalDisk = false;
-                                                break;
-                                            }
+                                        //    // check the game rom (there will be only 1) via sha if setting dictates
+                                        //    if (!FileSystemHelper.LocalFilePresent(useSha1InFileChecks, masterRomFileDtoPath, masterRomFileDto.Sha1Hash))
+                                        //    {
+                                        //        allRomFilesOnLocalDisk = false;
+                                        //        break;
+                                        //    }
 
 
-                                            foreach (RomFileDTO masterSiblingRomDtoFile in siblingRomDTO?.Files)
-                                            {
-                                                string subFilePath = null;
-                                                if (masterSiblingRomDtoFile.Category == "soundtrack")
-                                                {
-                                                    subFilePath = Path.Combine(Constants.LaunchboxRootDir, "Music", platformTask.PlatformName,
-                                                    siblingRomDTO.RommFilename, masterSiblingRomDtoFile.FileName);
-                                                }
-                                                else if (masterSiblingRomDtoFile.Category == "game")
-                                                { subFilePath = Path.Combine(targetDirectory, masterSiblingRomDtoFile.FileName); }
+                                        //    foreach (RomFileDTO masterSiblingRomDtoFile in siblingRomDTO?.Files)
+                                        //    {
+                                        //        string subFilePath = null;
+                                        //        if (masterSiblingRomDtoFile.Category == "soundtrack")
+                                        //        {
+                                        //            subFilePath = Path.Combine(Constants.LaunchboxRootDir, "Music", platformTask.PlatformName,
+                                        //            siblingRomDTO.RommFilename, masterSiblingRomDtoFile.FileName);
+                                        //        }
+                                        //        else if (masterSiblingRomDtoFile.Category == "game")
+                                        //        { subFilePath = Path.Combine(targetDirectory, masterSiblingRomDtoFile.FileName); }
 
-                                                // HACK: can only query by filename here as sha isn't populated by romm for sub files!
-                                                if (!FileSystemHelper.LocalFilePresent(false, subFilePath, null))
-                                                {
-                                                    allRomFilesOnLocalDisk = false;
-                                                    break;
-                                                }
-                                            }
+                                        //        // HACK: can only query by filename here as sha isn't populated by romm for sub files!
+                                        //        if (!FileSystemHelper.LocalFilePresent(false, subFilePath, null))
+                                        //        {
+                                        //            allRomFilesOnLocalDisk = false;
+                                        //            break;
+                                        //        }
+                                        //    }
 
-                                            platformTask.UiCard.ProcessedItems++;
+                                        //    platformTask.UiCard.ProcessedItems++;
 
-                                        }
+                                        //}
 
                                         UpdateIGameInstallStatus(masterIGameInstance, allRomFilesOnLocalDisk, masterRomFileDtoPath);
                                     }
@@ -1126,7 +1127,7 @@ namespace RommStar.Core.Sync
                                     //}
 
 
-                                    platformTask.UiCard.AddLog($"<Sibling Set Game> {actionPerformed.ToString()}d metadata for [{masterRomDto.Name}]. Already Installed: [{allRomFilesOnLocalDisk}]. Siblings: [{masterRomDto.SiblingRoms?.Count()}]", PlatformSyncCardVM.LogType.Success);
+                                    platformTask.UiCard.AddLog($"{actionPerformed.ToString()}d metadata for [{masterRomDto.Name}] <Sibling Set Game>. Already Installed: [{allRomFilesOnLocalDisk}]. Siblings: [{masterRomDto.SiblingRoms?.Count()}]", PlatformSyncCardVM.LogType.Success);
                                 }
                                 else
                                 {
@@ -1201,16 +1202,16 @@ namespace RommStar.Core.Sync
                             // =========================================================================
                             // 5. Append Variant items to the freshly minted master record
                             // =========================================================================
-                            foreach (var variantRom in variantRomDtoList)
+                            foreach (var variantRomDTO in variantRomDtoList)
                             {
                                 if (platformTask.Cts.Token.IsCancellationRequested) break;
 
-                                var detailedVariant = variantRom;
+                                var detailedVariant = variantRomDTO;
 
                                 // Hydrate masterSiblingRomDtoFile definitions if we are running an active download profile
-                                if (installRoms && (variantRom.Files == null || variantRom.Files.Count == 0))
+                                if (installRoms && (variantRomDTO.Files == null || variantRomDTO.Files.Count == 0))
                                 {
-                                    var detailResult = await _rommService.GetRomDetailsAsync(currentServer, variantRom.Id ?? 0, platformTask.Cts.Token);
+                                    var detailResult = await _rommService.GetRomDetailsAsync(currentServer, variantRomDTO.Id ?? 0, platformTask.Cts.Token);
                                     if (detailResult.IsSuccess && detailResult.Data != null)
                                     {
                                         detailedVariant = detailResult.Data;

@@ -17,7 +17,7 @@ namespace RommStar.Core.Models
     /// </summary>
     public class ExtendedSyncSettings
     {
-        public bool ApplySettings = false;
+        public bool ApplySettings { get; set; } = false;
         public SyncProfileTypes SyncProfile { get; set; } = SyncProfileTypes.UpdateMetadata_DownloadMedia;
         public bool OverwriteMetadata { get; set; } = true;
         public bool OverwriteExistingMedia { get; set; } = true;
