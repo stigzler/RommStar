@@ -29,7 +29,7 @@ namespace RommStar.Core.Plugins.GameMenuItems
 
         public bool Enabled => IsValidForOperation();
 
-        public Image Icon => Properties.Resources.rommIcon64px;
+        public Image Icon => Properties.Resources.sync;
 
         public void OnSelect(params IGame[] games)
         {

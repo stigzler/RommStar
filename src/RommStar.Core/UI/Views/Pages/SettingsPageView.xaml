@@ -40,89 +40,96 @@
         </ResourceDictionary>
     </ui:Page.Resources>
 
-    <TabControl ui:TabControlHelper.IsAddTabButtonVisible="False" Style="{StaticResource TabControlPivotStyle}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <TabItem Header="Sync Settings" ui:TabItemHelper.IsClosable="False">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+            <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
+                    Command="{Binding SaveSettingsCommand}" FontWeight="DemiBold"
+                     BorderBrush="#80000000" BorderThickness="1" Padding="16,8">
+                <StackPanel Orientation="Horizontal">
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Save_20_Regular}" Margin="0,2,5,0" />
+                    <TextBlock Text="Save Settings" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
 
-            <ui:TabItemHelper.Icon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
-            </ui:TabItemHelper.Icon>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
 
-            <ScrollViewer>
-                <StackPanel Margin="0,10,20,10">
+            <StackPanel Margin="0,0,20,10">
 
-                    <ui:SettingsCard Header="Youtube Stub" Description="Prefix text used to construct the final youtube url from the RomM video key"  >
-                        <TextBox Text="{Binding PluginSettings.YouTubeStub, Mode=TwoWay}"/>
-                    </ui:SettingsCard>
+                <TextBlock Text="Global Settings" Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" Margin="0,0,0,10"/>
 
+                <ui:SettingsCard Header="Youtube Stub" Description="Prefix text used to construct the final youtube url from the RomM video key"  >
+                    <TextBox Text="{Binding PluginSettings.YouTubeStub, Mode=TwoWay}"/>
+                </ui:SettingsCard>
 
-                    <ucs:ExtendedSyncSettingsView ExtendedSyncSettings="{Binding PluginSettings.GlobalExtendedSyncSettings, Mode=TwoWay}"/>
-
-                    <ui:SettingsExpander Header="Sync Media Download Profile" 
-                                     Description="Select which media items to pull automatically during a platform synchronization"
-                                     Margin="0,10,0,0"
-                                     IsExpanded="False">
-                        <ui:SettingsExpander.Items>
-                            <ui:SettingsCard ContentAlignment="Left" HorizontalContentAlignment="Stretch">
-                                <ItemsControl ItemsSource="{Binding SyncMediaTypes}" Margin="5" >
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="7" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type ucs:MediaSelectionItemViewModel}">
-                                            <CheckBox Content="{Binding DisplayName}" 
-                                              IsChecked="{Binding IsSelected, Mode=TwoWay}" 
-                                              Margin="5,8" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ui:SettingsCard>
-                        </ui:SettingsExpander.Items>
-                    </ui:SettingsExpander>
-
-                    <ui:SettingsExpander Header="Rom Install Media Download Profile" 
+                <ui:SettingsExpander Header="Rom Install Media Download Profile" 
                                      Description="Select which media items to download when a game's rom is installed"
                                      Margin="0,10,0,0"
                                      IsExpanded="False" Visibility="Collapsed">
-
-                        <ui:SettingsExpander.Items>
-                            <ui:SettingsCard ContentAlignment="Left" HorizontalContentAlignment="Stretch">
-                                <ItemsControl ItemsSource="{Binding InstallMediaTypes}" Margin="5">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <UniformGrid Columns="7" />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type ucs:MediaSelectionItemViewModel}">
-                                            <CheckBox Content="{Binding DisplayName}" 
+                    <ui:SettingsExpander.Items>
+                        <ui:SettingsCard ContentAlignment="Left" HorizontalContentAlignment="Stretch">
+                            <ItemsControl ItemsSource="{Binding InstallMediaTypes}" Margin="5">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="7" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type ucs:MediaSelectionItemViewModel}">
+                                        <CheckBox Content="{Binding DisplayName}" 
                                               IsChecked="{Binding IsSelected, Mode=TwoWay}" 
                                               Margin="5,8" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ui:SettingsCard>
-                        </ui:SettingsExpander.Items>
-                    </ui:SettingsExpander>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ui:SettingsCard>
+                    </ui:SettingsExpander.Items>
+                </ui:SettingsExpander>
 
-                </StackPanel>
-            </ScrollViewer>
-        </TabItem>
+                <ui:SettingsExpander Header="Media Download Profile" 
+                                     Description="Select which media items to pull automatically during a platform synchronization"
+                                     Margin="0,10,0,0"
+                                     IsExpanded="True">
+                    <ui:SettingsExpander.Items>
+                        <ui:SettingsCard ContentAlignment="Left" HorizontalContentAlignment="Stretch">
+                            <ItemsControl ItemsSource="{Binding SyncMediaTypes}" Margin="5" >
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="7" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
 
-        <!-- APPLICATION SETTINGS -->
-        <TabItem Header="Application" ui:TabItemHelper.IsClosable="False">
-            <ui:TabItemHelper.Icon>
-                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.AppGeneric_20_Regular}" />
-            </ui:TabItemHelper.Icon>
-            <Grid Margin="10">
-            </Grid>
-        </TabItem>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type ucs:MediaSelectionItemViewModel}">
+                                        <CheckBox Content="{Binding DisplayName}" 
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay}" 
+                                              Margin="5,8" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ui:SettingsCard>
+                    </ui:SettingsExpander.Items>
+                </ui:SettingsExpander>
 
-        <TabItem Header="TabItem 3">
-            <TextBlock Text="Content 3" HorizontalAlignment="Center" VerticalAlignment="Center" />
-        </TabItem>
-    </TabControl>
+
+                <TextBlock Text="Global Sync Settings" Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" Margin="0,10,0,10"/>
+
+
+                <ucs:ExtendedSyncSettingsView ExtendedSyncSettings="{Binding PluginSettings.GlobalExtendedSyncSettings, Mode=TwoWay}"/>
+
+
+
+
+
+            </StackPanel>
+
+        </ScrollViewer>
+    </Grid>
+
+
 </ui:Page>

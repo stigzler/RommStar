@@ -17,7 +17,7 @@ namespace RommStar.Core.Plugins.GameMenuItems
 
         public bool Enabled => true;
 
-        public Image Icon => null;
+        public Image Icon => Properties.Resources.gear__pencil;
 
         public void OnSelect(params IGame[] games)
         {

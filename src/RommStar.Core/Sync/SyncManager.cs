@@ -78,8 +78,6 @@ namespace RommStar.Core.Sync
 
         public event Action<PlatformSyncCardVM>? OnSyncCompletedNotification;
 
-
-
         public void CancelPlatformSync(Guid jobId)
         {
             var card = ActiveSyncJobs.FirstOrDefault(j => j.Id == jobId);
@@ -119,8 +117,6 @@ namespace RommStar.Core.Sync
                 Status = SyncStatus.Queued,
                 RomCount = romCount,
                 SupressSuccessLogItems = _settingsService.Settings.HideSuccessEntries,
-
-
             };
 
             // Safely push to UI Collection from background hooks if necessary
@@ -1265,15 +1261,26 @@ namespace RommStar.Core.Sync
                                 // Aggregate the masterSiblingRomDtoFile sizes across the master AND all variants using the API's combined field
                                 long totalGroupSize = sortedRomDtosList.Sum(r => r.CombinedFilesSizeBytes ?? 0);
 
-                                string masterFile = string.Empty;
-                                if (masterHasFiles)
-                                {
-                                    masterFile = masterRomDto.Files.First().FileName ?? string.Empty;
-                                }
-                                else if (!string.IsNullOrEmpty(masterRomDto.RommFilename))
-                                {
-                                    masterFile = masterRomDto.RommFilename;
-                                }
+                                string masterFile = masterRomDto.RommFilename;
+                                //if (masterHasFiles)
+                                //{
+                                //    masterFile = masterRomDto.Files.First().FileName ?? string.Empty;
+                                //}
+                                //else if (!string.IsNullOrEmpty(masterRomDto.RommFilename))
+                                //{
+                                //    masterFile = masterRomDto.RommFilename;
+                                //}
+
+
+
+                                //if (!masterHasFiles)
+                                //{
+                                //    masterFile = masterRomDto.Files.First().FileName ?? string.Empty;
+                                //}
+                                //else if (!string.IsNullOrEmpty(masterRomDto.RommFilename))
+                                //{
+                                //    masterFile = masterRomDto.RommFilename;
+                                //}
 
                                 EnqueueBatchRomDownloadJob(platformTask, masterIGameInstance, masterRomDto, allRomDtoIds, masterFile, totalGroupSize,
                                     platformTask.TargetServer.Id.ToString(), stagedBatchDownloadItems, platformTask.NotifyLauncboxWhenMetadataComplete);

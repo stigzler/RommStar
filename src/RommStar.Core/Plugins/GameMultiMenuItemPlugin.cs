@@ -15,16 +15,11 @@ namespace RommStar.Core.Plugins
     {
         public IEnumerable<IGameMenuItem> GetMenuItems(params IGame[] selectedGames)
         {
-            IGameMenuItem syncPlatform = new SyncPlatformGameMenuItem(selectedGames.FirstOrDefault());
+            IGameMenuItem syncPlatform = new SyncPlatformGameMenuItem(selectedGames.LastOrDefault());
 
             IGameMenuItem openAdmin = new OpenAdminWindowMenuItem();
 
-            GameMenuItem uninstallGame = new GameMenuItem()
-            {
-                Icon = Properties.Resources.rommIcon64px,
-                Caption = "Uninstall Game",
-                Enabled = true
-            };
+            IGameMenuItem uninstallGame = new UninstallGameMenuItem(selectedGames.LastOrDefault());
 
             // hacky but no other way
             GameMenuItem separator = new GameMenuItem()
@@ -39,7 +34,7 @@ namespace RommStar.Core.Plugins
                 Icon = Properties.Resources.rommIcon64px,
                 Caption = "RomM",
                 Enabled = true,
-                Children = new List<IGameMenuItem>() { syncPlatform, uninstallGame, openAdmin }
+                Children = new List<IGameMenuItem>() { syncPlatform,openAdmin, uninstallGame    } // NB uninstallGame must be last else crashes subsequent menu items
             };
 
 

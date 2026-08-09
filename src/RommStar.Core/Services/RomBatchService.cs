@@ -114,7 +114,7 @@ namespace RommStar.Core.Services
                     var syncSettings = _settingsService.Settings.PlatformSyncSettings
                         .FirstOrDefault(pss => pss.LaunchboxPlatformName == targetPlatform)?.ExtendedSyncSettings;
 
-                    if (syncSettings == null) syncSettings = _settingsService.Settings.GlobalExtendedSyncSettings;
+                    if (syncSettings == null || syncSettings.ApplySettings == false) syncSettings = _settingsService.Settings.GlobalExtendedSyncSettings;
 
                     // Apply GB to Bytes conversion formula
                     long targetSizeBytes = syncSettings.TargetRomBatchFilesizeGb * 1024L * 1024L * 1024L;
@@ -220,12 +220,13 @@ namespace RommStar.Core.Services
                                             skipDownload = false;
                                             break;
                                         }
-                                        else
-                                        {
-                                            IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
-                                            if (game == null) skipDownload = false;
-                                            break;
-                                        }
+                                        // took this out - no idea why i put it in - unless missing something
+                                        //else
+                                        //{
+                                        //    IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
+                                        //    if (game == null) skipDownload = false;
+                                        //    break;
+                                        //}
                                     }
 
                                 }

@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using RommStar.Core.Models;
 using RommStar.Core.Properties;
 using RommStar.Core.Services;
@@ -82,11 +83,12 @@ namespace RommStar.Core.UI.ViewModels.Pages
             }
             else
             {
-                SaveSettings();
+                _ = SaveSettings();
             }
         }
 
-        internal void SaveSettings()
+        [RelayCommand]
+        public async Task SaveSettings()
         {
             // 1. Commit UI states back into the raw PluginSettings Data Models before saving to disk
             SaveProfileFromUI(SyncMediaTypes, PluginSettings.SyncMediaProfile);

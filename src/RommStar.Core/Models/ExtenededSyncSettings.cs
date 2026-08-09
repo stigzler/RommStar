@@ -15,13 +15,10 @@ namespace RommStar.Core.Models
     /// Null in a PLatform-specific SyncProfileTypes will cause it to be ignored
     /// and the default global setting used.
     /// </summary>
-    public class ExtendedSyncSettings: ObservableObject
+    public class ExtendedSyncSettings
     {
-        [ObservableProperty]
-        private bool _applySettings = false;
-
-        [ObservableProperty]
-        private SyncProfileTypes SyncProfile { get; set; } = SyncProfileTypes.UpdateMetadata_DownloadMedia;
+        public bool ApplySettings = false;
+        public SyncProfileTypes SyncProfile { get; set; } = SyncProfileTypes.UpdateMetadata_DownloadMedia;
         public bool OverwriteMetadata { get; set; } = true;
         public bool OverwriteExistingMedia { get; set; } = true;
         public bool OverwriteExistingRoms { get; set; } = true;
