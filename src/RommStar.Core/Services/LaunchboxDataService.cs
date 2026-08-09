@@ -215,11 +215,25 @@ namespace RommStar.Core.Services
                     // Route to correct queue item
                     RomQueueItem matchingItem = romQueueItems.Count == 1
                         ? romQueueItems[0]
-                        : FindMatchingBatchItemForFile(romQueueItems, entryFullName); // Passing FullName helps with directory matching
+                        : FindMatchingBatchItemForFile(romQueueItems, entryFullName);
 
-                    if (individualGameFolders && matchingItem != null && !isSoundtrack)
+                    if (matchingItem != null && !isSoundtrack)
                     {
-                        targetDirectory = Path.Combine(romRoot, matchingItem.GameNameSanitised);
+                        // THE FLATTENING RULE:
+                        // Since siblings are aggregated, we can't count the files. 
+                        // Instead, trust the queue item. If it's NOT a multi-file game natively, 
+                        // RomM only foldered it because of soundtracks or batch packaging.
+                        bool flattenFolder = !matchingItem.IsMultiFileGame;
+
+                        if (flattenFolder || individualGameFolders)
+                        {
+                            relativeRomPath = Path.GetFileName(relativeRomPath);
+                        }
+
+                        if (individualGameFolders)
+                        {
+                            targetDirectory = Path.Combine(romRoot, matchingItem.GameNameSanitised);
+                        }
                     }
 
                     // 4. Safe Atomic Extraction to Disk
