@@ -222,7 +222,7 @@ namespace RommStar.Core.Services
                         // THE FLATTENING RULE:
                         // Since siblings are aggregated, we can't count the files. 
                         // Instead, trust the queue item. If it's NOT a multi-file game natively, 
-                        // RomM only foldered it because of soundtracks or batch packaging.
+                        // RomM only foldered it because of soundtracks or batch packaging to the single game file.
                         bool flattenFolder = !matchingItem.IsMultiFileGame;
 
                         if (flattenFolder || individualGameFolders)

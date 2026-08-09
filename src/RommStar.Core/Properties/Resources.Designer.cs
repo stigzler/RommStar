@@ -83,6 +83,16 @@ namespace RommStar.Core.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap install {
+            get {
+                object obj = ResourceManager.GetObject("install", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap installing {
             get {
                 object obj = ResourceManager.GetObject("installing", resourceCulture);
@@ -126,6 +136,16 @@ namespace RommStar.Core.Properties {
         internal static System.Drawing.Bitmap sync {
             get {
                 object obj = ResourceManager.GetObject("sync", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap uninstall {
+            get {
+                object obj = ResourceManager.GetObject("uninstall", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

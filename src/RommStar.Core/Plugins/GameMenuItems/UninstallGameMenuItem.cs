@@ -20,7 +20,7 @@ namespace RommStar.Core.Plugins.GameMenuItems
         public bool Enabled => true;
 
 
-        public Image Icon => (bool)(selectedGame?.Installed) ? Properties.Resources.box__minus : Properties.Resources.installing;
+        public Image Icon => (bool)(selectedGame?.Installed) ? Properties.Resources.uninstall : Properties.Resources.install;
 
         private IGame selectedGame;
 
