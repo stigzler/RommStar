@@ -5,7 +5,7 @@ namespace RommStar.Core.Models
         [RommStar.Core.Primitives.Encrypted]
         public string ApiToken { get; set; } = string.Empty;
         public string BaseUrl { get; set; } = string.Empty;
-        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Id { get; set; } = Guid.NewGuid().ToString("N")[..12];
         public string ServerName { get; set; } = string.Empty;
 
         /// <summary>

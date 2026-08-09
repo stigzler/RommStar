@@ -38,7 +38,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
         /// ===== PERFORMANCE-CRITICAL: Centralized Cache =====
         /// Central cache for all Romm server platforms. Key = RommServer.Id
         /// </summary>
-        private readonly Dictionary<Guid, ObservableCollection<PlatformDTO>>
+        private readonly Dictionary<string, ObservableCollection<PlatformDTO>>
             _rommPlatformCache = new();
 
         private readonly RommService
@@ -283,7 +283,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             }
         }
 
-        private RommServerItemVM GetRommServerItemByServerId(Guid id)
+        private RommServerItemVM GetRommServerItemByServerId(string id)
         {
             return RommServerItems.FirstOrDefault(rs => rs.RommServer.Id == id);
             //return RommServerItems.Where(rs => rs.RommServer.Id == id).FirstOrDefault();

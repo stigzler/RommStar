@@ -87,7 +87,7 @@ namespace RommStar.Core.Services
             }
 
             // RomM server
-            Guid romServerId = platformSyncSettings.RommServerId;
+            string romServerId = platformSyncSettings.RommServerId;
             RommServer rommServer = (RommServer)_settingsService.Settings.RommServers.Where(rs => rs.Id == romServerId).FirstOrDefault();
             if (rommServer == null)
             {

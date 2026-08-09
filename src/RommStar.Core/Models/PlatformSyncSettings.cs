@@ -14,7 +14,7 @@ namespace RommStar.Core.Models
         /// </summary>
         public string LaunchboxPlatformName { get; set; }
 
-        public Guid RommServerId { get; set; }
+        public string RommServerId { get; set; }
 
         /// <summary>
         /// Bit hacky but meh

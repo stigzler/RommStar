@@ -68,7 +68,7 @@ namespace RommStar.Core.Sync
             string baseResourceEndpoint = $"{baseUrl.TrimEnd('/')}{MediaStubPath}";
 
             // Determine our primary naming token based on UI configuration flag
-            string baseTargetName = $"{rom.Name}.{iGameId}";
+            string baseTargetName = $"{rom.Name}";
 
             foreach (var type in profile.EnabledTypes)
             {

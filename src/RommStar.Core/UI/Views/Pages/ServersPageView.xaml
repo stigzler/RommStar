@@ -52,6 +52,7 @@
                         <Border Margin="0,0,20,10" Background="#40000000" CornerRadius="14" BorderBrush="#80000000" BorderThickness="1">
                             <StackPanel>
 
+                                <!-- Main Card -->
                                 <Border  Padding="16,12">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -71,6 +72,7 @@
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
                                                 <Grid.RowDefinitions>
+                                                    <RowDefinition Height="auto " />
                                                     <RowDefinition Height="auto " />
                                                     <RowDefinition Height="auto " />
                                                     <RowDefinition Height="auto " />
@@ -105,6 +107,11 @@
                                                     <Button Grid.Column="1" Content="👁" ToolTip="Show/Hide Password"
                                                         Width="auto" Command="{Binding ToggleApiKeyVisibilityCommand}" Margin="0,0,10,10" />
                                                 </Grid>
+                                                <TextBlock Grid.Row="3" Grid.Column="1" Margin="20,0,0,0" Opacity="0.5">
+                                                    <Run Text="ID: "/>
+                                                    <Run Text="{Binding Server.Id}"/>
+                                                </TextBlock>
+
                                             </Grid>
                                         </StackPanel>
 
