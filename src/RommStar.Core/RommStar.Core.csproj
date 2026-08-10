@@ -51,14 +51,20 @@
 			<HintPath>..\..\lib\launchbox\System.Private.Windows.Core.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
+				<Reference Include="Microsoft.Data.Sqlite">
+			<HintPath>..\..\lib\launchbox\Microsoft.Data.Sqlite.dll</HintPath>
+			<Private>false</Private>
+		</Reference>		
 	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2">
 			<Private>true</Private>
 		</PackageReference>
+		<PackageReference Include="Dapper" Version="2.1.79" />
 		<PackageReference Include="iNKORE.UI.WPF" Version="1.2.8" ExcludeAssets="runtime" />
 		<PackageReference Include="iNKORE.UI.WPF.Modern" Version="0.10.2.1" ExcludeAssets="runtime" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.14" />
 		<PackageReference Include="Riok.Mapperly" Version="5.0.0-next.8" />
 	</ItemGroup>
 

@@ -8,12 +8,14 @@ Make sure you put this at the top of each page:100:
 
 ```xml
 <page
-      TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextFormattingMode="Display"
       TextOptions.TextRenderingMode="ClearType"
       UseLayoutRounding="True"
       SnapsToDevicePixels="True"
 />
 ```
+
+for large items (eg large images) use `TextOptions.TextFormattingMode="Ideal"`
 
 ### Images
 
@@ -171,6 +173,6 @@ Tosec restricts media to:
 Single file > multi-disc (game + music) > sibling set.
 
 |Rom|Structure|Misc|Game Effective status|LB FIle location|Romm File location|Misc|
-|-|-|-|-|-|-|-|
+|-|-|-|-|-|-|-|---|---|---|---|---|---|---|
 |Wipeout 3 - Special Edition (Europe) (En,Fr,De,Es,It).zip|Imported to Romm via WebUI|Single-File|psx root|psx root|Application Path populated correctly.|
 |Wipeout 3 (USA).zip||||||Added to romm - romm not verifying files due to bug.|Wipeout 3 (USA).zip||||||Added to romm - romm not verifying files due to bug.|

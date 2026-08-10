@@ -5,7 +5,9 @@ using RommStar.Core.Primitives;
 using RommStar.Core.Services;
 using RommStar.Core.Sync;
 using RommStar.Core.UI.ViewModels.Pages;
+using RommStar.Core.UI.ViewModels.UserControls;
 using RommStar.Core.UI.ViewModels.Windows;
+using RommStar.Core.UI.Views.UserControls;
 using RommStar.Core.UI.Views.Windows;
 using System.IO;
 using System.Reflection;
@@ -85,7 +87,7 @@ namespace RommStar.Core
                     _launchboxStateService.DoShutdownOperations();
                     break;
                 case SystemEventTypes.SelectionChanged:
-                   await _launchboxStateService.OnGameSelectionChanged();
+                    await _launchboxStateService.OnGameSelectionChanged();
                     break;
             }
         }
@@ -165,6 +167,7 @@ namespace RommStar.Core
             services.AddSingleton<ServersPageVM>();
             services.AddSingleton<PlatformsPageVM>();
             services.AddSingleton<RomQueuePageVM>();
+            services.AddSingleton<AddNewPlatformUcVM>();
 
 
             // Register Views as singletons
@@ -180,6 +183,14 @@ namespace RommStar.Core
                     sp.GetRequiredService<RomQueuePageVM>()
                 )
             );
+
+            services.AddTransient<AddNewPlatformUcView>(sp =>
+                new AddNewPlatformUcView(
+                    sp.GetRequiredService<AddNewPlatformUcVM>()
+                ));
+
+
+
         }
 
         /// <summary>
@@ -247,6 +258,6 @@ namespace RommStar.Core
             else
                 adminWindow.Show();
         }
-    
+
     }
 }

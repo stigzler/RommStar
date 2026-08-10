@@ -11,7 +11,7 @@
             xmlns:sync="clr-namespace:RommStar.Core.Sync"
              xmlns:prims="clr-namespace:RommStar.Core.Primitives"
             xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
-             mc:Ignorable="d" 
+             mc:Ignorable="d" d:Foreground="Gainsboro" 
              d:DesignHeight="450" d:DesignWidth="800"
              x:Name="root">
 

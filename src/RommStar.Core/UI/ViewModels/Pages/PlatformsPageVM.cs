@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using iNKORE.UI.WPF.Modern.Controls;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Mappers;
@@ -10,11 +11,14 @@ using RommStar.Core.Services;
 using RommStar.Core.Sync;
 using RommStar.Core.UI.Messages;
 using RommStar.Core.UI.ViewModels.DataModels;
+using RommStar.Core.UI.ViewModels.UserControls;
+using RommStar.Core.UI.Views.UserControls;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.IO;
-
 using System.Text;
+using System.Windows;
+using System.Windows.Controls;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
 
@@ -23,11 +27,17 @@ namespace RommStar.Core.UI.ViewModels.Pages
     //todo: re/load server on page navigate to (in case user adds/deletes a server)
     public partial class PlatformsPageVM : ObservableObject, IRecipient<DeleteLaunchboxPlatformItemMessage>
     {
+
+
         private readonly LaunchboxDataService
             _launchboxDataService;
 
         private readonly LoggingService
             _loggingService;
+
+        private AddNewPlatformUcView _addNewPlatformUcView;
+
+        private readonly AddNewPlatformUcVM _addNewPlatformVm;
 
         /// <summary>
         /// Controls overlapping InfoBar calls
@@ -138,13 +148,14 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
 
         public PlatformsPageVM(SettingsService settingsService, LaunchboxDataService launchboxService,
-            RommService rommService, LoggingService loggingService, SyncManager syncManager)
+            RommService rommService, LoggingService loggingService, SyncManager syncManager, AddNewPlatformUcVM addNewPlatformVm)
         {
             _settingsService = settingsService;
             _launchboxDataService = launchboxService;
             _rommService = rommService;
             _loggingService = loggingService;
             _syncManager = syncManager;
+            _addNewPlatformVm = addNewPlatformVm;
 
             WeakReferenceMessenger.Default.Register<DeleteLaunchboxPlatformItemMessage>(this);
 
@@ -189,35 +200,105 @@ namespace RommStar.Core.UI.ViewModels.Pages
         [RelayCommand]
         private async Task AddNewLaunchboxPlatform()
         {
-            if (RequestAddPlatformNameDialog == null) return;
-            LaunchboxPlatformsInfoBar.IsOpen = false;
+            var freshDialogView = new AddNewPlatformUcView(_addNewPlatformVm);
 
-            // Fire the event and await the text input from the dialog
-            string votiNewPlatformName = await RequestAddPlatformNameDialog.Invoke();
-            // remove unsafe filename chars + trim
-            votiNewPlatformName = Core.Helpers.StringsHelper.SanitizeFileName(votiNewPlatformName).Trim();
-
-            // On blank, or platform name already existing (must be unique in lb), return error
-            // Check rommStar cached platforms
-            if (string.IsNullOrWhiteSpace(votiNewPlatformName) ||
-                LaunchboxPlatformItems.Any(lpi => lpi.LaunchboxPlatformName.ToLower() == votiNewPlatformName.ToLower()))
+            ContentDialog dialog = new ContentDialog
             {
-                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error", "Platform name was null or already exists. It has to be unique.");
+                Title = "Please select a default Launchbox Platform to add",
+                Content = freshDialogView,
+                PrimaryButtonText = "OK",
+                SecondaryButtonText = "Cancel"
+            };
+
+            var result = await dialog.ShowAsync();
+
+            return;
+            // Grab defualt platforms and emulators form the LB db3 file
+            var platforms = await _launchboxDataService.GetDefaultDbPlatforms();
+            var emulators = await _launchboxDataService.GetDefaultDbEmulators();
+
+            ComboBox platformDropdown = new ComboBox() { Margin= new Thickness(10), HorizontalAlignment=HorizontalAlignment.Stretch};
+            ComboBox emulatorDropdown = new ComboBox() { Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Stretch };
+
+
+            // Populuate the comboboxes
+            platformDropdown.ItemsSource = platforms;
+            platformDropdown.DisplayMemberPath = "Name";
+            platformDropdown.SelectedIndex = 0;
+
+            emulatorDropdown.ItemsSource = emulators;
+            emulatorDropdown.DisplayMemberPath = "Name";
+            emulatorDropdown.SelectedIndex = 0;
+
+            // set up the stack panel
+            StackPanel containerStackPN = new StackPanel();
+            containerStackPN.Children.Add(new TextBlock { Text = "This will set up a new Platform from the defaults in the Launchbox database. " +
+                "If you are wanting to use a custom emulator, you will need to add the Platform and Emulator via Launchbox itself. " +
+                "Also, RommStar cannot fully populate these as would the normal Launchbox import process (such as AHK scripts etc), but will cover the essentials.",
+                Margin = new Thickness(0, 0, 0, 15), TextWrapping=TextWrapping.Wrap });
+
+            containerStackPN.Children.Add(new TextBlock { Text = "Select Platform:", Margin = new Thickness(0, 0, 0, 5) });
+            containerStackPN.Children.Add(platformDropdown);
+
+            containerStackPN.Children.Add(new TextBlock { Text = "Select Emulator:", Margin = new Thickness(0, 10, 0, 5) });
+            containerStackPN.Children.Add(emulatorDropdown);
+
+            ContentDialog dialog2 = new ContentDialog
+            {
+                Title = "Please select a default Launchbox Platform to add",
+                Content = containerStackPN,
+                PrimaryButtonText = "OK",
+                SecondaryButtonText = "Cancel"
+            };
+
+            var result2 = await dialog.ShowAsync();
+
+            if (result != ContentDialogResult.Primary) return;
+
+            // CHECKS ON RETURNS
+
+            // On platform name already existing (must be unique in lb), return error
+            // Check rommStar cached platforms
+            if (LaunchboxPlatformItems.Any(lpi => lpi.LaunchboxPlatformName.Equals(platformDropdown.SelectedItem?.ToString(), StringComparison.OrdinalIgnoreCase)))
+            {
+                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error", "This Platform is already in RommStar. No need to add again.");
                 return;
             }
 
             // need to do a check of the actual LB database in case Auto-import cause re-creation 
             // of the platform without rommstar/user knowing (bloody auto import!)
-            if (PluginHelper.DataManager.GetPlatformByName(votiNewPlatformName) != null)
+            if (PluginHelper.DataManager.GetPlatformByName(platformDropdown.SelectedItem?.ToString()) != null)
             {
-                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error", "Platform name exists in Launchbox backend database. Launchbox Auto-import can sometimes re-create Platforms even after their removal if roms still exist in the platforms folder (may not be visible in Launchbox).");
+                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error", "Platform name exists in the Launchbox database backend. " +
+                    "Launchbox Auto-import can sometimes re-create Platforms even after their removal if roms still exist in the platforms folder " +
+                    "(may not be visible in Launchbox).");
                 return;
             }
 
 
+
+
+
+
+            string candidateNewPlatformName = null;
+
+   
+
+            // Check if they clicked Cancel or closed the dialog
+
+
+            return;
+
+            // On blank, or platform name already existing (must be unique in lb), return error
+
+   
+
+
+
+
             // Success!
-            _launchboxDataService.CreateNewPlatform(votiNewPlatformName);
-            SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Success, "Added new Platform", $"New Platform {votiNewPlatformName} added successfully");
+            _launchboxDataService.CreateNewPlatform(candidateNewPlatformName);
+            SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Success, "Added new Platform", $"New Platform {candidateNewPlatformName} added successfully");
             LoadLaunchboxPlatforms();
             OnPropertyChanged(nameof(FilteredLaunchboxPlatforms));
         }
@@ -292,7 +373,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private async void LoadLaunchboxPlatforms()
         {
             // Get current LB platforms
-            var liveLbPlatformDtos = _launchboxDataService.GetPlatforms();
+            var liveLbPlatformDtos = _launchboxDataService.GetUserPlatforms();
 
             LaunchboxPlatformItems.Clear();
 
@@ -449,7 +530,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             // first save settings - persists any changes to disk
             _settingsService.Save();
-            
+
             if (((LaunchboxPlatformItemVM)value).AssignedServerItem == null)
             {
                 SelectedRommServer = null;
@@ -685,7 +766,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             // but then deleted later on the romm server.
 
             List<int> rommPlatformIds = SelectedPlatform.MatchedRommPlatforms.Select(p => p.RommId).ToList();
-            
+
             if (rommPlatformIds.Count == 0)
             {
                 SetInfoBar(LaunchboxRommPlatformsInfoBar, true,
@@ -710,7 +791,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             SetInfoBar(LaunchboxRommPlatformsInfoBar, true,
                         InfoBarSeverity.Informational, "Platform Sync Started", $"Sync started for {platform.Name}. " +
-                        $"See Sync Jobs page for progress.",autoCloseSeconds: 3);
+                        $"See Sync Jobs page for progress.", autoCloseSeconds: 3);
 
         }
 

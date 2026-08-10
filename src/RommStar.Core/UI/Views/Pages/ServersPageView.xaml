@@ -24,7 +24,7 @@
                 <ui:ThemeResources AccentColor="#553e98" />
             </ResourceDictionary.MergedDictionaries>-->
 
-            <BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         </ResourceDictionary>
     </Page.Resources>
 

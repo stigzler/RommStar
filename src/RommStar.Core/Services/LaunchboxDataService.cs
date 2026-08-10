@@ -1,4 +1,4 @@
-﻿using iNKORE.UI.WPF.Converters;
+﻿using Microsoft.Data.Sqlite;
 using RommStar.Core.Dtos;
 using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Helpers;
@@ -14,6 +14,7 @@ using System.Windows;
 using System.Xml.Linq;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
+using Dapper;
 
 namespace RommStar.Core.Services
 {
@@ -25,6 +26,12 @@ namespace RommStar.Core.Services
         private IPlatform _operationalPlatform;
         private string? _operativeServerId = null;
         private bool _overwriteMetadata = true;
+
+        private readonly string _dbConnectionString = "Data Source=" + 
+                                                        Path.Combine(Constants.LaunchboxRootDir, "Metadata", "Launchbox.Metadata.db") +
+                                                        ";Mode=ReadOnly;";
+
+
         /// <summary>
         /// Used in conjunction with _platformLbGameDatabaseIds. Lookup once presence of launchboxDatabaseID Game
         /// </summary>
@@ -32,19 +39,19 @@ namespace RommStar.Core.Services
 
         /// <summary>
         /// Used in conjunction with _platformHelperMap. 
-        /// Performant lookup of games with LaunchboxDatabaseIds.
+        /// Performant lookup of platforms with LaunchboxDatabaseIds.
         /// </summary>
         private HashSet<int?> _platformLbGameDatabaseIds = new HashSet<int?>();
 
         /// <summary>
         /// Used in conjunction with _platformHelperMap. 
-        /// Performant lookup of games with existing RommIds.
+        /// Performant lookup of platforms with existing RommIds.
         /// </summary>
         private HashSet<string> _platformRommIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Used in conjunction with _platformHelperMap. 
-        /// Performant lookup of games with existing ServerIds.
+        /// Performant lookup of platforms with existing ServerIds.
         /// </summary>
         private HashSet<string?> _platformServerIds = new HashSet<string?>();
 
@@ -57,6 +64,33 @@ namespace RommStar.Core.Services
             _settingsService = settingsService;
             _loggingService = loggingService;
             PopulateLaunchboxSettings();
+        }
+        public async Task<IEnumerable<LaunchboxDbPlatform>> GetDefaultDbPlatforms()
+        {
+            // The 'using var' statement creates the connection. 
+            // As soon as this method finishes, C# automatically closes it and frees the file.
+            using var connection = new SqliteConnection(_dbConnectionString);
+
+            string sql = "SELECT * FROM Platforms ORDER BY Name ASC";
+
+            // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
+            var platforms = await connection.QueryAsync<LaunchboxDbPlatform>(sql);
+
+            return platforms;
+        }
+
+        public async Task<IEnumerable<LaunchboxDbEmulator>> GetDefaultDbEmulators()
+        {
+            // The 'using var' statement creates the connection. 
+            // As soon as this method finishes, C# automatically closes it and frees the file.
+            using var connection = new SqliteConnection(_dbConnectionString);
+
+            string sql = "SELECT * FROM Emulators ORDER BY Name ASC";
+
+            // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
+            var emulators = await connection.QueryAsync<LaunchboxDbEmulator>(sql);
+
+            return emulators;
         }
 
         public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory,
@@ -122,7 +156,7 @@ namespace RommStar.Core.Services
             return votiIconPath;
         }
 
-        public List<LaunchboxPlatformDTO> GetPlatforms()
+        public List<LaunchboxPlatformDTO> GetUserPlatforms()
         {
             IPlatform[] livePlatforms = PluginHelper.DataManager.GetAllPlatforms();
             if (livePlatforms == null) return new List<LaunchboxPlatformDTO>();
@@ -138,7 +172,6 @@ namespace RommStar.Core.Services
             .OrderBy(p => p.Name)
             .ToList();
         }
-
 
         internal string GetLaunchboxRomsFolderPath(string launchboxPlatformName)
         {
@@ -568,7 +601,7 @@ namespace RommStar.Core.Services
                     }
                 }
 
-                // Update Romm ID Tracking Custom Field on existing games if a new context list is provided
+                // Update Romm ID Tracking Custom Field on existing platforms if a new context list is provided
                 if (game != null && !string.IsNullOrEmpty(customRomIdsCsv))
                 {
                     var romIdsField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());

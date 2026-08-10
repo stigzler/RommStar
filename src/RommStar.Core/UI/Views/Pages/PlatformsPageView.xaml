@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:local="clr-namespace:RommStar.Core.UI.Views.Pages"
-      xmlns:vms="clr-namespace:RommStar.Core.UI.ViewModels"
+      xmlns:vms="clr-namespace:RommStar.Core.UI.ViewModels.Pages"
       xmlns:vmsd="clr-namespace:RommStar.Core.UI.ViewModels.DataModels"
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
       xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
@@ -14,7 +14,7 @@
       xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:sync="clr-namespace:RommStar.Core.Sync"
       xmlns:ucs="clr-namespace:RommStar.Core.UI.Views.UserControls"
-      d:DataContext="{d:DesignInstance Type=vms:Pages.PlatformsPageVM, IsDesignTimeCreatable=True}"
+      d:DataContext="{d:DesignInstance Type=vms:PlatformsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Platforms" IsVisibleChanged="Page_IsVisibleChanged" DataContextChanged="PlatformsPage_DataContextChanged"
@@ -197,7 +197,7 @@
                                     <!-- Add New Launchbox PLatform -->
                                     <!-- Note: removed feature: encourages users to add new platforms via Launchbox -->
                                     <MenuItem Header="Add New Launchbox Platform" Command="{Binding AddNewLaunchboxPlatformCommand}"
-                                              Visibility="Collapsed">
+                                              Visibility="Visible">
                                         <MenuItem.Icon>
                                             <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}" />
                                         </MenuItem.Icon>
@@ -497,7 +497,7 @@
                                                          IsOn="{Binding SelectedPlatform.ExtendedSyncSettings.ApplySettings, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                     </Grid>
                                 </Expander.Header>
-                                <Grid >
+                                <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="auto" />
                                         <RowDefinition Height="*" />
