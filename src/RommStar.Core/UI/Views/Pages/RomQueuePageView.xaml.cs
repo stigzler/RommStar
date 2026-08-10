@@ -14,6 +14,10 @@ namespace RommStar.Core.UI.Views.Pages
             InitializeComponent();
 
             ViewModel = viewModel;
+
+            // Subscribe directly to the injected ViewModel right away
+            ViewModel.RequestConfirmationDialog += ShowConfirmationDialogAsync;
+
             DataContext = ViewModel;
 
             DataContextChanged += OnDataContextChanged;

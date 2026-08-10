@@ -49,11 +49,7 @@
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem Content="Servers" x:Name="NavigationViewItem_Servers">
-                <ui:NavigationViewItem.Icon>
-                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ServerSurfaceMultiple_16_Regular}" />
-                </ui:NavigationViewItem.Icon>
-            </ui:NavigationViewItem>
+
 
             <ui:NavigationViewItem Content="Sync Jobs" x:Name="NavigationViewItem_Jobs">
                 <ui:NavigationViewItem.Icon>
@@ -64,6 +60,12 @@
             <ui:NavigationViewItem Content="Download Jobs" x:Name="NavigationViewItem_DownloadJobs">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+            
+            <ui:NavigationViewItem Content="Servers" x:Name="NavigationViewItem_Servers">
+                <ui:NavigationViewItem.Icon>
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ServerSurfaceMultiple_16_Regular}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 

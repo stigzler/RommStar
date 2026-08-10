@@ -13,7 +13,7 @@
       d:DataContext="{d:DesignInstance Type=vm:JobsPageVM, IsDesignTimeCreatable=True}"
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
-      TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextFormattingMode="Display"
       TextOptions.TextRenderingMode="ClearType"
       UseLayoutRounding="True"
       SnapsToDevicePixels="True"
@@ -49,12 +49,16 @@
                     IsChecked="{Binding HideSuccessEntries, Mode=TwoWay}"/>
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" 
+        <Border Grid.Row="1" Background="#20000000" CornerRadius="14" Margin="10">
+            
+            <Grid Grid.Row="1">
+
+                <ScrollViewer  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" 
                       Style="{DynamicResource DefaultScrollViewerStyle}">
-            <ItemsControl ItemsSource="{Binding ActiveJobs}" Padding="15,10,0,0">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border x:Name="JobCard"
+                    <ItemsControl ItemsSource="{Binding ActiveJobs}" Padding="10">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="JobCard"
                                 Margin="0,0,16,12"
                                 Padding="16"
                                 BorderThickness="1"
@@ -62,194 +66,229 @@
                                 Background="{DynamicResource SystemControlPageBackgroundChromeLowBrush}"
                                 BorderBrush="{DynamicResource SystemControlCornerRadiusBrush}">
 
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    
-                                </Grid.ColumnDefinitions>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
 
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="auto"/>
-                                    <RowDefinition Height="auto"/>
-                                </Grid.RowDefinitions>
+                                        </Grid.ColumnDefinitions>
 
-                                <!-- Job Progress info -->
-                                <StackPanel Grid.Column="0" Grid.Row="0">
-                                    <WrapPanel>
-                                        <TextBlock Text="{Binding LaunchBoxPlatformName}"
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="auto"/>
+                                            <RowDefinition Height="auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Job Progress info -->
+                                        <StackPanel Grid.Column="0" Grid.Row="0">
+                                            <WrapPanel>
+                                                <TextBlock Text="{Binding LaunchBoxPlatformName}"
                                                        FontWeight="SemiBold"
                                                        FontSize="14" />
 
-                                        <TextBlock Text="{Binding Status, Converter={StaticResource SyncStatusToProcessingTitleConverter}}"
+                                                <TextBlock Text="{Binding Status, Converter={StaticResource SyncStatusToProcessingTitleConverter}}"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                        Margin="8,0,0,0"
                                                        VerticalAlignment="Center"
                                                        FontSize="12" />
-                                    </WrapPanel>
+                                            </WrapPanel>
 
 
 
-                                    <ui:ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
+                                            <ui:ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
                                                         Minimum="0"
                                                         Maximum="100"
                                                         Height="1" Background="#80808080"
                                                         Margin="0,10,10,0" Foreground="ForestGreen" MinHeight="5">
-                                    </ui:ProgressBar>
+                                            </ui:ProgressBar>
 
-                                    <TextBlock Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                            <TextBlock Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                                                    FontSize="11"
                                                    Margin="0,6,0,0">
                                             <Run Text="{Binding ProcessedItems, StringFormat='Items Processed: \{0\}'}" />
                                             <Run Text="{Binding TotalItems, StringFormat='/ \{0\}'}" />
-                                    </TextBlock>
-                                </StackPanel>
+                                            </TextBlock>
+                                        </StackPanel>
 
-                                <!-- Cancel Job -->
-                                <Button Grid.Column="1" Grid.Row="0"
+                                        <!-- Cancel Job -->
+                                        <Button Grid.Column="1" Grid.Row="0"
                                        VerticalAlignment="Top" Margin="5,0,0,0" Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
                                        FontSize="12" Width="28" Height="28" Padding="0" Background="Transparent"
                                        BorderBrush="Transparent"
                                        Command="{Binding DataContext.CancelJobCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                        CommandParameter="{Binding Id}"
                                        Visibility="{Binding Status, Converter={StaticResource SyncStatusToVisibilityConverterInv}}">
-                                    <Button.ToolTip>
-                                        <ToolTip Content="Cancel Platform Sync Job" />
-                                    </Button.ToolTip>
-                                </Button>
+                                            <Button.ToolTip>
+                                                <ToolTip Content="Cancel Platform Sync Job" />
+                                            </Button.ToolTip>
+                                        </Button>
 
 
-                                <!-- Remove Job from UI-->
-                                <Button Grid.Column="1" Grid.Row="0"
+                                        <!-- Remove Job from UI-->
+                                        <Button Grid.Column="1" Grid.Row="0"
                                             VerticalAlignment="Top" Margin="5,0,0,0" Content="&#xE711;" FontFamily="Segoe MDL2 Assets"
                                             FontSize="12" Width="28" Height="28" Padding="0" Background="Transparent"
                                             BorderBrush="Transparent"
                                             Command="{Binding DataContext.RemoveJobCardCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                             CommandParameter="{Binding Id}"
                                             Visibility="{Binding Status, Converter={StaticResource SyncStatusToVisibilityConverter}}">
-                                    <Button.ToolTip>
-                                        <ToolTip Content="Remove this Job Card from UI" />
-                                    </Button.ToolTip>
-                                </Button>
+                                            <Button.ToolTip>
+                                                <ToolTip Content="Remove this Job Card from UI" />
+                                            </Button.ToolTip>
+                                        </Button>
 
-                                <Expander Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" Margin="0,5,0,0"
+                                        <Expander Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" Margin="0,5,0,0"
                                           Padding="0">
 
-                                    <Expander.Header>
-                                        <Grid Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Expander}}">
+                                            <Expander.Header>
+                                                <Grid Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Expander}}">
 
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
 
-                                            <TextBlock Grid.Column="0" 
+                                                    <TextBlock Grid.Column="0" 
                                                        Text="View Process Logs" 
                                                        VerticalAlignment="Center" />
 
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" FlowDirection="RightToLeft"
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" FlowDirection="RightToLeft"
                                                         Margin="0,0,30,0">
-                                                <ui:ToggleSwitch Grid.Column="1" Margin="0,0,10,0"
+                                                        <ui:ToggleSwitch Grid.Column="1" Margin="0,0,10,0"
                                                              OffContent="Logging Success Entries"
                                                              OnContent="Ignoring Success Entries"
                                                              HorizontalAlignment="Right" 
                                                              VerticalAlignment="Center"                                                             
                                                              IsOn="{Binding SupressSuccessLogItems, Mode=TwoWay}"/>
 
-                                                <Button Style="{DynamicResource {x:Static ui:ThemeKeys.DefaultButtonStyleKey}}"
+                                                        <Button Style="{DynamicResource {x:Static ui:ThemeKeys.DefaultButtonStyleKey}}"
                                                         Command="{Binding CopyJobLogToClipboardCommand}">
-                                                    <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight">
-                                                        <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Copy_20_Regular}" Margin="0,0,5,0" />
-                                                        <TextBlock ToolTip="Copy Log to Clipboard">Copy</TextBlock>
-                                                    </StackPanel>
-                                                </Button>
+                                                            <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight">
+                                                                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Copy_20_Regular}" Margin="0,0,5,0" />
+                                                                <TextBlock ToolTip="Copy Log to Clipboard">Copy</TextBlock>
+                                                            </StackPanel>
+                                                        </Button>
 
-                                                <!-- Errors Count -->
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.8"
+                                                        <!-- Errors Count -->
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.8"
                                                             Visibility="{Binding ErrorCount, Converter={StaticResource NotZeroVisibilityConverter}}">
 
-                                                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DismissCircle_20_Regular}" Margin="0,0,5,0" />
-                                                    <TextBlock Text="{Binding ErrorCount}"/>
-                                                    <TextBlock Text=" Errors" Margin="0,0,10,0"/>
-                                                </StackPanel>
+                                                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DismissCircle_20_Regular}" Margin="0,0,5,0" />
+                                                            <TextBlock Text="{Binding ErrorCount}"/>
+                                                            <TextBlock Text=" Errors" Margin="0,0,10,0"/>
+                                                        </StackPanel>
 
-                                                <!-- Warnings Count -->
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.8"
+                                                        <!-- Warnings Count -->
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" FlowDirection="LeftToRight" Opacity="0.8"
                                                             Visibility="{Binding WarningCount, Converter={StaticResource NotZeroVisibilityConverter}}">
 
-                                                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Warning_20_Regular}" Margin="0,0,5,0" />
-                                                    <TextBlock Text="{Binding WarningCount}" />
-                                                    <TextBlock Text=" Warnings" Margin="0,0,10,0" />
+                                                            <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Warning_20_Regular}" Margin="0,0,5,0" />
+                                                            <TextBlock Text="{Binding WarningCount}" />
+                                                            <TextBlock Text=" Warnings" Margin="0,0,10,0" />
 
-                                                </StackPanel>
+                                                        </StackPanel>
 
-                                            </StackPanel>
+                                                    </StackPanel>
 
-                                        </Grid>
-                                    </Expander.Header>
+                                                </Grid>
+                                            </Expander.Header>
 
-                                    <ScrollViewer MaxHeight="180"
+                                            <ScrollViewer MaxHeight="180"
                                                     VerticalScrollBarVisibility="Auto" 
                                                     HorizontalScrollBarVisibility="Disabled"
                                                     Margin="10" Background="#10000000"
                                                   Padding="10">
-                                        <ItemsControl ItemsSource="{Binding SyncLogs}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding}" 
+                                                <ItemsControl ItemsSource="{Binding SyncLogs}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding}" 
                                                                FontFamily="Consolas" 
                                                                FontSize="12" 
                                                                Margin="0,2"
                                                                TextWrapping="Wrap"
                                                                Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
 
-                                    </ScrollViewer>
-                                </Expander>
+                                            </ScrollViewer>
+                                        </Expander>
 
 
-                            </Grid>
+                                    </Grid>
 
-                            <!-- Process Logs -->
+                                    <!-- Process Logs -->
 
-                        </Border>
+                                </Border>
 
-                        <DataTemplate.Triggers>
-                            <DataTrigger Binding="{Binding Status}" Value="ProcessingMetadata">
-                                <Setter TargetName="JobCard" Value="#80553e98" Property="Background" />
-                                <Setter TargetName="JobCard" Value="#80371f69" Property="BorderBrush" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Status}" Value="SyncingFiles">
-                                <Setter TargetName="JobCard" Value="#80553e98" Property="Background" />
-                                <Setter TargetName="JobCard" Value="#80371f69" Property="BorderBrush" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Status}" Value="Queued">
-                                <Setter TargetName="JobCard" Value="#80424242" Property="Background" />
-                                <Setter TargetName="JobCard" Value="#802D2D2D" Property="BorderBrush" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Status}" Value="Completed">
-                                <Setter TargetName="JobCard" Value="#40408040" Property="Background" />
-                                <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Status}" Value="Cancelled">
-                                <Setter TargetName="JobCard" Value="#40ff00ff" Property="Background" />
-                                <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Status}" Value="CompletedWithWarnings">
-                                <Setter TargetName="JobCard" Value="#40ff8000" Property="Background" />
-                                <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Status}" Value="CompletedWithErrors">
-                                <Setter TargetName="JobCard" Value="#40ff0000" Property="Background" />
-                                <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
-                            </DataTrigger>
-                        </DataTemplate.Triggers>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Status}" Value="ProcessingMetadata">
+                                        <Setter TargetName="JobCard" Value="#80553e98" Property="Background" />
+                                        <Setter TargetName="JobCard" Value="#80371f69" Property="BorderBrush" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="SyncingFiles">
+                                        <Setter TargetName="JobCard" Value="#80553e98" Property="Background" />
+                                        <Setter TargetName="JobCard" Value="#80371f69" Property="BorderBrush" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Queued">
+                                        <Setter TargetName="JobCard" Value="#80424242" Property="Background" />
+                                        <Setter TargetName="JobCard" Value="#802D2D2D" Property="BorderBrush" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                        <Setter TargetName="JobCard" Value="#40408040" Property="Background" />
+                                        <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="Cancelled">
+                                        <Setter TargetName="JobCard" Value="#40ff00ff" Property="Background" />
+                                        <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="CompletedWithWarnings">
+                                        <Setter TargetName="JobCard" Value="#40ff8000" Property="Background" />
+                                        <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Status}" Value="CompletedWithErrors">
+                                        <Setter TargetName="JobCard" Value="#40ff0000" Property="Background" />
+                                        <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- EMPTY STATE OVERLAY -->
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <!-- Hide it by default so it doesn't overlap active jobs -->
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <!-- Show it when the list count hits 0 -->
+                                <DataTrigger Binding="{Binding ActiveJobs.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <!-- Failsafe: Show it if the list is completely null -->
+                                <DataTrigger Binding="{Binding ActiveJobs}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Sync}" 
+                         FontSize="48" 
+                         Opacity="0.3" 
+                         HorizontalAlignment="Center" 
+                         Margin="0,0,0,15"
+                         TextOptions.TextFormattingMode="Ideal"
+                         TextOptions.TextRenderingMode="Auto" />
+                    <TextBlock Text="No active sync jobs" FontSize="18" FontWeight="SemiBold" Opacity="0.6" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Platform synchronizations will appear here when started." FontSize="14" Opacity="0.4" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Grid>
+
+
+
+        </Border>
 
     </Grid>
 

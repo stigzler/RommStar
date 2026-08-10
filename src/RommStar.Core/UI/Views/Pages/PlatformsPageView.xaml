@@ -18,7 +18,7 @@
       mc:Ignorable="d"
       d:DesignHeight="450" d:DesignWidth="800"
       Title="Platforms" IsVisibleChanged="Page_IsVisibleChanged" DataContextChanged="PlatformsPage_DataContextChanged"
-      TextOptions.TextFormattingMode="Ideal"
+      TextOptions.TextFormattingMode="Display"
       TextOptions.TextRenderingMode="ClearType"
       UseLayoutRounding="True"
       SnapsToDevicePixels="True"
@@ -53,7 +53,7 @@
         </ResourceDictionary>
     </ui:Page.Resources>
 
-    <Grid Margin="10,0,10,0">
+    <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition Height="*" />

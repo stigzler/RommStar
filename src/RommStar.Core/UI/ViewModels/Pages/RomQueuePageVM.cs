@@ -109,21 +109,27 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             if (!confirmed) return;
 
-            // Remove from the underlying settings list
-            _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.PlatformName == platformName);
-            _settingsService.Save();
-
-            // Remove from the ObservableCollection to update the UI
+            // 1. Snapshot the items FIRST before removing anything
             var itemsToRemove = QueueItems.Where(q => q.PlatformName == platformName).ToList();
+
+            // 2. Process your IGame updates and remove the items one by one
             foreach (var item in itemsToRemove)
             {
                 if (!string.IsNullOrEmpty(item.LaunchboxId))
+                {
                     SetIGameToUninstalled(item.LaunchboxId);
+                }
 
+                // This removes it from the UI AND the underlying settings list simultaneously
                 QueueItems.Remove(item);
             }
+
+            // 3. Save both contexts
+            _settingsService.Save();
             PluginHelper.DataManager.Save();
         }
+
+
 
         private void SetIGameToUninstalled(string launchboxID)
         {
