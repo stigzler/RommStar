@@ -35,7 +35,7 @@
     </Window.Resources>
 
     <ui:NavigationView x:Name="NavigationView_Root" IsPaneOpen="False" SelectionChanged="NavigationView_SelectionChanged"
-                       OpenPaneLength="147" PaneDisplayMode="Left" IsBackButtonVisible="Collapsed">
+                       OpenPaneLength="180" PaneDisplayMode="Left" IsBackButtonVisible="Collapsed">
 
         <ui:NavigationView.Resources>
             <Thickness x:Key="NavigationViewHeaderMargin">15,10,10,10</Thickness>
@@ -57,15 +57,24 @@
 
             <ui:NavigationViewItem Content="Sync Jobs" x:Name="NavigationViewItem_Jobs">
                 <ui:NavigationViewItem.Icon>
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudSync_20_Regular}" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Download Jobs" x:Name="NavigationViewItem_DownloadJobs">
+                <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem Content="Home" x:Name="NavigationViewItem_Home">
+            <!--<ui:NavigationViewItem Content="Home" x:Name="NavigationViewItem_Home">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Home}" />
                 </ui:NavigationViewItem.Icon>
-            </ui:NavigationViewItem>
+            </ui:NavigationViewItem>-->
+            
+            
+            
         </ui:NavigationView.MenuItems>
 
         <ui:NavigationView.FooterMenuItems>

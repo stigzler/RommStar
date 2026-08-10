@@ -164,8 +164,8 @@
                         <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SaveMultiple_20_Regular}" />
                     </ui:SettingsCard.HeaderIcon>
                     <ui:NumberBox MinWidth="100"                
-                Value="{Binding ExtendedSyncSettings.TargetRomBatchFilesizeGb, ElementName=root, 
-                Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ByteToGigabyteConverter}}" />
+                                    Value="{Binding ExtendedSyncSettings.TargetRomBatchFilesizeGb, ElementName=root, 
+                                    Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </ui:SettingsCard>
 
             </StackPanel>

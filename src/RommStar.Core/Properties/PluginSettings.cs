@@ -3,6 +3,7 @@ using RommStar.Core.Primitives;
 using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,7 +35,7 @@ namespace RommStar.Core.Properties
         /// User-set space for temporary downloads. Eg: when the Romm API 
         /// downloads the zipped rom collection files to.
         /// </summary>
-        public List<RomQueueItem> RomDownloadQueue { get; set; } = new();
+        public ObservableCollection<RomQueueItem> RomDownloadQueue { get; set; } = new();
 
         public ExtendedSyncSettings GlobalExtendedSyncSettings { get; set; } = new()
         {

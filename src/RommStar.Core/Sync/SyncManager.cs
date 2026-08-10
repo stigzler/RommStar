@@ -74,6 +74,7 @@ namespace RommStar.Core.Sync
             _launchboxService = launchboxService;
             _settingsService = settingsService;
             _notificationService = notificationService;
+
         }
 
         public event Action<PlatformSyncCardVM>? OnSyncCompletedNotification;

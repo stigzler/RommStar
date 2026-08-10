@@ -20,10 +20,11 @@ namespace RommStar.Core.UI.Views.Windows
         private JobsPageView JobsPageView;
         private ServersPageView ServersPageView;
         private PlatformsPageView PlatformsPageView;
+        private RomQueuePageView RomQueuePageView;
 
         public MainWindowView(MainWindowVM mainWindowVM, HomePageVM homePageVM,
             SettingsPageVM settingsPageVM, JobsPageVM jobsPageVM, ServersPageVM serversPageVM,
-            PlatformsPageVM platformsPageVM)
+            PlatformsPageVM platformsPageVM, RomQueuePageVM romQueuePageVM)
         {
             InitializeComponent();
             ViewModel = mainWindowVM;
@@ -34,6 +35,7 @@ namespace RommStar.Core.UI.Views.Windows
             JobsPageView = new JobsPageView(jobsPageVM);
             ServersPageView = new ServersPageView(serversPageVM);
             PlatformsPageView = new PlatformsPageView(platformsPageVM);
+            RomQueuePageView = new RomQueuePageView(romQueuePageVM);
         }
 
         private void NavigationView_SelectionChanged(iNKORE.UI.WPF.Modern.Controls.NavigationView sender, iNKORE.UI.WPF.Modern.Controls.NavigationViewSelectionChangedEventArgs args)
@@ -51,11 +53,11 @@ namespace RommStar.Core.UI.Views.Windows
             var item = sender.SelectedItem;
             Page? page = null;
 
-            if (item == NavigationViewItem_Home)
-            {
-                page = HomePageView;
-            }
-            else if (item == NavigationViewItem_Settings)
+            //if (item == NavigationViewItem_Home)
+            //{
+            //    page = HomePageView;
+            //}
+            if (item == NavigationViewItem_Settings)
             {
                 page = SettingsPageView;
             }
@@ -70,6 +72,10 @@ namespace RommStar.Core.UI.Views.Windows
             else if (item == NavigationViewItem_Platforms)
             {
                 page = PlatformsPageView;
+            }
+            else if (item == NavigationViewItem_DownloadJobs)
+            {
+                page = RomQueuePageView;
             }
 
             if (page != null)

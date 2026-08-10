@@ -1,4 +1,5 @@
-﻿using RommStar.Core.Dtos;
+﻿using iNKORE.UI.WPF.Converters;
+using RommStar.Core.Dtos;
 using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Helpers;
 using RommStar.Core.Launchbox;
@@ -251,6 +252,9 @@ namespace RommStar.Core.Services
 
                     // If music file is playing when click Install, it is locked by LB. If you try to unzip onto the existing file, it throws an error
                     // Also possible edge case where rom is being used elsewhere and you try to unzip the rom back onto itself. 
+
+                    matchingItem.UpdateQueueItemStatus(RomQueueItemStatus.Unzipping);
+
                     try
                     {
                         entry.ExtractToFile(fullDestinationPath, overwrite: true);
@@ -258,7 +262,19 @@ namespace RommStar.Core.Services
                     }
                     catch (Exception e)
                     {
-                        _loggingService.Log($"Could not unzip to target destination. Exception: {e.Message}");
+                        if (isSoundtrack)
+                        {
+                            _loggingService.Log($"Could not unzip soundtrack to target destination. Launchbox may be playing it if it exists locally, thus you can't overwrite it. Exception: {e.Message}");
+
+                        }
+                        else
+                        {
+                            // is game
+                            matchingItem.IsQuarantined = true;
+                            matchingItem.UpdateQueueItemStatus(RomQueueItemStatus.Errored);
+                            matchingItem.LastError = $"Could not unzip to target destination ({fullDestinationPath}). Exception: {e.Message}";
+                            _loggingService.Log($"Could not unzip to target destination. Exception: {e.Message}");
+                        }
                     }
 
                     // 5. Map the extracted file to its parent LaunchBox ID
@@ -349,6 +365,8 @@ namespace RommStar.Core.Services
                     }
                     else
                     {
+                        batchItem.LastError = $"[Extraction] Warning: Unzipped files couldn't correlate directly to LaunchBox Game ID: {batchItem.LaunchboxId}";
+                        batchItem.UpdateQueueItemStatus(RomQueueItemStatus.CompleteWithWarnings);
                         Debug.WriteLine($"[Extraction] Warning: Unzipped files couldn't correlate directly to LaunchBox Game ID: {batchItem.LaunchboxId}");
                     }
                 }
@@ -371,10 +389,15 @@ namespace RommStar.Core.Services
                         _ = LaunchboxViewsHelper.SoftRefreshUi();
                     }
                 }));
+
+                batchItem.UpdateQueueItemStatus(RomQueueItemStatus.Complete);
+
             }
 
 
         }
+
+
 
         /// <summary>
         ///

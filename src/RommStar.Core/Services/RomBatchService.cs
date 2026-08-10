@@ -1,16 +1,11 @@
 ﻿using RommStar.Core.Helpers;
 using RommStar.Core.Sync;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
-using Unbroken.LaunchBox.Plugins.RetroAchievements;
+using static System.Net.WebRequestMethods;
+using RommStar.Core.Extensions;
 
 namespace RommStar.Core.Services
 {
@@ -57,11 +52,14 @@ namespace RommStar.Core.Services
 
             foreach (var item in batch)
             {
+                item.Status = RomQueueItemStatus.Queued;
+                item.LastError = "Batch download cancelled.";
                 var game = Unbroken.LaunchBox.Plugins.PluginHelper.DataManager.GetGameById(item.LaunchboxId);
                 if (game != null && game.Status == "Installing")
                 {
                     // todo: update this to lb api background update
                     game.Status = "Not Installed";
+
                     // Fire and forget the UI update to remove the spinner overlay
                     _ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
                 }
@@ -205,27 +203,20 @@ namespace RommStar.Core.Services
                                     if (file.Category == "game")
                                     {
                                         candidatePath = Path.Combine(targetDirectory, file.FileName);
-                                        if (!File.Exists(candidatePath))
-                                        {
-                                            skipDownload = false;
-                                            break;
-                                        }                    
-                                    }
-                                    else if (file.Category == "soundtrack")
-                                    {
-                                        candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", platform.Name, item.MasterFilename, file.FileName);
-                                        if (!File.Exists(candidatePath))
+                                        if (!System.IO.File.Exists(candidatePath))
                                         {
                                             skipDownload = false;
                                             break;
                                         }
-                                        // took this out - no idea why i put it in - unless missing something
-                                        //else
-                                        //{
-                                        //    IGame game = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
-                                        //    if (game == null) skipDownload = false;
-                                        //    break;
-                                        //}
+                                    }
+                                    else if (file.Category == "soundtrack")
+                                    {
+                                        candidatePath = Path.Combine(Constants.LaunchboxRootDir, "Music", platform.Name, item.MasterFilename, file.FileName);
+                                        if (!System.IO.File.Exists(candidatePath))
+                                        {
+                                            skipDownload = false;
+                                            break;
+                                        }
                                     }
 
                                 }
@@ -237,12 +228,9 @@ namespace RommStar.Core.Services
                                 //            candidatePath, file.Sha1Hash))
 
 
-                                    if (!File.Exists(Path.Combine(targetDirectory, item.MasterFilename))) skipDownload = false;
+                                if (!System.IO.File.Exists(Path.Combine(targetDirectory, item.MasterFilename))) skipDownload = false;
                                 // todo: soundtrack stuff - not sure need to as any soundtrack converts asingle file to a multi-file rom?
                             }
-
-
-                            //= item.IsMultiFileGame? Path.Combine(targetDirectory, item.MasterFilename, "dave") : Path.Combine(targetDirectory, item.MasterFilename);
 
                             // 3. THE CHECK: Does this file already exist in LaunchBox?
                             if (skipDownload)
@@ -252,6 +240,11 @@ namespace RommStar.Core.Services
                                 // Remove it from the live queue so we don't process it again
                                 _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.LaunchboxId == item.LaunchboxId);
                                 queueModified = true;
+
+                                foreach (var queueItem in _settingsService.Settings.RomDownloadQueue)
+                                {
+                                    queueItem.UpdateQueueItemStatus(RomQueueItemStatus.Queued);
+                                }
 
                                 // Optionally, update the LaunchBox UI to reflect it's actually installed
                                 var existingGame = PluginHelper.DataManager.GetGameById(item.LaunchboxId);
@@ -292,6 +285,7 @@ namespace RommStar.Core.Services
                             if (currentBatch.Count > 0 && (currentBatchSize + item.TotalSizeBytes) > targetSizeBytes)
                                 break;
 
+                            item.UpdateQueueItemStatus(RomQueueItemStatus.Queued);
                             currentBatch.Add(item);
                             currentBatchSize += item.TotalSizeBytes;
                         }
@@ -342,6 +336,8 @@ namespace RommStar.Core.Services
                             if (currentBatch.Count > 0 && (currentBatchSize + item.TotalSizeBytes) > targetSizeBytes)
                                 break;
 
+                            item.UpdateQueueItemStatus(RomQueueItemStatus.Queued);
+
                             currentBatch.Add(item);
                             currentBatchSize += item.TotalSizeBytes;
                         }
@@ -382,16 +378,21 @@ namespace RommStar.Core.Services
 
                     if (activeServer == null)
                     {
-                        Debug.WriteLine($"[RomBatchService] Error: Dead server context ({targetServerId}). Removing invalid batch from queue.");
+                        Debug.WriteLine($"[RomBatchService] Error: Dead server context ({targetServerId}). Flagging batch as errored.");
                         foreach (var badItem in currentBatch)
                         {
-                            _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.LaunchboxId == badItem.LaunchboxId);
+                            badItem.UpdateQueueItemStatus(RomQueueItemStatus.Errored);
+                            badItem.LastError = $"Server context no longer exists. Please re-queue with a valid server.";
+                            badItem.IsQuarantined = true;
+
+                            // Notice we completely removed the RemoveAll() call here!
                         }
                         _settingsService.Save();
                         continue;
                     }
 
-                    // 5.5 Lock UI for batch items to prevent manual install conflicts
+                    // 5.5 Lock UI for batch items to prevent manual install conflicts and
+                    // Also update RomQueueItem status to Downloading
 
                     foreach (var item in currentBatch)
                     {
@@ -402,39 +403,44 @@ namespace RommStar.Core.Services
                             //PluginHelper.DataManager.BackgroundReloadSave(new Action(() => { game.Status = "Installing"; game.Installed = false; }));
                             game.Status = "Installing";
                             game.Installed = false;
+                            item.UpdateQueueItemStatus(RomQueueItemStatus.Downloading);
 
-                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                //_ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
-                            }));
+                            //Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                            //{
+                            //    //_ = RommStar.Core.Helpers.LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                            //}));
                         }
                     }
                     PluginHelper.DataManager.Save();
 
-                    await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                    // If user browsing the same platform as the download, refresh to update Install badges. Otherwise don't to reduce UI noise.
+                    // Note: AT LB startup, it defaults to display your last platform, but GetSelectedPlatform() returns null
+                    // therefor refresh on null or same platform. 
+                    IPlatform selectedPlatform = PluginHelper.StateManager.GetSelectedPlatform();
+                    if (selectedPlatform == null || selectedPlatform.Name == targetPlatform)
                     {
-                        // If user browsing the same platform as the download, refresh to update Install badges. Otherwise don't to reduce UI noise.
-                        // Note: AT LB startup, it defaults to display your last platform, but GetSelectedPlatform() returns null
-                        // therefor refresh on null or same platform. 
-                        IPlatform selectedPlatform = PluginHelper.StateManager.GetSelectedPlatform();
-                        if (selectedPlatform == null || selectedPlatform.Name == targetPlatform)
-                        {
-                            _ = LaunchboxViewsHelper.SoftRefreshUi();
-                        }
-                    }));
+                        _ = LaunchboxViewsHelper.SoftRefreshUi();
+                    }
 
                     // 6. Download the Zip
                     string downloadError = await _rommService.DownloadRomsToDiskAsync(activeServer, allRommIdsToDownload, targetZipPath, token);
                     bool success = string.IsNullOrEmpty(downloadError);
 
-                    if (success && File.Exists(targetZipPath))
+                    if (success && System.IO.File.Exists(targetZipPath))
                     {
+                        foreach (var item in currentBatch)
+                        {
+                            item.UpdateQueueItemStatus(RomQueueItemStatus.Downloaded);
+                        }
+
+
                         // 7. Handoff to LaunchboxDataService for extraction and IGame updates
                         await _launchboxDataService.UnzipRomsAndUpdateIGamesBatchAsync(targetZipPath, currentBatch, token);
                         // 8. Cleanup & remove from queue on success
                         foreach (var completedItem in currentBatch)
                         {
-                            _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.LaunchboxId == completedItem.LaunchboxId);
+                            _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.LaunchboxId == completedItem.LaunchboxId 
+                            && q.IsQuarantined == false);
                         }
                         _settingsService.Save();
 
@@ -452,7 +458,10 @@ namespace RommStar.Core.Services
                             }
                         }
 
-                        try { File.Delete(targetZipPath); }
+                        try
+                        {
+                            System.IO.File.Delete(targetZipPath);
+                        }
                         catch (Exception ex)
                         {
                             Debug.WriteLine($"[RomBatchService] ERROR whilst trying to delete temporary zip file: {ex.Message}");
@@ -468,12 +477,16 @@ namespace RommStar.Core.Services
                         foreach (var badItem in currentBatch)
                         {
                             badItem.RetryCount++;
+                            badItem.UpdateQueueItemStatus(RomQueueItemStatus.DownloadFailed);
+                            badItem.LastError = $"[RomBatchService] Batch download failed.Error: {downloadError}";
 
                             // If it hit the max limit, quarantine it!
                             if (badItem.RetryCount >= maxRetries)
                             {
                                 badItem.IsQuarantined = true;
-                                badItem.LastError = downloadError;
+
+                                badItem.UpdateQueueItemStatus(RomQueueItemStatus.Errored);
+                                badItem.LastError = $"[RomBatchService] Batch item download failed {maxRetries} times. Now Quarantined. Error: {downloadError}";
 
                                 // If we are in isolation mode, we know the exact game name that failed
                                 string gameName = currentBatch.Count == 1 ? badItem.GameNameSanitised : "A batch of games";
@@ -506,7 +519,7 @@ namespace RommStar.Core.Services
                     RevertBatchInstallingStatus(currentBatch); // Unlock the UI before shutting down
 
                     // Nuke the partial zip so it doesn't leave corrupted junk, but leave the queue intact!
-                    try { if (File.Exists(targetZipPath)) File.Delete(targetZipPath); }
+                    try { if (System.IO.File.Exists(targetZipPath)) System.IO.File.Delete(targetZipPath); }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"[RomBatchService] ERROR whilst trying to delete temporary zip file: {ex.Message}");
@@ -518,7 +531,7 @@ namespace RommStar.Core.Services
                     Debug.WriteLine($"[RomBatchService] Critical error in queue loop: {ex.Message}");
                     RevertBatchInstallingStatus(currentBatch); // Unlock the UI before shutting down
 
-                    try { if (File.Exists(targetZipPath)) File.Delete(targetZipPath); }
+                    try { if (System.IO.File.Exists(targetZipPath)) System.IO.File.Delete(targetZipPath); }
                     catch (Exception e)
                     {
                         Debug.WriteLine($"[RomBatchService] ERROR whilst trying to delete temporary zip file: {e.Message}");
