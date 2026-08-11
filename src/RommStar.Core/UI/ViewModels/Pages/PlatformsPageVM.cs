@@ -200,24 +200,66 @@ namespace RommStar.Core.UI.ViewModels.Pages
         [RelayCommand]
         private async Task AddNewLaunchboxPlatform()
         {
-            var freshDialogView = new AddNewPlatformUcView(_addNewPlatformVm);
+            // AddNewPlatformUcView.View Model returns:
+            // Selected[Platform/Emulator] - The default platform/emulator taken from the launchbox.metadata.db
+            // 
+            var addPlatformDialog = new AddNewPlatformUcView(_addNewPlatformVm);
+            addPlatformDialog.ViewModel.ClearData();
 
             ContentDialog dialog = new ContentDialog
             {
                 Title = "Please select a default Launchbox Platform to add",
-                Content = freshDialogView,
+                Content = addPlatformDialog,
                 PrimaryButtonText = "OK",
                 SecondaryButtonText = "Cancel"
             };
 
+            LaunchboxPlatformsInfoBar.IsOpen = false;
+
             var result = await dialog.ShowAsync();
+
+            if (result != ContentDialogResult.Primary) return;
+
+            var dialogVM = addPlatformDialog.ViewModel;
+
+            if (dialogVM.InfoSeverity != InfoBarSeverity.Success)
+            {
+                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error",
+                    $"Errors in the Platform setup: '{dialogVM.InfoMessage}'");
+                return;
+            }
+
+            // at this point, you will have:
+            // `Selected[Platform/Emulator]` - The default platform/emulator abstraction (eg. LaunchboxDbEmulator) taken from the launchbox.metadata.db
+            // A populated IEmulator if it already exists in the lb local db (eg. retroarch - multi-system). Unpopulated if not.
+            // ExePath = the path to the exe for the Emulator
+            if (dialogVM.UserEmulator == null)
+            {
+                dialogVM.UserEmulator = PluginHelper.DataManager.AddNewEmulator();
+
+
+            }
+
+
+            IEmulatorPlatform newIEmulatorPlatform = dialogVM.UserEmulator.AddNewEmulatorPlatform();
+
+            LaunchboxDbEmulatorPlatform launchboxDbEmulatorPlatform = dialogVM.DefaultEmultorPlatforms.First(
+                ep => ep.Platform == dialogVM.SelectedDefaultPlatform.Name && ep.Emultor == dialogVM.SelectedDefaultEmulator.Name);
+
+            newIEmulatorPlatform.CommandLine = launchboxDbEmulatorPlatform.CommandLine;
+            newIEmulatorPlatform.AutoExtract = dialogVM.AutoExtract == true;
+            newIEmulatorPlatform.M3uDiscLoadEnabled = dialogVM.M3uDiskLoadEnabled == true;
+            newIEmulatorPlatform.IsDefault = launchboxDbEmulatorPlatform.Recommended;
+
+
+
 
             return;
             // Grab defualt platforms and emulators form the LB db3 file
             var platforms = await _launchboxDataService.GetDefaultDbPlatforms();
             var emulators = await _launchboxDataService.GetDefaultDbEmulators();
 
-            ComboBox platformDropdown = new ComboBox() { Margin= new Thickness(10), HorizontalAlignment=HorizontalAlignment.Stretch};
+            ComboBox platformDropdown = new ComboBox() { Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Stretch };
             ComboBox emulatorDropdown = new ComboBox() { Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Stretch };
 
 
@@ -232,10 +274,14 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             // set up the stack panel
             StackPanel containerStackPN = new StackPanel();
-            containerStackPN.Children.Add(new TextBlock { Text = "This will set up a new Platform from the defaults in the Launchbox database. " +
+            containerStackPN.Children.Add(new TextBlock
+            {
+                Text = "This will set up a new Platform from the defaults in the Launchbox database. " +
                 "If you are wanting to use a custom emulator, you will need to add the Platform and Emulator via Launchbox itself. " +
                 "Also, RommStar cannot fully populate these as would the normal Launchbox import process (such as AHK scripts etc), but will cover the essentials.",
-                Margin = new Thickness(0, 0, 0, 15), TextWrapping=TextWrapping.Wrap });
+                Margin = new Thickness(0, 0, 0, 15),
+                TextWrapping = TextWrapping.Wrap
+            });
 
             containerStackPN.Children.Add(new TextBlock { Text = "Select Platform:", Margin = new Thickness(0, 0, 0, 5) });
             containerStackPN.Children.Add(platformDropdown);
@@ -282,7 +328,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             string candidateNewPlatformName = null;
 
-   
+
 
             // Check if they clicked Cancel or closed the dialog
 
@@ -291,7 +337,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             // On blank, or platform name already existing (must be unique in lb), return error
 
-   
+
 
 
 

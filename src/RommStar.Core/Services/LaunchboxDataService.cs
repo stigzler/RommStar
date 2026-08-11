@@ -93,6 +93,20 @@ namespace RommStar.Core.Services
             return emulators;
         }
 
+        public async Task<IEnumerable<LaunchboxDbEmulatorPlatform>> GetDefaultDbEmulatorPlatforms()
+        {
+            // The 'using var' statement creates the connection. 
+            // As soon as this method finishes, C# automatically closes it and frees the file.
+            using var connection = new SqliteConnection(_dbConnectionString);
+
+            string sql = "SELECT * FROM EmulatorPlatforms ORDER BY Name ASC";
+
+            // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
+            var emulatorPlatforms = await connection.QueryAsync<LaunchboxDbEmulatorPlatform>(sql);
+
+            return emulatorPlatforms;
+        }
+
         public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory,
                     string customAppName = null, bool usePlaceholderPath = false)
         {

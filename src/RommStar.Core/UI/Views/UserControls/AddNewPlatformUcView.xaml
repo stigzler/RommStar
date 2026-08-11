@@ -20,6 +20,7 @@
             </ResourceDictionary.MergedDictionaries>
 
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <converters:NullToBoolConverter x:Key="NullToBoolConverter"/>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -28,7 +29,7 @@
         <StackPanel Orientation="Horizontal">
             <TextBlock TextWrapping="Wrap" Margin="5" Text="Adds a new barebones Platform/Emulator combo to Launchbox."/>
 
-            <!-- WRAPPER BUTTON: Transparent, no border, no padding -->
+            <!-- INFO Flyout -->
             <Button Background="Transparent" BorderThickness="0" Padding="3" Margin="5,0,0,0" HorizontalAlignment="Center"
             VerticalAlignment="Center">
 
@@ -45,14 +46,9 @@
                      FontSize="25" 
                      Foreground="#357EC7" />
             </Button>
-
         </StackPanel>
 
-
-
-
-
-
+        <!-- Main Input Block -->
         <Grid Margin="5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
@@ -62,31 +58,44 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!-- Platform Picker -->
             <TextBlock Grid.Column="0" Grid.Row="0" Text="Select Platform: " Margin="5" VerticalAlignment="Center"/>
             <ComboBox Grid.Column="1" Grid.Row="0" ItemsSource="{Binding DefaultPlatforms}" DisplayMemberPath="Name" SelectedIndex="0"
-                      HorizontalAlignment="Stretch" Margin="5"/>
+                      HorizontalAlignment="Stretch" Margin="5" SelectedItem="{Binding SelectedDefaultPlatform}"/>
 
             <!-- Emulator Picker -->
-            <TextBlock Grid.Column="0" Grid.Row="1" Text="Select Emultor:" Margin="5" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="0" Grid.Row="1" Text="Select Emulator:" Margin="5" VerticalAlignment="Center"/>
             <ComboBox Grid.Column="1" Grid.Row="1" ItemsSource="{Binding DefaultEmulators}" DisplayMemberPath="Name" SelectedIndex="0"
                       HorizontalAlignment="Stretch" Margin="5" SelectedItem="{Binding SelectedDefaultEmulator}"/>
 
-            <TextBlock Grid.Column="0" Grid.Row="2" Text="Emulator Path:" Margin="5" VerticalAlignment="Center"/>
+            <!-- Emulator Exe Path -->
+            <TextBlock Grid.Column="0" Grid.Row="2" Text="Emulator Exe Path:" Margin="5" VerticalAlignment="Center"/>
             <DockPanel Grid.Column="1" Grid.Row="2" LastChildFill="True" FlowDirection="RightToLeft">
                 <Button Content="Browse" Margin="5" IsEnabled="{Binding EmulatorNeedsPath}"
-                        Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"/>
-                <TextBox Margin="5" Text="{Binding UserEmulator.ApplicationPath}" IsReadOnly="True"/>
+                        Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
+                        Command="{Binding SetExecutablePathCommand}"/>
+                <TextBox Margin="5" Text="{Binding ExePath}" IsReadOnly="True"/>
             </DockPanel>
+            
+            <!-- M3u -->
+            <CheckBox Grid.Column="1" Grid.Row="3" Content="M3u Disc Load Enabled" IsChecked="{Binding M3uDiskLoadEnabled}"
+                IsEnabled="{Binding EmulatorPlatformPropsSettable}" Margin="10,0,0,0" 
+                      ToolTip="This auto-generates m3u playlists for multi-disc games on Platforms that have these."/>
 
-
-
+            <!-- Auto Extract -->
+            <CheckBox Grid.Column="1" Grid.Row="4" Content="Auto Extract Archives" IsChecked="{Binding AutoExtract}"
+                      IsEnabled="{Binding EmulatorPlatformPropsSettable}" Margin="10,0,0,0" 
+                      ToolTip="Auto-extracts roms when in an archive format (eg. .zip or .7z)"/>
 
 
         </Grid>
 
+        <!-- Info Bar -->
+        <ui:InfoBar IsOpen="{Binding InfoBarVisible, Mode=TwoWay}" Severity="{Binding InfoSeverity}" Message="{Binding InfoMessage}" />
 
     </StackPanel>
 </UserControl>
