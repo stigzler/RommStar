@@ -15,6 +15,7 @@ using System.Xml.Linq;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
 using Dapper;
+using Microsoft.Xaml.Behaviors.Core;
 
 namespace RommStar.Core.Services
 {
@@ -65,7 +66,7 @@ namespace RommStar.Core.Services
             _loggingService = loggingService;
             PopulateLaunchboxSettings();
         }
-        public async Task<IEnumerable<LaunchboxDbPlatform>> GetDefaultDbPlatforms()
+        public async Task<IEnumerable<LaunchboxDbPlatformDTO>> GetDefaultDbPlatforms()
         {
             // The 'using var' statement creates the connection. 
             // As soon as this method finishes, C# automatically closes it and frees the file.
@@ -74,35 +75,35 @@ namespace RommStar.Core.Services
             string sql = "SELECT * FROM Platforms ORDER BY Name ASC";
 
             // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
-            var platforms = await connection.QueryAsync<LaunchboxDbPlatform>(sql);
+            var platforms = await connection.QueryAsync<LaunchboxDbPlatformDTO>(sql);
 
             return platforms;
         }
 
-        public async Task<IEnumerable<LaunchboxDbEmulator>> GetDefaultDbEmulators()
+        public async Task<IEnumerable<LaunchboxDbEmulatorDTO>> GetDefaultDbEmulators()
         {
             // The 'using var' statement creates the connection. 
             // As soon as this method finishes, C# automatically closes it and frees the file.
             using var connection = new SqliteConnection(_dbConnectionString);
 
-            string sql = "SELECT * FROM Emulators ORDER BY Name ASC";
+            string sql = "SELECT * FROM Emulators ORDER BY Name COLLATE NOCASE ASC";
 
             // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
-            var emulators = await connection.QueryAsync<LaunchboxDbEmulator>(sql);
+            var emulators = await connection.QueryAsync<LaunchboxDbEmulatorDTO>(sql);
 
             return emulators;
         }
 
-        public async Task<IEnumerable<LaunchboxDbEmulatorPlatform>> GetDefaultDbEmulatorPlatforms()
+        public async Task<IEnumerable<LaunchboxDbEmulatorPlatformDTO>> GetDefaultDbEmulatorPlatforms()
         {
             // The 'using var' statement creates the connection. 
             // As soon as this method finishes, C# automatically closes it and frees the file.
             using var connection = new SqliteConnection(_dbConnectionString);
 
-            string sql = "SELECT * FROM EmulatorPlatforms ORDER BY Name ASC";
+            string sql = "SELECT * FROM EmulatorPlatforms ORDER BY Emulator ASC";
 
             // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
-            var emulatorPlatforms = await connection.QueryAsync<LaunchboxDbEmulatorPlatform>(sql);
+            var emulatorPlatforms = await connection.QueryAsync<LaunchboxDbEmulatorPlatformDTO>(sql);
 
             return emulatorPlatforms;
         }
@@ -150,17 +151,32 @@ namespace RommStar.Core.Services
 
         public string GetPlatformDefaultEmulatorID(string platformName)
         {
+            string fallbackEmulatorId = null;
+
             foreach (IEmulator emu in PluginHelper.DataManager.GetAllEmulators())
             {
                 IEmulatorPlatform[] emulatorPlatforms = emu.GetAllEmulatorPlatforms()
-                    .Where(ep => ep.Platform == platformName).ToArray();
+                    .Where(ep => ep.Platform.Equals(platformName, StringComparison.OrdinalIgnoreCase)).ToArray();
 
-                IEmulatorPlatform defaultEmulatorPlatform = emulatorPlatforms?.FirstOrDefault(ep => ep.IsDefault);
+                IEmulatorPlatform defaultEmulatorPlatform = emulatorPlatforms.FirstOrDefault(ep => ep.IsDefault);
 
-                if (defaultEmulatorPlatform != null) return defaultEmulatorPlatform.EmulatorId;
-                else if (emulatorPlatforms.Count() > 0) return emulatorPlatforms[0].EmulatorId;
+                // If we find the explicit default, return it immediately.
+                if (defaultEmulatorPlatform != null)
+                {
+                    // Using emu.Id is safer here just in case ep.EmulatorId is acting up in memory
+                    return emu.Id;
+                }
+
+                // If we haven't found a true default yet, store the first valid emulator we find 
+                // as a backup, but keep looping just in case a true default exists further down.
+                if (fallbackEmulatorId == null && emulatorPlatforms.Length > 0)
+                {
+                    fallbackEmulatorId = emu.Id;
+                }
             }
-            return null;
+
+            // If the loop finishes and no true default was found, return the fallback (or null)
+            return fallbackEmulatorId;
         }
 
         public string GetPlatformIconPath(string platformName)

@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RommStar.Core.Models
+namespace RommStar.Core.Dtos
 {
-    public class LaunchboxDbPlatform
+    public class LaunchboxDbPlatformDTO
     {
         public int PlatformKey { get; set; }
 

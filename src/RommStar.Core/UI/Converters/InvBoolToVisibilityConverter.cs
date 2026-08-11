@@ -9,14 +9,14 @@ using System.Windows.Data;
 
 namespace RommStar.Core.UI.Converters
 {
-    internal class BoolToVisibilityConverter : IValueConverter
+    internal class InvBoolToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is false)
+            if (value is true)
             {
                 return Visibility.Collapsed;
-            }   
+            }
 
             return Visibility.Visible;
         }
@@ -25,5 +25,6 @@ namespace RommStar.Core.UI.Converters
         {
             throw new NotImplementedException();
         }
+    
     }
 }

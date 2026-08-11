@@ -4,17 +4,20 @@ using CommunityToolkit.Mvvm.Messaging;
 using iNKORE.UI.WPF.Modern.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
+using RommStar.Core.Dtos;
 using RommStar.Core.Dtos.Romm;
 using RommStar.Core.Mappers;
 using RommStar.Core.Models;
 using RommStar.Core.Services;
 using RommStar.Core.Sync;
+using RommStar.Core.UI.Converters;
 using RommStar.Core.UI.Messages;
 using RommStar.Core.UI.ViewModels.DataModels;
 using RommStar.Core.UI.ViewModels.UserControls;
 using RommStar.Core.UI.Views.UserControls;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -38,6 +41,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private AddNewPlatformUcView _addNewPlatformUcView;
 
         private readonly AddNewPlatformUcVM _addNewPlatformVm;
+
+        private readonly LaunchboxLocalDatabaseMapper _launchboxLocalDatabaseMapper;
 
         /// <summary>
         /// Controls overlapping InfoBar calls
@@ -148,7 +153,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
 
         public PlatformsPageVM(SettingsService settingsService, LaunchboxDataService launchboxService,
-            RommService rommService, LoggingService loggingService, SyncManager syncManager, AddNewPlatformUcVM addNewPlatformVm)
+            RommService rommService, LoggingService loggingService, SyncManager syncManager, AddNewPlatformUcVM addNewPlatformVm,
+            LaunchboxLocalDatabaseMapper launchboxLocalDatabaseMapper)
         {
             _settingsService = settingsService;
             _launchboxDataService = launchboxService;
@@ -156,6 +162,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             _loggingService = loggingService;
             _syncManager = syncManager;
             _addNewPlatformVm = addNewPlatformVm;
+            _launchboxLocalDatabaseMapper = launchboxLocalDatabaseMapper;
 
             WeakReferenceMessenger.Default.Register<DeleteLaunchboxPlatformItemMessage>(this);
 
@@ -202,9 +209,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
         {
             // AddNewPlatformUcView.View Model returns:
             // Selected[Platform/Emulator] - The default platform/emulator taken from the launchbox.metadata.db
-            // 
+            
             var addPlatformDialog = new AddNewPlatformUcView(_addNewPlatformVm);
-            addPlatformDialog.ViewModel.ClearData();
 
             ContentDialog dialog = new ContentDialog
             {
@@ -214,6 +220,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 SecondaryButtonText = "Cancel"
             };
 
+            addPlatformDialog.ViewModel.ClearData();
+
             LaunchboxPlatformsInfoBar.IsOpen = false;
 
             var result = await dialog.ShowAsync();
@@ -222,6 +230,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             var dialogVM = addPlatformDialog.ViewModel;
 
+
+            // Checks
             if (dialogVM.InfoSeverity != InfoBarSeverity.Success)
             {
                 SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error",
@@ -229,91 +239,10 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 return;
             }
 
-            // at this point, you will have:
-            // `Selected[Platform/Emulator]` - The default platform/emulator abstraction (eg. LaunchboxDbEmulator) taken from the launchbox.metadata.db
-            // A populated IEmulator if it already exists in the lb local db (eg. retroarch - multi-system). Unpopulated if not.
-            // ExePath = the path to the exe for the Emulator
-            if (dialogVM.UserEmulator == null)
-            {
-                dialogVM.UserEmulator = PluginHelper.DataManager.AddNewEmulator();
-
-
-            }
-
-
-            IEmulatorPlatform newIEmulatorPlatform = dialogVM.UserEmulator.AddNewEmulatorPlatform();
-
-            LaunchboxDbEmulatorPlatform launchboxDbEmulatorPlatform = dialogVM.DefaultEmultorPlatforms.First(
-                ep => ep.Platform == dialogVM.SelectedDefaultPlatform.Name && ep.Emultor == dialogVM.SelectedDefaultEmulator.Name);
-
-            newIEmulatorPlatform.CommandLine = launchboxDbEmulatorPlatform.CommandLine;
-            newIEmulatorPlatform.AutoExtract = dialogVM.AutoExtract == true;
-            newIEmulatorPlatform.M3uDiscLoadEnabled = dialogVM.M3uDiskLoadEnabled == true;
-            newIEmulatorPlatform.IsDefault = launchboxDbEmulatorPlatform.Recommended;
-
-
-
-
-            return;
-            // Grab defualt platforms and emulators form the LB db3 file
-            var platforms = await _launchboxDataService.GetDefaultDbPlatforms();
-            var emulators = await _launchboxDataService.GetDefaultDbEmulators();
-
-            ComboBox platformDropdown = new ComboBox() { Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Stretch };
-            ComboBox emulatorDropdown = new ComboBox() { Margin = new Thickness(10), HorizontalAlignment = HorizontalAlignment.Stretch };
-
-
-            // Populuate the comboboxes
-            platformDropdown.ItemsSource = platforms;
-            platformDropdown.DisplayMemberPath = "Name";
-            platformDropdown.SelectedIndex = 0;
-
-            emulatorDropdown.ItemsSource = emulators;
-            emulatorDropdown.DisplayMemberPath = "Name";
-            emulatorDropdown.SelectedIndex = 0;
-
-            // set up the stack panel
-            StackPanel containerStackPN = new StackPanel();
-            containerStackPN.Children.Add(new TextBlock
-            {
-                Text = "This will set up a new Platform from the defaults in the Launchbox database. " +
-                "If you are wanting to use a custom emulator, you will need to add the Platform and Emulator via Launchbox itself. " +
-                "Also, RommStar cannot fully populate these as would the normal Launchbox import process (such as AHK scripts etc), but will cover the essentials.",
-                Margin = new Thickness(0, 0, 0, 15),
-                TextWrapping = TextWrapping.Wrap
-            });
-
-            containerStackPN.Children.Add(new TextBlock { Text = "Select Platform:", Margin = new Thickness(0, 0, 0, 5) });
-            containerStackPN.Children.Add(platformDropdown);
-
-            containerStackPN.Children.Add(new TextBlock { Text = "Select Emulator:", Margin = new Thickness(0, 10, 0, 5) });
-            containerStackPN.Children.Add(emulatorDropdown);
-
-            ContentDialog dialog2 = new ContentDialog
-            {
-                Title = "Please select a default Launchbox Platform to add",
-                Content = containerStackPN,
-                PrimaryButtonText = "OK",
-                SecondaryButtonText = "Cancel"
-            };
-
-            var result2 = await dialog.ShowAsync();
-
-            if (result != ContentDialogResult.Primary) return;
-
-            // CHECKS ON RETURNS
-
-            // On platform name already existing (must be unique in lb), return error
-            // Check rommStar cached platforms
-            if (LaunchboxPlatformItems.Any(lpi => lpi.LaunchboxPlatformName.Equals(platformDropdown.SelectedItem?.ToString(), StringComparison.OrdinalIgnoreCase)))
-            {
-                SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error", "This Platform is already in RommStar. No need to add again.");
-                return;
-            }
-
+            // This one is legacy and lost undertsaanding of it. Kept in in case detects edge cases
             // need to do a check of the actual LB database in case Auto-import cause re-creation 
             // of the platform without rommstar/user knowing (bloody auto import!)
-            if (PluginHelper.DataManager.GetPlatformByName(platformDropdown.SelectedItem?.ToString()) != null)
+            if (PluginHelper.DataManager.GetPlatformByName(dialogVM.SelectedDefaultPlatform.Name) != null)
             {
                 SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Error, "Add new Platform Error", "Platform name exists in the Launchbox database backend. " +
                     "Launchbox Auto-import can sometimes re-create Platforms even after their removal if roms still exist in the platforms folder " +
@@ -321,30 +250,72 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 return;
             }
 
+            // at this point, you will have:
+            // `Selected[Platform/Emulator]` - The lb db default platform/emulator abstraction (eg. LaunchboxDbEmulatorDTO) taken from the launchbox.metadata.db
+            // `UserEmulator` A populated IEmulator if it already exists in the lb local db (eg. retroarch - multi-system). Unpopulated if not.
+            // ExePath = the path to the exe for the Emulator
+
+            // If UserEmulator null, instantiate a new emulator and populate with default data
+            if (dialogVM.UserEmulator == null)
+            {
+                dialogVM.UserEmulator = PluginHelper.DataManager.AddNewEmulator();
+                // do this in here as if already exists - likely added via laucnhbox and want to preserve properties as set by that
+                _launchboxLocalDatabaseMapper.EmulatorDtoToIEmulator(dialogVM.SelectedDefaultEmulator, dialogVM.UserEmulator);
+            }
+
+            dialogVM.UserEmulator.ApplicationPath = dialogVM.ExePath;
+
+            // Now process either existing or new IEmulator record (I think LB populates Retroarch with all the EmulatorPlatform
+            // data for all platforms when you add retroarch. So you there may be a recorf for the emu/plat combination despite 
+            // not having set it up.
+            IEmulatorPlatform iEmulatorPlatform = dialogVM.UserEmulator.GetAllEmulatorPlatforms()
+                .Where(ep => ep.Platform.Equals(dialogVM.SelectedDefaultPlatform.Name, StringComparison.OrdinalIgnoreCase) &&
+                ep.EmulatorId.Equals(dialogVM.UserEmulator.Id, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+
+            // This is the lookup
+            LaunchboxDbEmulatorPlatformDTO launchboxDbEmulatorPlatformDTO = dialogVM.DefaultEmultorPlatforms
+                 .Where(ep => ep.Emulator.Equals(dialogVM.UserEmulator.Title, StringComparison.OrdinalIgnoreCase) &&
+                 ep.Platform.Equals(dialogVM.SelectedDefaultPlatform.Name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+
+            // again, this shouldn't be null but do a check jic
+            if (launchboxDbEmulatorPlatformDTO == null)
+            {
+                Debug.WriteLine("Error getting Default values for EmulatorPlatform. Cannot continue");
+                return;
+            }
+
+            if (iEmulatorPlatform == null)
+            {
+                iEmulatorPlatform = dialogVM.UserEmulator.AddNewEmulatorPlatform(); // i think this also populates iEmuPLat.EmulatorId?
+            }
+
+            iEmulatorPlatform.CommandLine = launchboxDbEmulatorPlatformDTO.CommandLine;
+            iEmulatorPlatform.Platform = dialogVM.SelectedDefaultPlatform.Name;
+            //iEmulatorPlatform.IsDefault = launchboxDbEmulatorPlatformDTO.Recommended;
+            iEmulatorPlatform.IsDefault = true; // ensures the selected emulator is used for this platform
+            iEmulatorPlatform.M3uDiscLoadEnabled = dialogVM.M3uDiskLoadEnabled == true;
+            iEmulatorPlatform.AutoExtract = dialogVM.AutoExtract;
+
+            // now update any IEmulator Properties
+            if (string.IsNullOrEmpty(dialogVM.UserEmulator.CommandLine) && !string.IsNullOrEmpty(iEmulatorPlatform.CommandLine))
+                dialogVM.UserEmulator.CommandLine = iEmulatorPlatform.CommandLine;
 
 
+            // we know the platform doesn't exist as AddNewPlatformUcView deosn't exist, so create new
+            IPlatform newIPlatform = PluginHelper.DataManager.AddNewPlatform(dialogVM.SelectedDefaultPlatform.Name);
 
+            // pretty sure this should not ever be null
+            LaunchboxDbPlatformDTO lbDbPlatformDTO = dialogVM.DefaultPlatforms.Where(p => 
+                        p.Name.Equals(dialogVM.SelectedDefaultPlatform.Name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
 
+            _launchboxLocalDatabaseMapper.PlatformDtoToIPlatform(lbDbPlatformDTO, newIPlatform);
 
-            string candidateNewPlatformName = null;
+            newIPlatform.ScrapeAs = newIPlatform.Name;
+            
+            PluginHelper.DataManager.Save();
+            PluginHelper.DataManager.ForceReload();
 
-
-
-            // Check if they clicked Cancel or closed the dialog
-
-
-            return;
-
-            // On blank, or platform name already existing (must be unique in lb), return error
-
-
-
-
-
-
-            // Success!
-            _launchboxDataService.CreateNewPlatform(candidateNewPlatformName);
-            SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Success, "Added new Platform", $"New Platform {candidateNewPlatformName} added successfully");
+            SetInfoBar(LaunchboxPlatformsInfoBar, true, InfoBarSeverity.Success, "Added new Platform", $"New Platform {newIPlatform.Name} added successfully");
             LoadLaunchboxPlatforms();
             OnPropertyChanged(nameof(FilteredLaunchboxPlatforms));
         }

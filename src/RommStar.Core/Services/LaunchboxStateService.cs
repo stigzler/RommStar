@@ -50,6 +50,11 @@ namespace RommStar.Core.Services
             RestoreGameLaunchEmulatorExe();
         }
 
+        /// <summary>
+        /// This is where a user selects Sync Platform from the LB Context menu.
+        /// </summary>
+        /// <param name="launchboxPlatformName"></param>
+        /// <returns></returns>
         internal async Task SyncPlatform(string launchboxPlatformName)
         {
             // parameter computation and checks ----------------------------------------------------------
@@ -303,6 +308,13 @@ namespace RommStar.Core.Services
                 _lastGameLaunchEmulator.ApplicationPath = _lastEmulatorApplicationPath;
                 PluginHelper.DataManager.Save();
             }
+        }
+
+        internal async Task OnAfterLaunch(IGame game,
+                                            IAdditionalApplication app,
+                                            IEmulator emulator)
+        {
+            //Debug.WriteLine($"{game.CommandLine}");
         }
 
         internal async Task OnBeforeLaunch(IGame game, IEmulator emulator, IAdditionalApplication additionalApplication)

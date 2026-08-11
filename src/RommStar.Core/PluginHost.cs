@@ -119,6 +119,7 @@ namespace RommStar.Core
                     break;
 
                 case GameLaunchingEvent.AfterLaunch:
+                    await _launchboxStateService.OnAfterLaunch(game, app, emulator);
 
                     break;
 
@@ -140,15 +141,21 @@ namespace RommStar.Core
 
         private static void ConfigureServices(IServiceCollection services)
         {
+            // Services
             services.AddSingleton<LoggingService>();
             services.AddSingleton<SettingsService>();
             services.AddSingleton<RommService>();
             services.AddSingleton<CryptoService>();
-            services.AddSingleton<RomMapper>();
             services.AddSingleton<NotificationService>();
             services.AddSingleton<LaunchboxDataService>();
             services.AddSingleton<LaunchboxStateService>();
             services.AddSingleton<RomBatchService>();
+
+
+            // Mappers
+            services.AddSingleton<RomMapper>();
+            services.AddSingleton<LaunchboxLocalDatabaseMapper>();
+
 
             // Register initial RommServerConfig & SyncManager
             services.AddSingleton<RommStar.Core.Models.RommServer>(sp => new RommStar.Core.Models.RommServer

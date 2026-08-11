@@ -15,6 +15,7 @@
     <None Include="$(MSBuildThisFileDirectory)docs\romDownloader.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\scope.md" />
     <None Include="$(MSBuildThisFileDirectory)docs\userGuideDraft.md" />
+    <None Include="$(MSBuildThisFileDirectory)docs\YoutubeVids.md" />
     <None Include="$(MSBuildThisFileDirectory)images\xcf\icons64px.xcf" />
   </ItemGroup>
   <ItemGroup>

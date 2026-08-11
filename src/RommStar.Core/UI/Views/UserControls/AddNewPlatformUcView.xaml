@@ -20,7 +20,10 @@
             </ResourceDictionary.MergedDictionaries>
 
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <converters:InvNullToVisibilityConverter x:Key="InvNullToVisibilityConverter"/>
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
             <converters:NullToBoolConverter x:Key="NullToBoolConverter"/>
+
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -64,13 +67,24 @@
 
             <!-- Platform Picker -->
             <TextBlock Grid.Column="0" Grid.Row="0" Text="Select Platform: " Margin="5" VerticalAlignment="Center"/>
-            <ComboBox Grid.Column="1" Grid.Row="0" ItemsSource="{Binding DefaultPlatforms}" DisplayMemberPath="Name" SelectedIndex="0"
+            <ComboBox Grid.Column="1" Grid.Row="0" ItemsSource="{Binding DefaultPlatforms}" DisplayMemberPath="Name" 
                       HorizontalAlignment="Stretch" Margin="5" SelectedItem="{Binding SelectedDefaultPlatform}"/>
 
             <!-- Emulator Picker -->
             <TextBlock Grid.Column="0" Grid.Row="1" Text="Select Emulator:" Margin="5" VerticalAlignment="Center"/>
-            <ComboBox Grid.Column="1" Grid.Row="1" ItemsSource="{Binding DefaultEmulators}" DisplayMemberPath="Name" SelectedIndex="0"
-                      HorizontalAlignment="Stretch" Margin="5" SelectedItem="{Binding SelectedDefaultEmulator}"/>
+            <Grid Grid.Column="1" Grid.Row="1" Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="auto"/>
+                </Grid.ColumnDefinitions>
+                <ComboBox Grid.Column="0" ItemsSource="{Binding DefaultEmulators}" DisplayMemberPath="Name" 
+                      HorizontalAlignment="Stretch"  SelectedItem="{Binding SelectedDefaultEmulator}"/>
+                <Button Grid.Column="1" Margin="5,0,0,0" IsEnabled="{Binding SelectedDefaultEmulator, Converter={StaticResource NullToBoolConverter}}"
+                        ToolTip="Download link for this Emulator" Command="{Binding OpenEmulatorDownloadPageCommand}">
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ArrowDownload_20_Regular}"  />
+                </Button>
+            </Grid>
+
 
             <!-- Emulator Exe Path -->
             <TextBlock Grid.Column="0" Grid.Row="2" Text="Emulator Exe Path:" Margin="5" VerticalAlignment="Center"/>
@@ -80,7 +94,7 @@
                         Command="{Binding SetExecutablePathCommand}"/>
                 <TextBox Margin="5" Text="{Binding ExePath}" IsReadOnly="True"/>
             </DockPanel>
-            
+
             <!-- M3u -->
             <CheckBox Grid.Column="1" Grid.Row="3" Content="M3u Disc Load Enabled" IsChecked="{Binding M3uDiskLoadEnabled}"
                 IsEnabled="{Binding EmulatorPlatformPropsSettable}" Margin="10,0,0,0" 

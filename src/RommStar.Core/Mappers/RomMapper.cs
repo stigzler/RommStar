@@ -174,15 +174,18 @@ namespace RommStar.Core.Mappers
             return value;
         }
 
+
+        /// <summary>
+        /// [MapProperty] must decorate RommRomDtoToIGame
+        /// </summary>
+        /// <param name="romDto"></param>
+        /// <param name="iGame"></param>
         [MapProperty(nameof(romDto.Name), nameof(iGame.Title), Use = nameof(PassthroughMapping))]
         [MapProperty(nameof(romDto.Summary), nameof(iGame.Notes), Use = nameof(PassthroughMapping))]
         [MapProperty(nameof(romDto.LaunchboxId), nameof(iGame.LaunchBoxDbId))]
-
         [MapProperty("LaunchboxMetadata.WikipediaUrl", nameof(iGame.WikipediaUrl))]
         [MapProperty("LaunchboxMetadata.ReleaseType", nameof(iGame.ReleaseType))]
-
         [MapProperty(nameof(romDto.RomUserData), nameof(iGame.Progress), Use = nameof(RommStatusToLaunchboxProgress))]
-
         [MapProperty("Metadatum.FirstReleaseDate", nameof(IGame.ReleaseDate))]
         [MapProperty("Metadatum.Companies", nameof(IGame.Developer), Use = nameof(FlattenToSemicolonString))]
         [MapProperty("Metadatum.Genres", nameof(IGame.Genres), Use = nameof(MapBlockingCollection))]
@@ -192,7 +195,8 @@ namespace RommStar.Core.Mappers
         [MapProperty("Metadatum.AgeRatings", nameof(IGame.Rating), Use = nameof(MapAgeRating))]
         [MapProperty("Metadatum.PlayerCount", nameof(IGame.MaxPlayers), Use = nameof(MapMaxPlayers))]
         [MapProperty(nameof(romDto.Regions), nameof(IGame.Region), Use = nameof(MapFirstListItem))]
-        [MapProperty(nameof(romDto.YoutubeVideoId), nameof(IGame.VideoUrl), Use = nameof(MapYouTubeUrl))]
+        [MapProperty(nameof(romDto.YoutubeVideoId), nameof(IGame.VideoUrl), Use = nameof(MapYouTubeUrl))]     
+        
         public partial void RommRomDtoToIGame(RomDTO romDto, IGame iGame);
 
 
@@ -239,6 +243,8 @@ namespace RommStar.Core.Mappers
                 _ => string.Empty
             };
         }
+
+
         [UserMapping]
         public string[] StringListToArray(List<string>? source)
         {

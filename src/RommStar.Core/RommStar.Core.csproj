@@ -15,6 +15,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Mappers\LaunchboxEmulatorMapper.cs" />
+	  <Compile Remove="Mappers\LaunchboxPlatformMapper.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <None Remove="Monikers.imagemanifest" />
 	  <None Remove="Resources\LogoBox.ico" />
 	  <None Remove="Resources\rommIcon64px.ico" />

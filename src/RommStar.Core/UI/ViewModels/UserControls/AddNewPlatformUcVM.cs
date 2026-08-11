@@ -2,10 +2,11 @@
 using CommunityToolkit.Mvvm.Input;
 using iNKORE.UI.WPF.Modern.Controls;
 using Microsoft.Win32;
-using RommStar.Core.Models;
+using RommStar.Core.Dtos;
 using RommStar.Core.Services;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
@@ -23,34 +24,25 @@ namespace RommStar.Core.UI.ViewModels.UserControls
         private readonly LaunchboxDataService _launchboxDataService;
 
         [ObservableProperty]
-        private IEnumerable<LaunchboxDbPlatform> _defaultPlatforms;
+        private bool? _autoExtract = false;
 
         [ObservableProperty]
-        private IEnumerable<LaunchboxDbEmulator> _defaultEmulators;
+        private IEnumerable<LaunchboxDbEmulatorDTO> _defaultEmulators;
 
         [ObservableProperty]
-        private IEnumerable<LaunchboxDbEmulatorPlatform> _defaultEmultorPlatforms;
+        private IEnumerable<LaunchboxDbEmulatorPlatformDTO> _defaultEmultorPlatforms;
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(EmulatorPlatformPropsSettable))]
-        private LaunchboxDbEmulator _selectedDefaultEmulator;
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(EmulatorPlatformPropsSettable))]
-        private LaunchboxDbPlatform _selectedDefaultPlatform;
-
+        private IEnumerable<LaunchboxDbPlatformDTO> _defaultPlatforms;
         [ObservableProperty]
         private bool _emulatorNeedsPath = false;
 
         [ObservableProperty]
-        private IEmulator? _userEmulator;
+        [NotifyPropertyChangedFor(nameof(EmulatorPlatformPropsSettable))]
+        private string _exePath;
 
         [ObservableProperty]
-        //[NotifyPropertyChangedFor(nameof(EmulatorPlatformPropsSettable))]
-        private IPlatform? _userPlatform;
-
-        [ObservableProperty]
-        private IEmulatorPlatform? _userEmulatorPlatform;
+        private bool _infoBarVisible = true;
 
         [ObservableProperty]
         private string _infoMessage;
@@ -59,18 +51,24 @@ namespace RommStar.Core.UI.ViewModels.UserControls
         private InfoBarSeverity _infoSeverity;
 
         [ObservableProperty]
-        private bool _infoBarVisible = true;
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(EmulatorPlatformPropsSettable))]
-        private string _exePath;
-
-        [ObservableProperty]
         private bool? _m3uDiskLoadEnabled = false;
 
         [ObservableProperty]
-        private bool? _autoExtract = false;
+        [NotifyPropertyChangedFor(nameof(EmulatorPlatformPropsSettable))]
+        private LaunchboxDbEmulatorDTO _selectedDefaultEmulator;
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(EmulatorPlatformPropsSettable))]
+        private LaunchboxDbPlatformDTO _selectedDefaultPlatform;
+        [ObservableProperty]
+        private IEmulator? _userEmulator;
+
+        [ObservableProperty]
+        private IEmulatorPlatform? _userEmulatorPlatform;
+
+        [ObservableProperty]
+        //[NotifyPropertyChangedFor(nameof(EmulatorPlatformPropsSettable))]
+        private IPlatform? _userPlatform;
         public bool EmulatorPlatformPropsSettable => !(UserPlatform != null && UserEmulator != null && UserEmulatorPlatform != null);
 
 
@@ -79,7 +77,32 @@ namespace RommStar.Core.UI.ViewModels.UserControls
 
         }
 
-        partial void OnSelectedDefaultEmulatorChanged(LaunchboxDbEmulator value)
+
+        public AddNewPlatformUcVM(LaunchboxDataService launchboxDataService)
+        {
+            _launchboxDataService = launchboxDataService;
+        }
+
+        public void ClearData()
+        {
+            SelectedDefaultPlatform = null;
+            SelectedDefaultEmulator = null;
+            ExePath = null;
+            M3uDiskLoadEnabled = null;
+            AutoExtract = null;
+            ResolveInfoBar();
+        }
+
+        public async Task InitialiseAsync()
+        {
+            if (DefaultPlatforms != null && DefaultEmulators != null) return;
+
+            DefaultPlatforms = await _launchboxDataService.GetDefaultDbPlatforms();
+            DefaultEmulators = await _launchboxDataService.GetDefaultDbEmulators();
+            DefaultEmultorPlatforms = await _launchboxDataService.GetDefaultDbEmulatorPlatforms();
+        }
+
+        partial void OnSelectedDefaultEmulatorChanged(LaunchboxDbEmulatorDTO value)
         {
             if (value == null)
             {
@@ -90,12 +113,16 @@ namespace RommStar.Core.UI.ViewModels.UserControls
             UserEmulator = PluginHelper.DataManager.GetAllEmulators().Where(e => e.Title.Equals(SelectedDefaultEmulator.Name,
                     StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
 
+            // Set AutoExtract to the default for this platfrom.emu combo.
+            var emulatorDTO = DefaultEmulators.FirstOrDefault(ep => ep.Name.Equals(SelectedDefaultEmulator.Name, StringComparison.OrdinalIgnoreCase));
+
+            if (emulatorDTO != null)  AutoExtract = emulatorDTO.AutoExtract == true;
+     
             if (UserEmulator == null)
             {
                 ExePath = null;
                 EmulatorNeedsPath = true;
-                AutoExtract = null;
-                M3uDiskLoadEnabled = null;
+                M3uDiskLoadEnabled = false;
                 ResolveInfoBar();
                 return;
             }
@@ -103,6 +130,12 @@ namespace RommStar.Core.UI.ViewModels.UserControls
             ExePath = UserEmulator.ApplicationPath;
             EmulatorNeedsPath = false;
 
+            if (emulatorDTO != null)
+            {
+                AutoExtract = emulatorDTO.AutoExtract == true;
+            }
+
+            // Now sets extract and m33u boxes to the actual values set in the emulator if it's already in the db
             UserEmulatorPlatform = UserEmulator.GetAllEmulatorPlatforms().
                 Where(ep => ep.EmulatorId == UserEmulator.Id && ep.Platform == UserPlatform?.Name && ep.IsDefault == true).FirstOrDefault();
 
@@ -111,35 +144,12 @@ namespace RommStar.Core.UI.ViewModels.UserControls
                 M3uDiskLoadEnabled = UserEmulatorPlatform.M3uDiscLoadEnabled;
                 AutoExtract = UserEmulatorPlatform.AutoExtract == true;
             }
-            else
-            {
-                AutoExtract = UserEmulator.AutoExtract; // get default from parent emulator
-                M3uDiskLoadEnabled = false;
-            }
+      
 
             ResolveInfoBar();
         }
 
-        [RelayCommand]
-        private async Task SetExecutablePath()
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog()
-            {
-                Title = "Please select the Emulator's executable",
-                CheckPathExists = true,
-                InitialDirectory = Path.Combine(Constants.LaunchboxRootDir, "Emulators")
-            };
-
-            var result = openFileDialog.ShowDialog();
-
-            if (result != true) return;
-
-            ExePath = openFileDialog.FileName;
-
-            ResolveInfoBar();
-        }
-
-        partial void OnSelectedDefaultPlatformChanged(LaunchboxDbPlatform value)
+        partial void OnSelectedDefaultPlatformChanged(LaunchboxDbPlatformDTO value)
         {
             if (SelectedDefaultPlatform == null) return;
 
@@ -166,20 +176,15 @@ namespace RommStar.Core.UI.ViewModels.UserControls
             // do not need ResolveInfoBar here as OnSelectedDefaultEmulatorChanged ALWAYS fires after this due to data bindings.
         }
 
-        public AddNewPlatformUcVM(LaunchboxDataService launchboxDataService)
+        [RelayCommand]
+        private async Task OpenEmulatorDownloadPage()
         {
-            _launchboxDataService = launchboxDataService;
+            if (SelectedDefaultEmulator != null)
+            {
+                string url = SelectedDefaultEmulator.URL;
+                RommStar.Core.Helpers.ProcessHelper.OpenLinkInBrowser(url);
+            }
         }
-
-        public async Task InitialiseAsync()
-        {
-            if (DefaultPlatforms != null && DefaultEmulators != null) return;
-
-            DefaultPlatforms = await _launchboxDataService.GetDefaultDbPlatforms();
-            DefaultEmulators = await _launchboxDataService.GetDefaultDbEmulators();
-            DefaultEmultorPlatforms = await _launchboxDataService.GetDefaultDbEmulatorPlatforms();
-        }
-
         private void ResolveInfoBar()
         {
             if (SelectedDefaultPlatform == null)
@@ -205,16 +210,24 @@ namespace RommStar.Core.UI.ViewModels.UserControls
 
         }
 
-        public void ClearData()
+        [RelayCommand]
+        private async Task SetExecutablePath()
         {
-            SelectedDefaultPlatform = null;
-            SelectedDefaultEmulator = null;
-            ExePath = null;
-            M3uDiskLoadEnabled = null;
-            AutoExtract = null;
+            OpenFileDialog openFileDialog = new OpenFileDialog()
+            {
+                Title = "Please select the Emulator's executable",
+                CheckPathExists = true,
+                InitialDirectory = Path.Combine(Constants.LaunchboxRootDir, "Emulators")
+            };
+
+            var result = openFileDialog.ShowDialog();
+
+            if (result != true) return;
+
+            ExePath = openFileDialog.FileName;
+
             ResolveInfoBar();
         }
-
         private void UpdateInfoBar(string message, InfoBarSeverity infoBarSeverity)
         {
             InfoMessage = message;
