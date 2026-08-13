@@ -1,8 +1,10 @@
 using Microsoft.Xaml.Behaviors;
 using RommStar.Core.Dtos.Romm;
+using RommStar.Core.Extensions;
 using RommStar.Core.Helpers;
 using RommStar.Core.Models;
 using RommStar.Core.Services;
+using SQLitePCL;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -15,6 +17,7 @@ using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Channels;
 using System.Windows;
+using System.Windows.Automation.Peers;
 using System.Xml;
 using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
@@ -59,8 +62,10 @@ namespace RommStar.Core.Sync
         /// Linked with the UI Job monitoring cards
         /// </summary>
         public ObservableCollection<PlatformSyncCardVM> ActiveSyncJobs { get; } = new();
+
+        LoggingService _loggingService;
         public SyncManager(RommServer initialServer, RommService rommService, LaunchboxDataService launchboxService, SettingsService settingsService,
-            NotificationService notificationService)
+            NotificationService notificationService, LoggingService loggingService)
         {
             // Thread-safe client initialization without global default authorization headers
             _client = new HttpClient();
@@ -74,16 +79,19 @@ namespace RommStar.Core.Sync
             _launchboxService = launchboxService;
             _settingsService = settingsService;
             _notificationService = notificationService;
-
+            _loggingService = loggingService;
         }
 
         public event Action<PlatformSyncCardVM>? OnSyncCompletedNotification;
 
         public void CancelPlatformSync(Guid jobId)
         {
+            _loggingService.Log($"Cancel Platform Sync request received for Job Id: [{jobId}]");
             var card = ActiveSyncJobs.FirstOrDefault(j => j.Id == jobId);
             if (card != null && (card.Status == SyncStatus.Queued || card.Status == SyncStatus.SyncingFiles || card.Status == SyncStatus.ProcessingMetadata))
             {
+                _loggingService.Log("Job found", Primitives.LoggingLevel.Verbose);
+
                 // 1. Immediately visually update the UI state
                 card.Status = SyncStatus.Cancelled;
 
@@ -93,9 +101,17 @@ namespace RommStar.Core.Sync
                     try
                     {
                         cts.Cancel();
+                        _loggingService.Log("Job cancellation token set successfully");
                     }
-                    catch (ObjectDisposedException) { }
+                    catch (ObjectDisposedException ex)
+                    {
+                        _loggingService.Log($"Error whislt trying to set the cancellaiton token: {ex.Message}");
+                    }
                 }
+            }
+            else
+            {
+                _loggingService.Log($"Could not complete: Either Job no longer exists, or its status is not Queued, SyncingFiles or ProcessingMetadata");
             }
         }
 
@@ -105,11 +121,24 @@ namespace RommStar.Core.Sync
         }
 
         // =========================================================================
-        // MACRO MANAGEMENT: ENQUEUE PLATFORM RUN
+        // MACRO MANAGEMENT: ENQUEUE PLATFORM SYNC
         // =========================================================================
         public async Task EnqueuePlatformSync(string lbPlatformName, string lbPlatformRomFolder, IPlatformFolder[] lbMediaFolders, string emulatorId,
             List<int> rommPlatformIds, ExtendedSyncSettings syncSettings, RommServer targetServer, int romCount, bool notifyLaunchboxOnMeatadataDone = false)
         {
+
+            if (_settingsService.Settings.LoggingLevel > Primitives.LoggingLevel.Normal)
+            {
+                _loggingService.Log($"Enqueing Platform Sync for: [{lbPlatformName}]");
+                _loggingService.Log($"Passed parameters:");
+                _loggingService.Log($"Launchbox Rom Folder: [{lbPlatformRomFolder}]");
+                _loggingService.Log($"Emulator ID: [{emulatorId}]");
+                _loggingService.Log($"Romm Platform Ids: {String.Join(", ", rommPlatformIds)}");
+                _loggingService.Log($"Target Romm Server: {targetServer.ServerName}");
+                _loggingService.Log($"Rom Count: {romCount}");
+                _loggingService.Log($"Sync Settings being used: {syncSettings.ToCsv()}");
+            }
+
             var uiJobCard = new PlatformSyncCardVM
             {
                 Id = Guid.NewGuid(),
@@ -156,12 +185,14 @@ namespace RommStar.Core.Sync
             _activeTokens[uiJobCard.Id] = task.Cts;
 
             _platformQueue.Writer.TryWrite(task);
+            _loggingService.Log($"Platform Sync successfully enqueued: [{lbPlatformName}]");
         }
 
         private void EnqueueBatchRomDownloadJob(PlatformSyncTask platformTask, IGame game, RomDTO romDto, List<int> allRommIds, string masterFilename,
                     long totalSizeBytes, string serverId, List<RomQueueItem> stagedQueue, bool notifyLaunchbox = false,
                     List<RomFileDTO>? aggregatedFiles = null)
         {
+            _loggingService.Log($"Request made to enqueue rom for batch download: {romDto.Name}",Primitives.LoggingLevel.Verbose);
             var existingQueue = _settingsService.Settings.RomDownloadQueue;
 
             // 1. Check if the game is already in the persisted settings queue
@@ -181,12 +212,14 @@ namespace RommStar.Core.Sync
                     _settingsService.Save();
                     platformTask.UiCard.AddLog($"Re-queued quarantined item '{game.Title}' for batch download.", PlatformSyncCardVM.LogType.Info);
                 }
+                _loggingService.Log($"Item already in queue.");
                 return; // Return immediately to avoid duplicates
             }
 
             // 3. Check if we have already staged this item during THIS sync run
             if (stagedQueue.Any(q => q != null && q.LaunchboxId == game.Id))
             {
+                _loggingService.Log($"Item already in staged queue. Not re-enqueuing here.");
                 return;
             }
 
@@ -207,19 +240,6 @@ namespace RommStar.Core.Sync
                 NotifyLaunchboxOnCompletion = notifyLaunchbox
             };
 
-            //if (queueItem.IsMultiFileGame)
-            //{
-            //    queueItem.MultiFiles = romDto.Files;
-            //}
-            //else if (romDto.SiblingRoms != null && romDto.SiblingRoms.Count > 0)
-            //{
-            //    queueItem.IsSiblingSet = true;
-            //    // Single masterSiblingRomDtoFile masterRomDtoSiblingDto rom
-            //    // Urgh - below doesn't work. Sadly, .files is only the single sib masterSiblingRomDtoFile, and .siblingfiles
-            //    // only contains the masterSiblingRomDtoFile name not the extension! Bit of a daft oversight on romm's part..
-            //    queueItem.MultiFiles = romDto.Files;
-            //}
-
             if (aggregatedFiles != null && aggregatedFiles.Count > 0)
             {
                 queueItem.IsSiblingSet = true;
@@ -238,6 +258,8 @@ namespace RommStar.Core.Sync
             // ADD TO STAGED QUEUE ONLY - NO SETTINGS SAVE HERE
             stagedQueue.Add(queueItem);
 
+            _loggingService.Log($"New RomQueueItem added to queue: {queueItem.ToCsv()}");
+
             // Optional: Log it for UI transparency
             platformTask.UiCard.AddLog($"Queued [{game.Title}] rom file/s for download.", PlatformSyncCardVM.LogType.Info);
         }
@@ -248,39 +270,15 @@ namespace RommStar.Core.Sync
         // =========================================================================
         private void EnqueueFileDownload(DownloadJob job)
         {
+            //_loggingService.Log($"Request made to enqueue file for download: {job.ToCsv()}", Primitives.LoggingLevel.Verbose);
+
             _activeFileCounters.AddOrUpdate(job.JobId, 1, (key, current) => current + 1);
             if (job.UiCard != null) job.UiCard.TotalItems++;
 
             _fileDownloadQueue.Writer.TryWrite(job);
+            _loggingService.Log($"File Download Job added: {job.ToCsv(_settingsService.Settings.LoggingRedact)}", Primitives.LoggingLevel.Verbose);
         }
 
-        /// <summary>
-        /// Centralized wrapper ensuring identical Job formatting logic across all execution patterns
-        /// </summary>
-        private void EnqueueRomDownloadJob(PlatformSyncTask platformTask, RommServer currentSnapshot,
-            int romId, RomFileDTO fileDto, string targetDirectory, string romName)
-        {
-            //TODO: needs testing - emulatorId correct for all 4 calls?
-            string emulatorId = _launchboxService.EmulatorId;
-
-            EnqueueFileDownload(new DownloadJob
-            {
-                JobId = platformTask.Id,
-                JobType = DownloadJobType.Rom,
-                RomName = romName,
-                LaunchBoxPlatformName = platformTask.PlatformName,
-                ServerContext = currentSnapshot,
-                UiCard = platformTask.UiCard,
-                CancellationToken = platformTask.Cts.Token,
-                RelativeUrl = $"/api/v1/roms/{romId}/files/{fileDto.Id}/download",
-                DestinationPath = Path.Combine(targetDirectory, fileDto.FileName),
-                OnSuccessCallback = () => { }
-            });
-        }
-
-        //            // Direct parallel execution lane bypass instead of using macro FIFO channels
-        //            mediaTasks.Add(StreamFileFromNetworkAsync(apiRelativeUrl, item.TargetLocalPath, targetServer, CancellationToken.None));
-        //        }
         /// <summary>
         /// Core Helper Methods
         /// </summary>
@@ -290,18 +288,22 @@ namespace RommStar.Core.Sync
         private async Task<RomCollectionDTO> FetchMetadataFromRommAsync(List<int> platformIds,
             RommServer server, int offset, CancellationToken cancellationToken)
         {
+            _loggingService.Log($"Getting rom lists for RomM platforms: [{String.Join(", ", platformIds)}] from server: {server.ServerName}");
             var apiResult = await _rommService.GetRomCollectionAsync(server, platformIds, offset, cancellationToken);
 
             if (!apiResult.IsSuccess)
             {
-                //Debug.WriteLine($"Romm Collection Paging offset: {apiResult.Data.Offset}");
-                // TODO: Error handling
+                _loggingService.Log($"ERROR getting rom lists for RomM platforms. Reason: [{apiResult.FailureReason}]. Http response: [{apiResult.HttpResponse}]. " +
+                    $"{apiResult.ExceptionMessage}");
             }
 
             if (apiResult.Data != null)
             {
+                _loggingService.Log($"Platform roms data successfully retrieved.");
                 return apiResult.Data;
             }
+
+            _loggingService.Log($"WARNING: No data recived for these platforms.");
 
             return new RomCollectionDTO();
         }
@@ -1076,8 +1078,8 @@ namespace RommStar.Core.Sync
 
                                             }
                                             else if (masterRomDtoFile.Category == "game")
-                                            { 
-                                                subFilePath = Path.Combine(targetDirectory, masterRomFileDto.FileName); 
+                                            {
+                                                subFilePath = Path.Combine(targetDirectory, masterRomFileDto.FileName);
                                             }
 
                                             // HACK: can only query by filename here as sha isn't populated by romm for sub files!
@@ -1156,7 +1158,7 @@ namespace RommStar.Core.Sync
                                     platformTask.UiCard.AddLog($"Could not construct or add Launchbox Game for '{masterRomDto.Name}' from Romm game. Game is part of masterRomDtoSiblingDto set.", PlatformSyncCardVM.LogType.Warning);
                                 }
 
-                                
+
                             }
 
                             bool masterHasFiles = masterRomDto.Files != null && masterRomDto.Files.Count > 0;

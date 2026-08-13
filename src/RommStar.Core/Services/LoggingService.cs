@@ -46,6 +46,37 @@ namespace RommStar.Core.Services
             }
         }
 
+        public void HeadLog()
+        {
+            // Verbatim string literal to preserve the exact ASCII art formatting and backslashes
+            string header = Environment.NewLine + 
+        @" /$$$$$$$                          /$$      /$$  /$$$$$$   /$$                        
+| $$__  $$                        | $$$    /$$$ /$$__  $$ | $$                        
+| $$  \ $$  /$$$$$$  /$$$$$$/$$$$ | $$$$  /$$$$| $$  \__//$$$$$$    /$$$$$$   /$$$$$$ 
+| $$$$$$$/ /$$__  $$| $$_  $$_  $$| $$ $$/$$ $$|  $$$$$$|_  $$_/   |____  $$ /$$__  $$
+| $$__  $$| $$  \ $$| $$ \ $$ \ $$| $$  $$$| $$ \____  $$ | $$      /$$$$$$$| $$  \__/
+| $$  \ $$| $$  | $$| $$ | $$ | $$| $$\  $ | $$ /$$  \ $$ | $$ /$$ /$$__  $$| $$      
+| $$  | $$|  $$$$$$/| $$ | $$ | $$| $$ \/  | $$|  $$$$$$/ |  $$$$/|  $$$$$$$| $$      
+|__/  |__/ \______/ |__/ |__/ |__/|__/     |__/ \______/   \___/   \_______/|__/      
+                                                                                      
+																			by stigzler" + Environment.NewLine
+            + $"Log started: {DateTime.Now}" + Environment.NewLine
+            + "(Use Python Syntax highlighting and monospaced font in Notepad++ to make reading easier) " + Environment.NewLine
+            + "-----------------------------------------------------------------------------------------" + Environment.NewLine;
+
+            try
+            {
+                lock (LockObject)
+                {
+                    File.AppendAllText(LogPath, header, Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to write HeadLog to file: {ex.Message}");
+            }
+        }
+
         public void Log(string message, LoggingLevel logLevel = LoggingLevel.Normal)
         {
             if (logLevel > _settingsService.Settings.LoggingLevel)
@@ -54,8 +85,8 @@ namespace RommStar.Core.Services
             }
 
             // Hardcoded settings for calling member formatting
-            bool showCallingMember = true;
-            bool prependCallingMember = true;
+            bool showCallingMember = _settingsService.Settings.LoggingIncludeMember;
+            bool prependCallingMember = _settingsService.Settings.LoggingPrependMember;
 
             string methodDetails = string.Empty;
 
@@ -97,7 +128,7 @@ namespace RommStar.Core.Services
 
             // Build the string line
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.Append($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} ");
+            stringBuilder.Append($"{DateTime.Now:HH:mm:ss.fff} ");
 
             if (prependCallingMember)
             {

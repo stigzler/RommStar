@@ -171,8 +171,10 @@
                                             Title="{Binding LaunchboxPlatformsInfoBar.Title}"
                                             Message="{Binding LaunchboxPlatformsInfoBar.Message}" />
 
-                    <StackPanel  Orientation="Horizontal" FlowDirection="RightToLeft" Margin="0,0,10,10">
+                    <StackPanel  Orientation="Horizontal" FlowDirection="RightToLeft" Margin="0,0,10,10" >
+                        
                         <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
+                                Visibility="Collapsed"
                             ToolTip="Syncs all Launchbox Platforms with Target Romm Server"
                             Padding="16,8" Margin="0,0,10,0" FontWeight="DemiBold">
                             <StackPanel Orientation="Horizontal">
@@ -537,7 +539,9 @@
                             Visibility="{Binding SelectedPlatform, Converter={StaticResource NullToVisibilityConverter}}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Sync Platform" />
-                                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.SwipeDown_20_Regular}" Margin="5,2,0,0" />
+                                <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudSync_20_Regular}" FontSize="20" Margin="5,2,0,0" 
+                                                   TextOptions.TextFormattingMode="Ideal"
+/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

@@ -1,9 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using RommStar.Core.Extensions;
 using RommStar.Core.Primitives;
 using RommStar.Core.Sync;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -36,5 +38,22 @@ namespace RommStar.Core.Models
         /// If local launchbox platform contains roms from a previously assigned server, these are deleted. 
         /// </summary>
         public bool DeleteOldServerRoms { get; set; } = false;
+
+        public string ToCsv()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"{SyncProfile.ToString()}, ");
+            if (OverwriteMetadata ) sb.Append($"Overwrite Metadata, ");
+            if (OverwriteExistingMedia) sb.Append($"Overwrite Existing Media, ");
+            if (OverwriteExistingRoms) sb.Append($"Overwrite Existing Roms, ");
+            if (ForceMediaPriority) sb.Append($"Force Media Priority, ");
+            sb.Append($"Batch Size: {TargetRomBatchFilesizeGb} (GB), ");
+            sb.Append($"File Check: {FileCheckMethod}, ");
+            sb.Append($"Temp Downloads Path: [{TempDownloadsPath}]");
+            return sb.ToString();
+        }
+
+   
+
     }
 }

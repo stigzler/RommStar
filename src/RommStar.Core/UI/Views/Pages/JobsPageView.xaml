@@ -17,7 +17,7 @@
       TextOptions.TextRenderingMode="ClearType"
       UseLayoutRounding="True"
       SnapsToDevicePixels="True"
-      Title="Platform Sync Jobs">
+      Title="Sync Jobs">
 
     <ui:Page.Resources>
         <ResourceDictionary>

@@ -10,14 +10,19 @@ namespace RommStar.Core.Services
 {
     public class NotificationService
     {
+
+        LoggingService _loggingService;
+
         Assembly _launchBoxAssembly = AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "LaunchBox");
 
         private static MethodInfo _sendInfoNotificationMethod;
         private static MethodInfo _sendErrorNotificationMethod;
         private static MethodInfo _addPassiveNotification;
 
-        public NotificationService()
+        public NotificationService(LoggingService loggingService)
         {
+            _loggingService = loggingService;
+
             if (_launchBoxAssembly != null)
             {
                 var notificationCenterType = _launchBoxAssembly.GetType("Unbroken.LaunchBox.Windows.Desktop.Notifications.NotificationCenter");
@@ -29,21 +34,26 @@ namespace RommStar.Core.Services
                                             new Type[] { typeof(string), typeof(bool) },
                                             null);
             }
+
         }
 
-        public void SendInfoNotification(string message, int duration = 2)
+        public void SendInfoNotification(string message, int duration = 2, bool alsoLog = false)
         {
             _sendInfoNotificationMethod?.Invoke(null, new object[] { message, duration });
+            if (alsoLog) _loggingService.Log(message);
         }
 
-        public void SendErrorNotification(string message, int duration = 2)
+        public void SendErrorNotification(string message, int duration = 2, bool alsoLog = false)
         {
             _sendErrorNotificationMethod?.Invoke(null, new object[] { message, duration });
+            if (alsoLog) _loggingService.Log(message);
+
         }
 
-        public void AddPassiveNotification(string message, bool markUnread = true)
+        public void AddPassiveNotification(string message, bool markUnread = true, bool alsoLog = false)
         {
             _addPassiveNotification?.Invoke(null, new object[] { message, markUnread });
+            if (alsoLog) _loggingService.Log(message);
         }
     }
 }

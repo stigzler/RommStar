@@ -15,8 +15,8 @@
         Width="{Binding Source={x:Static properties:Settings.Default},Path=WindowSize.Width}"
         MinWidth="1200" MinHeight="800"
         WindowStartupLocation="CenterScreen"
-        Title="RommStar" Closing="Window_Closing"
-        TextOptions.TextFormattingMode="Ideal"
+        Title="RomMStar" Closing="Window_Closing"
+        TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
@@ -45,11 +45,9 @@
         <ui:NavigationView.MenuItems>
             <ui:NavigationViewItem Content="Platforms" x:Name="NavigationViewItem_Platforms">
                 <ui:NavigationViewItem.Icon>
-                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}" />
+                    <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.XboxOneConsole}"/>
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
-
-
 
             <ui:NavigationViewItem Content="Sync Jobs" x:Name="NavigationViewItem_Jobs">
                 <ui:NavigationViewItem.Icon>
@@ -87,7 +85,7 @@
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem Content="About">
+            <ui:NavigationViewItem Content="About" x:Name="NavigationViewItem_About">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Info}" />
                 </ui:NavigationViewItem.Icon>

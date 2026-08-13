@@ -2,6 +2,8 @@
 using RommStar.Core.Dtos.Romm;
 using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Web;
 
 namespace RommStar.Core.Sync
 {
@@ -70,6 +72,29 @@ namespace RommStar.Core.Sync
             {
                 this.Status = romQueueItemStatus;
             }
+        }
+
+        public string ToCsv()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"[{GameNameSanitised} ({PlatformName})] <{MasterFilename}>: ");
+            if (IsMultiFileGame) sb.Append("Is Multifile, ");
+            if (IsSiblingSet) sb.Append("Is Sibling Set, ");
+            if (IsSingleFileGame) sb.Append("Is Single File, ");
+            if (IsPriority) sb.Append("Is Priority, ");
+
+            if (IsQuarantined)
+            {
+                sb.Append("IS QUARANTINED, ");  
+                sb.Append($"Retry Count: {RetryCount}, ");
+            }
+
+            sb.Append($"RomIds: [{String.Join(",", RommIds)}], ");
+            sb.Append($"ServerID: [{ServerId}], ");
+            sb.Append($"Number of Multifiles: {MultiFiles.Count}, ");
+            sb.Append($"Last Error: [{LastError}]");
+
+            return sb.ToString();
         }
     }
 }

@@ -1,0 +1,44 @@
+﻿<ui:Page x:Class="RommStar.Core.UI.Views.Pages.AboutPageView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:RommStar.Core.UI.Views.Pages"
+      xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+      mc:Ignorable="d" 
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+      d:DesignHeight="450" d:DesignWidth="800" d:Background="#202020" d:Foreground="Gainsboro"
+      Title="About">
+
+    <ui:Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:XamlControlsResources />
+                <ui:ThemeResources AccentColor="#553e98" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </ui:Page.Resources>
+
+    <Grid VerticalAlignment="Center">
+        <StackPanel>
+            <Image Source="pack://application:,,,/RommStar.Core;component/Resources/LogoBox128px.png" Height="128"/>
+            <TextBlock Text="RomMStar" Style="{StaticResource {x:Static ui:ThemeKeys.TitleLargeTextBlockStyleKey}}" HorizontalAlignment="Center"/>
+            <TextBlock Text="by stigzler" HorizontalAlignment="Center"/>           
+            <TextBlock Name="VersionTBL" d:Text="Version: x.x.x.x" HorizontalAlignment="Center" Opacity="0.6"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <ui:HyperlinkButton
+                    Content="Github"
+                    IsEnabled="True"
+                    NavigateUri="https://github.com/stigzler/RommStar" Margin="10"/>
+
+                <ui:HyperlinkButton x:Name="Forum"
+                    Content="Forum"
+                    IsEnabled="True"
+                    NavigateUri="http://www.inkore.net" Margin="10"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</ui:Page>

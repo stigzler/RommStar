@@ -21,6 +21,7 @@ namespace RommStar.Core.UI.Views.Windows
         private ServersPageView ServersPageView;
         private PlatformsPageView PlatformsPageView;
         private RomQueuePageView RomQueuePageView;
+        private AboutPageView AboutPageView;
 
         public MainWindowView(MainWindowVM mainWindowVM, HomePageVM homePageVM,
             SettingsPageVM settingsPageVM, JobsPageVM jobsPageVM, ServersPageVM serversPageVM,
@@ -36,6 +37,7 @@ namespace RommStar.Core.UI.Views.Windows
             ServersPageView = new ServersPageView(serversPageVM);
             PlatformsPageView = new PlatformsPageView(platformsPageVM);
             RomQueuePageView = new RomQueuePageView(romQueuePageVM);
+            AboutPageView = new AboutPageView();
         }
 
         private void NavigationView_SelectionChanged(iNKORE.UI.WPF.Modern.Controls.NavigationView sender, iNKORE.UI.WPF.Modern.Controls.NavigationViewSelectionChangedEventArgs args)
@@ -76,6 +78,11 @@ namespace RommStar.Core.UI.Views.Windows
             else if (item == NavigationViewItem_DownloadJobs)
             {
                 page = RomQueuePageView;
+            }
+
+            else if (item == NavigationViewItem_About)
+            {
+                page = AboutPageView;
             }
 
             if (page != null)

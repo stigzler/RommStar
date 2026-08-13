@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using RommStar.Core.Extensions;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Mappers;
+using RommStar.Core.Models;
 using RommStar.Core.Primitives;
 using RommStar.Core.Services;
 using RommStar.Core.Sync;
@@ -9,9 +11,12 @@ using RommStar.Core.UI.ViewModels.UserControls;
 using RommStar.Core.UI.ViewModels.Windows;
 using RommStar.Core.UI.Views.UserControls;
 using RommStar.Core.UI.Views.Windows;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows;
+using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core
@@ -59,11 +64,78 @@ namespace RommStar.Core
             _romBatchService = _serviceProvider.GetRequiredService<RomBatchService>();
             _notificationsService = _serviceProvider.GetRequiredService<NotificationService>();
 
+            StartLog();
+        }
+
+
+        private void StartLog()
+        {
+            var settings = _settingsService.Settings;
             _loggingService.LogClear();
-            _loggingService.Log($"Logging started at {DateTime.Now:dd.MM.yy - HH:mm:ss}");
-            _loggingService.Log("PluginHost initialized and services configured.");
-            _loggingService.Log("Settings:");
-            _loggingService.Log($"  LogLevel: {_settingsService.Settings.LoggingLevel.ToString()}");
+            _loggingService.HeadLog();
+            _loggingService.Log($"RomMStar Version:  {typeof(PluginHost).Assembly.GetName().Version.ToString()}");
+            _loggingService.Log($"Launchbox Version: {Assembly.GetEntryAssembly()?.GetName().Version.ToString()}");
+            _loggingService.Log("RomMStar initialized and services configured.");
+            _loggingService.Log($"Is in BigBox: [{PluginHelper.StateManager.IsBigBox}]");
+            _loggingService.Log("Relevant Settings at start up:");
+            _loggingService.Log($"LogLevel: [{settings.LoggingLevel.ToString()}]");
+            _loggingService.Log($"Redact  : [{settings.LoggingRedact}]");
+            _loggingService.Log($"Media Downloads on Sync: {String.Join(",", settings.SyncMediaProfile.EnabledTypes)}");
+            _loggingService.Log($"Hide success entries in sync log: {settings.HideSuccessEntries}");
+            _loggingService.Log($"Global Sync Settings: {settings.GlobalExtendedSyncSettings.ToCsv()}");
+            _loggingService.Log($"Youtube Stub: [{settings.YouTubeStub}]");
+            _loggingService.Log($"Rating Standard: {settings.RatingStandard}");
+            _loggingService.Log("");
+            _loggingService.Log($"Rom Download Queue size at startup: {settings.RomDownloadQueue.Count}");
+
+            if (settings.LoggingLevel > LoggingLevel.Normal)
+            {
+                if (settings.RomDownloadQueue.Count > 0) _loggingService.Log($"Rom Queue:");
+                foreach (var queueItem in settings.RomDownloadQueue)
+                {
+                    _loggingService.Log($"  {queueItem.ToCsv()}");
+                }
+
+                _loggingService.Log("");
+                _loggingService.Log($"RomM Servers:");
+                foreach (RommServer server in settings.RommServers)
+                {
+                    _loggingService.Log($"  [{server.ServerName}]: ID: [{server.Id}], Page limit: {server.PageLimit}, URL: {server.BaseUrl.RedactSensitiveInfo(settings.LoggingRedact)}");
+                }
+
+                _loggingService.Log("");
+                _loggingService.Log($"Platform Sync Settings:");
+                foreach (PlatformSyncSettings syncSettings in settings.PlatformSyncSettings)
+                {
+                    _loggingService.Log($"  [{syncSettings.LaunchboxPlatformName}] (Matched RomM Server: {syncSettings.RommServerId})");
+                    _loggingService.Log($"  Sync Settings: {syncSettings.ExtendedSyncSettings.ToCsv()}");
+                    _loggingService.Log($"  Above set to be applied: {syncSettings.ExtendedSyncSettings.ApplySettings}");
+                    _loggingService.Log("    Assigned RomM Platforms:");
+                    foreach (var rommPlatform in syncSettings.RommServerPlatforms)
+                    {
+                        _loggingService.Log($"      {rommPlatform.RommName} (slug = [{rommPlatform.Slug}])");
+                    }
+                    _loggingService.Log("");
+                }
+
+                _loggingService.Log($"Launchbox Platforms: [{String.Join("], [", PluginHelper.DataManager.GetAllPlatforms().Select(p => p.Name).ToList())}]");
+                foreach (var platform in PluginHelper.DataManager.GetAllPlatforms())
+                {
+                    _loggingService.Log($"  {platform.ToCsv()}");
+                }
+
+                _loggingService.Log("");
+
+                _loggingService.Log($"Launchbox Emulators: [{String.Join("] [", PluginHelper.DataManager.GetAllEmulators().ToList())}]");
+                foreach(var emulator in  PluginHelper.DataManager.GetAllEmulators())
+                {
+                    _loggingService.Log($"  {emulator.ToCsv()}");
+                }
+
+            }
+
+            _loggingService.Log($"END of Startup Report.");
+            _loggingService.Log("");
         }
 
         internal async void LaunchboxEventReceived(string eventType)
@@ -72,6 +144,7 @@ namespace RommStar.Core
             switch (eventType)
             {
                 case SystemEventTypes.PluginInitialized:
+
                     break;
                 case SystemEventTypes.LaunchBoxStartupCompleted:
                     _romBatchService.StartService();
@@ -92,16 +165,19 @@ namespace RommStar.Core
             }
         }
 
+
+
+
         internal async void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
         {
             switch (menuItem)
             {
                 case LaunchboxMenuItem.SyncPlatform:
-                    _loggingService.Log("Sync Platform menu item selected.");
+                    _loggingService.Log("Sync Platform menu item selected.", LoggingLevel.Verbose);
                     break;
 
                 case LaunchboxMenuItem.ToolsMenuRommStar:
-                    _loggingService.Log("Tools>RommStar selected.");
+                    _loggingService.Log("Tools>RommStar selected.", LoggingLevel.Verbose);
                     await LaunchAdminWindow();
                     break;
             }
@@ -150,7 +226,6 @@ namespace RommStar.Core
             services.AddSingleton<LaunchboxDataService>();
             services.AddSingleton<LaunchboxStateService>();
             services.AddSingleton<RomBatchService>();
-
 
             // Mappers
             services.AddSingleton<RomMapper>();

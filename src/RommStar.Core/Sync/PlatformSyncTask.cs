@@ -48,5 +48,10 @@ namespace RommStar.Core.Sync
         /// This is whether Sync should Insert/Create an IGame based on the Romm Game/Rom
         /// </summary>
         public bool UpdateMetadata { get; set; } = true;
+
+        public string ToCsv()
+        {
+            return $"[{PlatformName}]: ";
+        }
     }
 }

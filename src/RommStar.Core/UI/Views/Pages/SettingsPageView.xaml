@@ -6,13 +6,14 @@
       xmlns:local="clr-namespace:RommStar.Core.UI.Views.Pages"
       xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
       xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
-      xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels"
+      xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels.Pages"
       xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:sync="clr-namespace:RommStar.Core.Sync"
       xmlns:converters="clr-namespace:RommStar.Core.UI.Converters"
       xmlns:ucs="clr-namespace:RommStar.Core.UI.Views.UserControls"
+        xmlns:prims="clr-namespace:RommStar.Core.Primitives"
       mc:Ignorable="d"
-      d:DataContext="{d:DesignInstance Type=vm:Pages.SettingsPageVM, IsDesignTimeCreatable=True}"
+      d:DataContext="{d:DesignInstance Type=vm:SettingsPageVM, IsDesignTimeCreatable=True}"
       d:DesignHeight="450" d:DesignWidth="800" d:Background="#202020" d:Foreground="Gainsboro"
       TextOptions.TextFormattingMode="Display"
       TextOptions.TextRenderingMode="ClearType"
@@ -37,6 +38,15 @@
                     <x:Type TypeName="sync:SyncProfileTypes" />
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
+
+            <ObjectDataProvider x:Key="LogLevelEnum"
+                            MethodName="GetValues"
+                            ObjectType="{x:Type sys:Enum}">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="prims:LoggingLevel" />
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+
         </ResourceDictionary>
     </ui:Page.Resources>
 
@@ -50,9 +60,9 @@
             <Button Style="{DynamicResource {x:Static ui:ThemeKeys.AccentButtonStyleKey}}"
                     Command="{Binding SaveSettingsCommand}" FontWeight="DemiBold"
                      BorderBrush="#80000000" BorderThickness="1" Padding="16,8">
-                <StackPanel Orientation="Horizontal">
-                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Save_20_Regular}" Margin="0,2,5,0" />
-                    <TextBlock Text="Save Settings" />
+                <StackPanel Orientation="Horizontal" >
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.Save_20_Regular}" FontSize="20" Margin="0,2,5,0" />
+                    <TextBlock Text="Save Settings" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
         </StackPanel>
@@ -66,6 +76,32 @@
                 <ui:SettingsCard Header="Youtube Stub" Description="Prefix text used to construct the final youtube url from the RomM video key"  >
                     <TextBox Text="{Binding PluginSettings.YouTubeStub, Mode=TwoWay}"/>
                 </ui:SettingsCard>
+
+                <ui:SettingsExpander Header="Logging Settings" 
+                                     Description="Shape the outpur logs for RomMStar"
+                                     Margin="0,10,0,0"
+                                     IsExpanded="False" Visibility="Visible">
+                    <ui:SettingsExpander.Items>
+
+                        <ui:SettingsCard Header="Log Level" Description="Level of detail in log."  >
+                            <ComboBox ItemsSource="{Binding Source={StaticResource LogLevelEnum}}"
+                              SelectedItem="{Binding PluginSettings.LoggingLevel, Mode=TwoWay}"/>
+                        </ui:SettingsCard>
+
+                        <ui:SettingsCard Header="Redact Sensitive Data in Log" Description="Will not include any personally identifiable information like Romm API URLs, etc"  >
+                            <ui:ToggleSwitch IsOn="{Binding PluginSettings.LoggingRedact, Mode=TwoWay}"/>
+                        </ui:SettingsCard>
+
+                        <ui:SettingsCard Header="Include Calling Member" Description="Will include the class and method the logging was called from"  >
+                            <ui:ToggleSwitch IsOn="{Binding PluginSettings.LoggingIncludeMember, Mode=TwoWay}"/>
+                        </ui:SettingsCard>
+
+                        <ui:SettingsCard Header="Prepend Calling Member" Description="Will put the calling member at the start of the log entry instead of at the end."  >
+                            <ui:ToggleSwitch IsOn="{Binding PluginSettings.LoggingPrependMember, Mode=TwoWay}"/>
+                        </ui:SettingsCard>
+
+                    </ui:SettingsExpander.Items>
+                </ui:SettingsExpander>
 
                 <ui:SettingsExpander Header="Rom Install Media Download Profile" 
                                      Description="Select which media items to download when a game's rom is installed"
@@ -94,7 +130,7 @@
                 <ui:SettingsExpander Header="Media Download Profile" 
                                      Description="Select which media items to pull automatically during a platform synchronization"
                                      Margin="0,10,0,0"
-                                     IsExpanded="True">
+                                     IsExpanded="False">
                     <ui:SettingsExpander.Items>
                         <ui:SettingsCard ContentAlignment="Left" HorizontalContentAlignment="Stretch">
                             <ItemsControl ItemsSource="{Binding SyncMediaTypes}" Margin="5" >
@@ -119,12 +155,9 @@
 
                 <TextBlock Text="Global Sync Settings" Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" Margin="0,10,0,10"/>
 
-
-                <ucs:ExtendedSyncSettingsView ExtendedSyncSettings="{Binding PluginSettings.GlobalExtendedSyncSettings, Mode=TwoWay}"/>
-
-
-
-
+                <Border Background="#20000000" Padding="10" CornerRadius="10"> 
+                    <ucs:ExtendedSyncSettingsView ExtendedSyncSettings="{Binding PluginSettings.GlobalExtendedSyncSettings, Mode=TwoWay}"/>
+                </Border>
 
             </StackPanel>
 

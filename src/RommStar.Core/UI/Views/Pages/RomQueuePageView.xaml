@@ -13,7 +13,7 @@
          d:DataContext="{d:DesignInstance Type=vms:RomQueuePageVM, IsDesignTimeCreatable=True}"
          mc:Ignorable="d"
          d:DesignHeight="450" d:DesignWidth="800"
-         Title="Download Queue"
+         Title="Download Jobs"
          TextOptions.TextFormattingMode="Display"
          TextOptions.TextRenderingMode="ClearType"
          UseLayoutRounding="True"

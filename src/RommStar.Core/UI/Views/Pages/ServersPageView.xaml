@@ -15,7 +15,7 @@
       TextOptions.TextRenderingMode="ClearType"
       UseLayoutRounding="True"
       SnapsToDevicePixels="True"
-      Title="RomM Servers">
+      Title="Servers">
 
     <Page.Resources>
         <ResourceDictionary>
@@ -135,7 +135,7 @@
                                         Background="#a0900000" BorderBrush="#80ff0000" BorderThickness="1" Padding="16,10">
                                     <Border.Style>
                                         <Style TargetType="Border">
-                                            <Setter Property="Visibility" Value="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+                                            <Setter Property="Visibility" Value="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsMessageDismissed}" Value="True">
                                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -172,7 +172,7 @@
                                         Background="#a0006000" BorderBrush="#8000aa00" BorderThickness="1" Padding="16,10">
                                     <Border.Style>
                                         <Style TargetType="Border">
-                                            <Setter Property="Visibility" Value="{Binding HasSuccessMessage, Converter={StaticResource BoolToVis}}" />
+                                            <Setter Property="Visibility" Value="{Binding HasSuccessMessage, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsMessageDismissed}" Value="True">
                                                     <Setter Property="Visibility" Value="Collapsed" />

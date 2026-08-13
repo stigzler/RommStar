@@ -22,6 +22,7 @@ namespace RommStar.Core.Services
     /// </summary>
     public class LaunchboxStateService
     {
+        private readonly LoggingService _loggingService;
         private readonly LaunchboxDataService _launchboxDataService;
         private readonly SettingsService _settingsService;
         private readonly RommService _rommService;
@@ -30,13 +31,14 @@ namespace RommStar.Core.Services
         private CancellationTokenSource _onDemandCts = new CancellationTokenSource();
 
         public LaunchboxStateService(LaunchboxDataService launchboxDataService, SettingsService settingsService, RommService rommService,
-                    NotificationService notificationService, SyncManager syncManager)
+                    NotificationService notificationService, SyncManager syncManager, LoggingService loggingService)
         {
             _launchboxDataService = launchboxDataService;
             _settingsService = settingsService;
             _rommService = rommService;
             _notificationService = notificationService;
             _syncManager = syncManager;
+            _loggingService = loggingService;
         }
 
         string _lastEmulatorApplicationPath;
@@ -44,6 +46,8 @@ namespace RommStar.Core.Services
 
         internal void DoShutdownOperations()
         {
+            _loggingService.Log("Doing shutdown operations. Raising cancellation token for any outstanding processes (eg. download jobs)");
+
             _onDemandCts.Cancel();
             // Ensure that any manipulation of the last launch Emulator's application path
             // as part of the Game Install strategy is restored 
@@ -57,6 +61,8 @@ namespace RommStar.Core.Services
         /// <returns></returns>
         internal async Task SyncPlatform(string launchboxPlatformName)
         {
+            _loggingService.Log($"Setting up Platform Sync initiated from Launchbox UI for: {launchboxPlatformName}");
+
             // parameter computation and checks ----------------------------------------------------------
 
             string errorPrefix = $"ERROR: Could not start RomM Sync for [{launchboxPlatformName}]";
@@ -65,13 +71,13 @@ namespace RommStar.Core.Services
             IPlatform platform = PluginHelper.DataManager.GetPlatformByName(launchboxPlatformName);
             if (platform == null)
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. Could not retrieve the Launchbox Platform");
+                _notificationService.SendErrorNotification($"{errorPrefix}. Could not retrieve the Launchbox Platform", alsoLog: true);
                 return;
             }
 
             if (_syncManager.PlatformQueuedAndIncomplete(platform.Name)) 
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. A Sync Job for this Platform is already in the queue.");
+                _notificationService.SendErrorNotification($"{errorPrefix}. A Sync Job for this Platform is already in the queue.", alsoLog: true);
                 return;
             }
 
@@ -79,7 +85,7 @@ namespace RommStar.Core.Services
             string platformRomsFolder = _launchboxDataService.GetLaunchboxRomsFolderPath(launchboxPlatformName);
             if (string.IsNullOrEmpty(platformRomsFolder))
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. Could not determine Platform Rom folder or it does not exist", 2);
+                _notificationService.SendErrorNotification($"{errorPrefix}. Could not determine Platform Rom folder or it does not exist", duration: 2, alsoLog:true);
                 return;
             }
 
@@ -87,7 +93,8 @@ namespace RommStar.Core.Services
             var platformSyncSettings = _settingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss => pss.LaunchboxPlatformName == launchboxPlatformName);
             if (platformSyncSettings == null)
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. Could not find Sync settings for this platform. Have you set them up in [Tools > RommStar]?",2);
+                _notificationService.SendErrorNotification($"{errorPrefix}. Could not find Sync settings for this platform. " +
+                    $"Have you set them up in [Tools > RommStar]?", duration: 2, alsoLog: true);
                 return;
             }
 
@@ -97,19 +104,23 @@ namespace RommStar.Core.Services
             if (rommServer == null)
             {
                 _notificationService.SendErrorNotification($"{errorPrefix}. This platform's RomM server not in the RommStar Server list. " +
-                    $"Platform may be linked with an old/deleted server.",2);
+                    $"Platform may be linked with an old/deleted server.",duration: 2, alsoLog: true);
                 return;
             }
 
             List<int> rommPlatformIds = platformSyncSettings.RommServerPlatforms.Select(p => p.RommId).ToList();
             if (rommPlatformIds.Count == 0)
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. No RomM platforms set against this Launchbox Platform in Sync Settings. Amend via [Tools > RomM > Platforms].", 2);
+                _notificationService.SendErrorNotification($"{errorPrefix}. No RomM platforms set against this Launchbox Platform in Sync Settings. " +
+                    $"Amend via [Tools > RomM > Platforms].", duration: 2, alsoLog: true);
                 return;
             }
 
             ExtendedSyncSettings resolvedExtSyncSettings = platformSyncSettings.ExtendedSyncSettings.ApplySettings ?
                                                             platformSyncSettings.ExtendedSyncSettings : _settingsService.Settings.GlobalExtendedSyncSettings;
+
+            if (platformSyncSettings.ExtendedSyncSettings.ApplySettings) _loggingService.Log("Global Sync settings being used given platform override disabled");
+            else _loggingService.Log("Platform Sync settings being used given platform override enabled");
 
             IPlatformFolder[] mediaFolders = platform.GetAllPlatformFolders();
 
@@ -118,14 +129,16 @@ namespace RommStar.Core.Services
             if (string.IsNullOrEmpty(platformDefaultEmulatorID))
             {
                 _notificationService.SendErrorNotification($"WARNING: Whilst starting RomM Sync for {launchboxPlatformName} no default emulator was" +
-                    $" found for this Platform. This will mean all imported games will have no emulator set. Consider setting this and re-syncing.",2 );
+                    $" found for this Platform. This will mean all imported games will have no emulator set. Consider setting this and re-syncing.", 
+                    duration:2, alsoLog: true );
             }
 
             var apiQuery = await _rommService.GetRommPlatformsAsync(rommServer);
             if (!apiQuery.IsSuccess)
             {
                 _notificationService.SendErrorNotification($"{errorPrefix}. Error communicating with rom server [{rommServer.ServerName}]. " +
-                    $"Reason: [{apiQuery.FailureReason}]. Any Exception: [{apiQuery.ExceptionMessage}].  Http response: [{apiQuery.HttpResponse}] ", 2);
+                    $"Reason: [{apiQuery.FailureReason}]. Any Exception: [{apiQuery.ExceptionMessage}].  Http response: [{apiQuery.HttpResponse}] ", 
+                    duration: 2, alsoLog: true);
                 return;
             }
 
@@ -140,6 +153,8 @@ namespace RommStar.Core.Services
             await _syncManager?.EnqueuePlatformSync(launchboxPlatformName, platformRomsFolder, mediaFolders, platformDefaultEmulatorID, rommPlatformIds,
                 resolvedExtSyncSettings, rommServer, (int)combinedRomCount, notifyLaunchboxOnMeatadataDone: true);
 
+            _loggingService.Log($"Started RomM sync for [{launchboxPlatformName}]. Sync Profile being used: [{resolvedExtSyncSettings.SyncProfile}]");
+
             StringBuilder sb = new StringBuilder($"Started RomM sync for [{launchboxPlatformName}]:\r\n" +
                 $"{resolvedExtSyncSettings.SyncProfile.GetCustomName()}.");
             if (resolvedExtSyncSettings.SyncProfile == SyncProfileTypes.UpdateMetadata_DownloadRom_DownloadMedia ||
@@ -148,7 +163,7 @@ namespace RommStar.Core.Services
             {
                 sb.Append($"\r\n\r\nRom files will download in the background, persisting across Launchbox sessions.");
             }
-            _notificationService.SendInfoNotification(sb.ToString(), 3);
+            _notificationService.SendInfoNotification(sb.ToString(), duration: 2, alsoLog: false);
         }
 
         private async Task InstallGameOnDemandAsync(IGame game)
@@ -301,10 +316,13 @@ namespace RommStar.Core.Services
             }
         }
 
+
+
         internal void RestoreGameLaunchEmulatorExe()
         {
             if (_lastGameLaunchEmulator != null && _lastEmulatorApplicationPath != Constants.DummyEmulatorExe)
             {
+                _loggingService.Log($"Restoring Emulator from dummy to: [{_lastEmulatorApplicationPath}]");
                 _lastGameLaunchEmulator.ApplicationPath = _lastEmulatorApplicationPath;
                 PluginHelper.DataManager.Save();
             }
@@ -319,8 +337,13 @@ namespace RommStar.Core.Services
 
         internal async Task OnBeforeLaunch(IGame game, IEmulator emulator, IAdditionalApplication additionalApplication)
         {
+
             // At this stage, game may or may not be installed
             if (game == null && additionalApplication == null) return;
+
+            _loggingService.Log($"Game Launching: Before Launch operations for: Game: {game?.Title}, Emulator: {emulator?.Title}, " +
+                $"AdditionalApp: {additionalApplication?.ApplicationPath}");
+
 
             // Check that game's emulator has not been set to the DummyEmulatorExe as a 
             // result of game Installation logic failing
