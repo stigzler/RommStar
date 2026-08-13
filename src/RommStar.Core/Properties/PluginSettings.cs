@@ -16,7 +16,8 @@ namespace RommStar.Core.Properties
 
         public ExtendedSyncSettings GlobalExtendedSyncSettings { get; set; } = new()
         {
-            SyncProfile = SyncProfileTypes.UpdateMetadata_DownloadMedia
+            SyncProfile = SyncProfileTypes.UpdateMetadata_DownloadMedia,
+
         };
 
         /// <summary>
@@ -32,7 +33,7 @@ namespace RommStar.Core.Properties
         /// <summary>
         /// RommStar logging level
         /// </summary>
-        public LoggingLevel LoggingLevel { get; set; } = LoggingLevel.Verbose;
+        public LoggingLevel LoggingLevel { get; set; } = LoggingLevel.Normal;
 
         public bool LoggingRedact { get; set; } = true;
 

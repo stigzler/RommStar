@@ -23,7 +23,7 @@ namespace RommStar.Core.Models
         public SyncProfileTypes SyncProfile { get; set; } = SyncProfileTypes.UpdateMetadata_DownloadMedia;
         public bool OverwriteMetadata { get; set; } = true;
         public bool OverwriteExistingMedia { get; set; } = true;
-        public bool OverwriteExistingRoms { get; set; } = true;
+        public bool OverwriteExistingRoms { get; set; } = false;
         public bool ForceMediaPriority { get; set; } = true;
         public string TempDownloadsPath { get; set; } = "TemporaryDownloads";
         public long TargetRomBatchFilesizeGb { get; set; } = 2; // 2GB

@@ -1,8 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using iNKORE.UI.WPF.Modern.Controls;
 using RommStar.Core.Models;
 using RommStar.Core.Services;
+using RommStar.Core.UI.Messages;
 using System.Collections.ObjectModel;
 
 namespace RommStar.Core.UI.ViewModels.Pages
@@ -148,6 +150,11 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
             // Commit transaction to file on disk once
             _settingsService.Save();
+
+            // hack: couldn't be bothered firing this on individual property updates
+            // esseitally a shot for nothing as update will take ms.
+            WeakReferenceMessenger.Default.Send(new RomSeverListChangedMessage(true));
+
         }
     }
 }

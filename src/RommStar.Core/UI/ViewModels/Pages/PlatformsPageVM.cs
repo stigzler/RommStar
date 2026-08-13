@@ -28,7 +28,7 @@ using Unbroken.LaunchBox.Plugins.Data;
 namespace RommStar.Core.UI.ViewModels.Pages
 {
     //todo: re/load server on page navigate to (in case user adds/deletes a server)
-    public partial class PlatformsPageVM : ObservableObject, IRecipient<DeleteLaunchboxPlatformItemMessage>
+    public partial class PlatformsPageVM : ObservableObject, IRecipient<DeleteLaunchboxPlatformItemMessage>, IRecipient<RomSeverListChangedMessage>
     {
 
 
@@ -165,6 +165,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
             _launchboxLocalDatabaseMapper = launchboxLocalDatabaseMapper;
 
             WeakReferenceMessenger.Default.Register<DeleteLaunchboxPlatformItemMessage>(this);
+            WeakReferenceMessenger.Default.Register<RomSeverListChangedMessage>(this);
+
 
             // order matters lbPlatforms depends on RommServers being loaded
             LoadPersistedRommServers();
@@ -843,6 +845,12 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 OnPropertyChanged(nameof(LaunchboxPlatformItems));
                 SelectedPlatform.RefreshIcon();
             }
+        }
+          
+
+        void IRecipient<RomSeverListChangedMessage>.Receive(RomSeverListChangedMessage message)
+        {
+            LoadPersistedRommServers();
         }
     }
 }

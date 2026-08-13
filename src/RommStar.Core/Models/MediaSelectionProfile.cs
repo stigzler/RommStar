@@ -13,7 +13,8 @@ namespace RommStar.Core.Models
         /// </summary>
         public HashSet<MediaType> EnabledTypes { get; set; } = new()
         {
-            MediaType.BoxFront
+            MediaType.BoxFront, MediaType.Box3D, MediaType.Logo, MediaType.Manual, MediaType.Music, MediaType.Video, MediaType.TitleScreen, 
+            MediaType.FanArt, MediaType.PhysicalMedia
         };
     }
 }

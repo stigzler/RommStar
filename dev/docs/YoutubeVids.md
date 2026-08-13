@@ -5,28 +5,27 @@
 Prep:
 
 1. Install fresh install.
-1. Import Atari 7800 roms (+ retroarch)
-1. Ensure 5200, 7800 and psx bios are in RA system folder
-1. Ensure Global Sync are Metadata,Media,Rom
+1. Apply Licence
+1. Install SolidInColor badge pack + change Data/settings.xml <BadgePack>Solid in Color</BadgePack>
+1. Copy all bios to RA system folder
 
 Vid:
 
 1. Show Romm
+1. Open LB + Install retroarch
+1. Enable badges
 1. Open RommStar
+1. Add Server
 1. Add **Atari 5200**
 1. Do Sync.
-1. Show Sync Jobs page
-1. Show results in LB + Play Game
-1. In RS: add **PSX**
-1. Override Global to Metadata,Media
-1. Do PSX Sync
-1. Remove overide (dl all roms)
-1. Show individual downloads
-1. Do Sync
-1. Show Downloads page
-1. Add System: Dreamcast
-1. Download demul emu from link
-1. Set exe
-1. Change Global to Media, MEtadata
-1. Do Sync
-1. Show individ download + play??
+1. Show Sync Jobs page1.
+1. Show results in LB + Explain badges
+1. Show Single download
+1. Play Game
+1. Override setting to DownloadAllRoms
+1. Resync in LB
+1. Add Playstation in Admin
+1. Override to DownloadAllRoms
+1. Show Download queue monitoring
+1. Show live update in LB UI
+1. Play Wipeout 3 Special Edition
