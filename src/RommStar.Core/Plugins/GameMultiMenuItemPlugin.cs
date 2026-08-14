@@ -34,12 +34,17 @@ namespace RommStar.Core.Plugins
                 Icon = Properties.Resources.rommIcon64px,
                 Caption = "RomM",
                 Enabled = true,
-                Children = new List<IGameMenuItem>() { syncPlatform,openAdmin, uninstallGame    } // NB uninstallGame must be last else crashes subsequent menu items
+                //Children = new List<IGameMenuItem>() { syncPlatform,openAdmin    } // NB uninstallGame must be last else crashes subsequent menu items
             };
 
+            List<IGameMenuItem> gameMenuItems = new List<IGameMenuItem>();
 
+            gameMenuItems.Add(syncPlatform);
+            gameMenuItems.Add(openAdmin);
 
+            if (selectedGames.LastOrDefault()?.Installed == true) gameMenuItems.Add(uninstallGame);
 
+            rommMenuItem.Children = gameMenuItems;
 
             return new List<IGameMenuItem>() { rommMenuItem };
         }

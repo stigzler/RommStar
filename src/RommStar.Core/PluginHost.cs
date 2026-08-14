@@ -342,6 +342,12 @@ namespace RommStar.Core
                 adminWindow.Show();
         }
 
+        internal async void ProcessUninstallRequest(IGame game)
+        {
+            if (game.Status == "Installing" || game.Installed == false) return;
+            _ = _launchboxStateService.UninstallGame(game);
+        }
+
         internal async void ProcessInstallUninstallRequest(IGame[] games, bool install)
         {
             if (install)

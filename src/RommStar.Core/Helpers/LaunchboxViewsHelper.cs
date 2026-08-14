@@ -153,6 +153,7 @@ namespace RommStar.Core.Helpers
 
             // Pre-calculate state to minimize UI thread work
             bool isInstalling = (game.Status == "Installing");
+            bool isUninstalling = (game.Status == "Uninstalling");
 
             // Ensure the passed game object reflects its updated status safely
             //if (game.Installed == true && isInstalling)
@@ -180,7 +181,7 @@ namespace RommStar.Core.Helpers
                 if (!isInstalling && overlayContainer == null) return;
 
                 // --- OPTIMIZATION 2: Lazy Overlay Creation ---
-                if (overlayContainer == null && isInstalling)
+                if (overlayContainer == null && (isInstalling || isUninstalling))
                 {
                     overlayContainer = new Border
                     {

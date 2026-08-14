@@ -11,30 +11,30 @@ namespace RommStar.Core.Plugins.GameMenuItems
 {
     internal class UninstallGameMenuItem : IGameMenuItem
     {
-        private readonly string _installGameText = "Install Game/s";
-        private readonly string _unInstallGameText = "Uninstall Game/s";
 
-        public string Caption => (bool)(selectedGame?.Installed) ? $"{_unInstallGameText}" : $"{_installGameText}";
+        public string Caption => $"Uninstall Game: [{selectedGame.Title}]";
 
         public IEnumerable<IGameMenuItem> Children => null;
 
        // public bool Enabled => (bool)(selectedGame?.Installed) ? true: false;
 
-        public bool Enabled => true;
+        public bool Enabled => selectedGame.Installed == true;
 
-        public Image Icon => (bool)(selectedGame?.Installed) ? Properties.Resources.uninstall : Properties.Resources.install;
+        public Image Icon => Properties.Resources.uninstall;
 
         private IGame selectedGame;
 
         public UninstallGameMenuItem(IGame game)
         {
-            selectedGame = game;
+            selectedGame = game;            
         }
 
         public void OnSelect(params IGame[] games)
         {
-            if (Caption == _installGameText) PluginHost.Instance.ProcessInstallUninstallRequest(games, install: true);
-            else if (Caption == _unInstallGameText) PluginHost.Instance.ProcessInstallUninstallRequest(games, install: false);
+            if (selectedGame == null) return;
+            PluginHost.Instance.ProcessUninstallRequest(selectedGame);
+            //if (Caption == _installGameText) PluginHost.Instance.ProcessInstallUninstallRequest(games, install: true);
+            //else if (Caption == _unInstallGameText) PluginHost.Instance.ProcessInstallUninstallRequest(games, install: false);
         }
     }
 }

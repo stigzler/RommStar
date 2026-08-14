@@ -177,7 +177,7 @@ namespace RommStar.Core.Services
 
             foreach (var additionalApp in game?.GetAllAdditionalApplications())
             {
-                if (filesToDelete.Contains(additionalApp.ApplicationPath))
+                if (!filesToDelete.Contains(additionalApp.ApplicationPath))
                     filesToDelete.Add(additionalApp.ApplicationPath);
             }
 
@@ -194,6 +194,7 @@ namespace RommStar.Core.Services
                         {
                             game.Installed = false;
                             game.Status = "Not Installed";
+                            game.ApplicationPath = Constants.RomPlaceholder;
                             iGameUpdated = true;
                         }                    
                     }
@@ -204,6 +205,12 @@ namespace RommStar.Core.Services
                     }
                 }
             }
+
+            PluginHelper.DataManager.Save();
+            await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+            await LaunchboxViewsHelper.SoftRefreshUi();
+            _notificationService.SendInfoNotification($"Game successfully Uninstalled: {game.Title}");
+
         }
 
 
