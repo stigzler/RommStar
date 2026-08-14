@@ -75,7 +75,7 @@ namespace RommStar.Core.Services
                 return;
             }
 
-            if (_syncManager.PlatformQueuedAndIncomplete(platform.Name)) 
+            if (_syncManager.PlatformQueuedAndIncomplete(platform.Name))
             {
                 _notificationService.SendErrorNotification($"{errorPrefix}. A Sync Job for this Platform is already in the queue.", alsoLog: true);
                 return;
@@ -85,7 +85,7 @@ namespace RommStar.Core.Services
             string platformRomsFolder = _launchboxDataService.GetLaunchboxRomsFolderPath(launchboxPlatformName);
             if (string.IsNullOrEmpty(platformRomsFolder))
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. Could not determine Platform Rom folder or it does not exist", duration: 2, alsoLog:true);
+                _notificationService.SendErrorNotification($"{errorPrefix}. Could not determine Platform Rom folder or it does not exist", duration: 2, alsoLog: true);
                 return;
             }
 
@@ -104,7 +104,7 @@ namespace RommStar.Core.Services
             if (rommServer == null)
             {
                 _notificationService.SendErrorNotification($"{errorPrefix}. This platform's RomM server not in the RommStar Server list. " +
-                    $"Platform may be linked with an old/deleted server.",duration: 2, alsoLog: true);
+                    $"Platform may be linked with an old/deleted server.", duration: 2, alsoLog: true);
                 return;
             }
 
@@ -129,15 +129,15 @@ namespace RommStar.Core.Services
             if (string.IsNullOrEmpty(platformDefaultEmulatorID))
             {
                 _notificationService.SendErrorNotification($"WARNING: Whilst starting RomM Sync for {launchboxPlatformName} no default emulator was" +
-                    $" found for this Platform. This will mean all imported games will have no emulator set. Consider setting this and re-syncing.", 
-                    duration:2, alsoLog: true );
+                    $" found for this Platform. This will mean all imported games will have no emulator set. Consider setting this and re-syncing.",
+                    duration: 2, alsoLog: true);
             }
 
             var apiQuery = await _rommService.GetRommPlatformsAsync(rommServer);
             if (!apiQuery.IsSuccess)
             {
                 _notificationService.SendErrorNotification($"{errorPrefix}. Error communicating with rom server [{rommServer.ServerName}]. " +
-                    $"Reason: [{apiQuery.FailureReason}]. Any Exception: [{apiQuery.ExceptionMessage}].  Http response: [{apiQuery.HttpResponse}] ", 
+                    $"Reason: [{apiQuery.FailureReason}]. Any Exception: [{apiQuery.ExceptionMessage}].  Http response: [{apiQuery.HttpResponse}] ",
                     duration: 2, alsoLog: true);
                 return;
             }
@@ -145,7 +145,7 @@ namespace RommStar.Core.Services
             var lbPlatformRommPlatforms = ((List<PlatformDTO>)apiQuery.Data).Where(rp => rommPlatformIds.Contains(rp.RommId)).ToList();
 
             int? combinedRomCount = lbPlatformRommPlatforms.Sum(p => p.RomCount);
-            
+
             // Do Sync
 
             // TODO: Need to check somewhere above that there isn't already a sync ongoing for the platform. Prevent overlapping syncs.
@@ -166,7 +166,48 @@ namespace RommStar.Core.Services
             _notificationService.SendInfoNotification(sb.ToString(), duration: 2, alsoLog: false);
         }
 
-        private async Task InstallGameOnDemandAsync(IGame game)
+
+        public async Task UninstallGame(IGame game)
+        {
+            _loggingService.Log($"Uninstall Game request received: [{game.Title}]");
+
+            List<string> filesToDelete = new List<string>();
+
+            filesToDelete.Add(game.ApplicationPath);
+
+            foreach (var additionalApp in game?.GetAllAdditionalApplications())
+            {
+                if (filesToDelete.Contains(additionalApp.ApplicationPath))
+                    filesToDelete.Add(additionalApp.ApplicationPath);
+            }
+
+            bool iGameUpdated = false;
+            foreach (var file in filesToDelete)
+            {
+                if (File.Exists(file))
+                {
+                    try
+                    {
+                        File.Delete(file);
+                        _loggingService.Log($"File deleted successfully: [{file}]");
+                        if (!iGameUpdated)
+                        {
+                            game.Installed = false;
+                            game.Status = "Not Installed";
+                            iGameUpdated = true;
+                        }                    
+                    }
+                    catch (Exception ex)
+                    {
+                        _loggingService.Log($"Could not delete file: [{file}]. Exception: {ex.Message}");
+
+                    }
+                }
+            }
+        }
+
+
+        public async Task InstallGameOnDemandAsync(IGame game)
         {
             ILaunchBoxMainViewModel lbvm = PluginHelper.LaunchBoxMainViewModel;
             lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Indeterminate);
@@ -242,9 +283,22 @@ namespace RommStar.Core.Services
                         LaunchboxId = game.Id,
                         PlatformName = game.Platform,
                         PlatformStub = platformStub,
+                        MasterFilename = firstRomDTO.RommFilename,
+                        IsMultiFileGame = firstRomDTO.HasMultipleFiles == true,
                         RommIds = rommIdsToDownload,
-                        GameNameSanitised = StringsHelper.SanitizeFileName(game.Title),
-                        MasterFilename = firstRomDTO.RommFilename
+
+                        // newly added fields to match SyncManager
+                        TotalSizeBytes = firstRomDTO.CombinedFilesSizeBytes ?? 0,
+                        ServerId = serverId, // Assuming activeServer is available in this scope
+                        AddedAt = DateTime.UtcNow,
+                        IsPriority = false,
+                        NotifyLaunchboxOnCompletion = true, // Not needed for manual, but matches constructor
+
+                        GameNameSanitised = RommStar.Core.Helpers.StringsHelper.SanitizeFileName(game.Title),
+
+                        // Sibling & File Mapping Logic tailored for the On-Demand context
+                        IsSiblingSet = rommIdsToDownload.Count > 1,
+                        MultiFiles = firstRomDTO.Files
                     };
 
                     // Pass the live cancellation token to the extraction method!
@@ -286,23 +340,6 @@ namespace RommStar.Core.Services
             finally
             {
                 RestoreGameLaunchEmulatorExe();
-
-                //await Application.Current.Dispatcher.BeginInvoke(new Action(async () =>
-                //{
-                //    // If user browsing the same platform as the download, refresh to update Install badges. Otherwise don't to reduce UI noise.
-                //    // Note: AT LB startup, it defaults to display your last platform, but GetSelectedPlatform() returns null
-                //    // therefor refresh on null or same platform. 
-                //    IPlatform selectedPlatform = PluginHelper.StateManager.GetSelectedPlatform();
-                //    if (selectedPlatform == null || selectedPlatform.Name == game.Platform)
-                //    {
-                //        await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
-                //        _ = LaunchboxViewsHelper.SoftRefreshUi();
-                //    }
-                //}));
-
-
-                //await LaunchboxViewsHelper.SoftRefreshUi();
-
             }
         }
 

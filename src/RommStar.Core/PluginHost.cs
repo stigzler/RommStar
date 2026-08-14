@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using RommStar.Core.Extensions;
+using RommStar.Core.Helpers;
 using RommStar.Core.Launchbox;
 using RommStar.Core.Mappers;
 using RommStar.Core.Models;
@@ -127,7 +128,7 @@ namespace RommStar.Core
                 _loggingService.Log("");
 
                 _loggingService.Log($"Launchbox Emulators: [{String.Join("] [", PluginHelper.DataManager.GetAllEmulators().ToList())}]");
-                foreach(var emulator in  PluginHelper.DataManager.GetAllEmulators())
+                foreach (var emulator in PluginHelper.DataManager.GetAllEmulators())
                 {
                     _loggingService.Log($"  {emulator.ToCsv()}");
                 }
@@ -341,5 +342,30 @@ namespace RommStar.Core
                 adminWindow.Show();
         }
 
+        internal async void ProcessInstallUninstallRequest(IGame[] games, bool install)
+        {
+            if (install)
+            {
+            foreach (IGame game in games)
+                {
+                    // Check if game is already installing. If so - do not do install again
+                    if (game.Status == "Installing" || game.Installed == true) continue;
+
+                    game.Status = "Installing";
+                    await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+
+                    _ = _launchboxStateService.InstallGameOnDemandAsync(game);
+                }
+            }
+            else // Uninstall
+            {
+                foreach (IGame game in games)
+                {
+                    // Check if game is already installing. If so - do not do install again
+                    if (game.Status == "Installing" || game.Installed == false) continue;
+                     _ = _launchboxStateService.UninstallGame(game);
+                }
+            }
+        }
     }
 }
