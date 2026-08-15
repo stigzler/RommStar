@@ -11,7 +11,7 @@ namespace RommStar.Core.Plugins
     {
         public void OnEventRaised(string eventType)
         {
-            PluginHost.Instance.LaunchboxEventReceived(eventType);
+            PluginHost.Instance.LaunchboxEventReceived(eventType); 
         }
     }
 }

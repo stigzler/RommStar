@@ -92,7 +92,6 @@
             </ui:NavigationViewItem>
 
             <ui:NavigationViewItem MouseLeftButtonUp="DarkModeToggle_MouseLeftButtonUp">
-
                 <ui:NavigationViewItem.Content>
                     <ui:ToggleSwitch x:Name="DarkModeToggle" IsOn="{Binding IsDarkMode, Mode=TwoWay}" OnContent="" OffContent="" />
                 </ui:NavigationViewItem.Content>

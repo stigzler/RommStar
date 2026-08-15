@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <BaseOutputPath>C:\Users\stigz\source\repos\0.MyCode\NET\RommStar\src\RommStar.Core\bin</BaseOutputPath>
     <ApplicationIcon>rommIcon64px.ico</ApplicationIcon>
+    <Configurations>Debug;Release;Patch;Major</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

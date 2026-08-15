@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 setlocal ENABLEDELAYEDEXPANSION
 REM Put the below in your post-Build event command line in your project properties:
 REM Replace {pluginPath} with your path to your (development?) launchbox plugin directory e.g. "C:\LaunchBox\Plugins\MyPlugin"

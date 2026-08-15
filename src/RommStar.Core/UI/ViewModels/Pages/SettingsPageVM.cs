@@ -53,6 +53,15 @@ namespace RommStar.Core.UI.ViewModels.Pages
 
         }
 
+        [RelayCommand]
+        private void TestUiException()
+        {
+            throw new InvalidOperationException("Test UI thread unhandled exception.");
+        }
+
+
+
+
         private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)
         {
             SaveSettings();

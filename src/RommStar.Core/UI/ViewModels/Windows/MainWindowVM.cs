@@ -25,6 +25,7 @@ namespace RommStar.Core.UI.ViewModels.Windows
             IsDarkMode = _settingsService.Settings.DarkModeEnabled;
         }
 
+
         partial void OnIsDarkModeChanged(bool value)
         {
             _settingsService.Settings.DarkModeEnabled = value;

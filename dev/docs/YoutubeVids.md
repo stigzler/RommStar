@@ -17,15 +17,14 @@ Vid:
 1. Open RommStar
 1. Add Server
 1. Add **Atari 5200**
-1. Do Sync.
-1. Show Sync Jobs page1.
+1. Do Sync + Show Sync Jobs page.
 1. Show results in LB + Explain badges
 1. Show Single download
 1. Play Game
 1. Override setting to DownloadAllRoms
-1. Resync in LB
+1. Resync in LB + highlight all games downloaded
 1. Add Playstation in Admin
 1. Override to DownloadAllRoms
 1. Show Download queue monitoring
 1. Show live update in LB UI
-1. Play Wipeout 3 Special Edition
+1. Play Game

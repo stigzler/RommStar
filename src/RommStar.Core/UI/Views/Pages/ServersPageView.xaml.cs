@@ -31,6 +31,7 @@ namespace RommStar.Core.UI.Views.Pages
             InitializeComponent();
             ViewModel = viewModel;
             DataContext = ViewModel;
+
         }
 
         private void PasswordBox_Loaded(object sender, RoutedEventArgs e)

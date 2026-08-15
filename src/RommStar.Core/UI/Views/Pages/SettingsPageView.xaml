@@ -65,6 +65,8 @@
                     <TextBlock Text="Save Settings" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
+            <Button Content="Test" Command="{Binding TestUiExceptionCommand}" Margin="10" Visibility="Collapsed"/>
+
         </StackPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

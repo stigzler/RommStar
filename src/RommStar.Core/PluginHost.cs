@@ -13,8 +13,10 @@ using RommStar.Core.UI.ViewModels.Windows;
 using RommStar.Core.UI.Views.UserControls;
 using RommStar.Core.UI.Views.Windows;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
 using Unbroken.LaunchBox.Plugins;
@@ -50,9 +52,38 @@ namespace RommStar.Core
             }
         }
 
+        private void SetupGlobalExceptionHooks()
+        {
+            // 1. Catch unhandled exceptions on standard background threads / Task Parallel Library (TPL)
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                if (args.ExceptionObject is Exception ex)
+                {
+                    _loggingService?.LogUnhandledException("AppDomain.UnhandledException", ex);
+                }
+            };
+
+            // 2. Catch unhandled exceptions on the WPF UI Thread (Windows, Dialogs, UserControls)
+            Application.Current.DispatcherUnhandledException += (sender, args) =>
+            {
+                _loggingService?.LogUnhandledException("Application.DispatcherUnhandledException", args.Exception);
+            };
+
+            // 3. Catch unhandled exceptions on async Tasks that forgot to await their .Result or .Exception
+            TaskScheduler.UnobservedTaskException += (sender, args) =>
+            {
+                _loggingService?.LogUnhandledException("TaskScheduler.UnobservedTaskException", args.Exception);
+                args.SetObserved();
+            };
+        }
+
+
+
         private PluginHost()
         {
             AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve;
+
+            SetupGlobalExceptionHooks();
 
             var services = new ServiceCollection();
             ConfigureServices(services);

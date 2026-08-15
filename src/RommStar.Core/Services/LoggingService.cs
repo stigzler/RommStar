@@ -49,7 +49,7 @@ namespace RommStar.Core.Services
         public void HeadLog()
         {
             // Verbatim string literal to preserve the exact ASCII art formatting and backslashes
-            string header = Environment.NewLine + 
+            string header = Environment.NewLine +
         @" /$$$$$$$                          /$$      /$$  /$$$$$$   /$$                        
 | $$__  $$                        | $$$    /$$$ /$$__  $$ | $$                        
 | $$  \ $$  /$$$$$$  /$$$$$$/$$$$ | $$$$  /$$$$| $$  \__//$$$$$$    /$$$$$$   /$$$$$$ 
@@ -155,9 +155,6 @@ namespace RommStar.Core.Services
                 lock (LockObject)
                 {
                     File.AppendAllText(LogPath, logLine, Encoding.UTF8);
-#if DEBUG
-                    Debug.WriteLine($"Logged: {logLine.TrimEnd()}");
-#endif
                 }
             }
             catch (Exception ex)
@@ -165,5 +162,102 @@ namespace RommStar.Core.Services
                 Debug.WriteLine($"Failed to log to file: {ex.Message}");
             }
         }
+
+
+        public void LogUnhandledException(string source, Exception ex)
+        {
+            try
+            {
+                // 1. Unpack wrapper exceptions
+                Exception rootException = ex;
+                if (ex is AggregateException aggEx && aggEx.InnerException != null)
+                {
+                    rootException = aggEx.InnerException;
+                }
+                else if (ex.InnerException != null && (ex.Message.Contains("A Task's exception(s) were not observed") || ex.Message.Contains("One or more errors occurred")))
+                {
+                    rootException = ex.InnerException;
+                }
+
+                // 2. Drill into the StackTrace
+                string originDetails = string.Empty;
+                var stackTrace = new StackTrace(rootException, true);
+
+                StackFrame? targetFrame = null;
+                foreach (var frame in stackTrace.GetFrames())
+                {
+                    var method = frame.GetMethod();
+                    if (method?.DeclaringType != null)
+                    {
+                        string namespaceName = method.DeclaringType.Namespace ?? string.Empty;
+                        if (namespaceName.StartsWith("RommStar", StringComparison.OrdinalIgnoreCase))
+                        {
+                            targetFrame = frame;
+                            break;
+                        }
+                    }
+                }
+
+                targetFrame ??= stackTrace.GetFrame(0);
+
+                if (targetFrame != null)
+                {
+                    var methodInfo = targetFrame.GetMethod();
+                    if (methodInfo != null)
+                    {
+                        var className = methodInfo.DeclaringType?.Name ?? "UnknownClass";
+                        var methodName = methodInfo.Name;
+
+                        // Handle Compiler-Generated Lambdas & Closures
+                        if (methodName.StartsWith("<") && methodName.Contains(">"))
+                        {
+                            int startIndex = methodName.IndexOf('<') + 1;
+                            int endIndex = methodName.IndexOf('>');
+                            if (endIndex > startIndex)
+                            {
+                                methodName = methodName.Substring(startIndex, endIndex - startIndex);
+                            }
+
+                            if (className.StartsWith("<") && methodInfo.DeclaringType?.DeclaringType != null)
+                            {
+                                className = methodInfo.DeclaringType.DeclaringType.Name;
+                            }
+                        }
+                        // Handle Async State Machines
+                        else if (methodName == "MoveNext" && methodInfo.DeclaringType != null)
+                        {
+                            var stateMachineType = methodInfo.DeclaringType;
+                            var parentType = stateMachineType.DeclaringType;
+                            if (parentType != null)
+                            {
+                                var originalMethod = parentType
+                                    .GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                                    .FirstOrDefault(m =>
+                                        m.GetCustomAttribute<AsyncStateMachineAttribute>()?.StateMachineType == stateMachineType);
+
+                                if (originalMethod != null)
+                                {
+                                    methodName = originalMethod.Name;
+                                    className = parentType.Name;
+                                }
+                            }
+                        }
+
+                        originDetails = $"[{className}.{methodName}]";
+                    }
+                }
+
+                // Call the local Log method directly!
+                Log($"UNHANDLED EXCEPTION {originDetails} [{source}]: {rootException.Message}", LoggingLevel.Normal);
+                Log($"StackTrace:\n{rootException.StackTrace}", LoggingLevel.Verbose);
+            }
+            catch (Exception logEx)
+            {
+                Debug.WriteLine($"Critical error inside exception logger: {logEx.Message}");
+            }
+        }
     }
+
 }
+
+

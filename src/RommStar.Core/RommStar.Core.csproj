@@ -6,15 +6,72 @@
 		<UseWPF>true</UseWPF>
 		<Nullable>enable</Nullable>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-		<Version>0.8.0.1</Version>
+		<Configurations>Debug;Release;Patch;Major</Configurations>
+		<!-- Hide null warnings from build log: -->
+		<NoWarn>CS8618;CS8602;CS8604;CS8625;CS8601;CS8767;CS8603;CS0162</NoWarn>
 	</PropertyGroup>
 
+	<!-- INCREMENT VERSION CODE -->
+	<Target Name="IncrementVersion" BeforeTargets="GetAssemblyVersion" Condition="'$(DesignTimeBuild)' != 'true' And '$(BuildingProject)' == 'true' And '$(VersionIncremented)' == ''">
+		<!-- Executes the PowerShell script, passing the current Configuration (Debug, Release, etc.) -->
+		<Exec Command="powershell.exe -ExecutionPolicy Bypass -File &quot;$(SolutionDir)build\scripts\versionIncrement.ps1&quot; -Config &quot;$(Configuration)&quot; -VersionFile &quot;$(MSBuildProjectDirectory)\rommstar.version.txt&quot;" ConsoleToMSBuild="true">
+			<!-- Captures the script's output and applies it to the .dll version properties -->
+			<Output TaskParameter="ConsoleOutput" PropertyName="Version" />
+			<Output TaskParameter="ConsoleOutput" PropertyName="AssemblyVersion" />
+			<Output TaskParameter="ConsoleOutput" PropertyName="FileVersion" />
+		</Exec>
+
+		<!-- Tripwire property to ensure this target only fires exactly once per real build -->
+		<PropertyGroup>
+			<VersionIncremented>true</VersionIncremented>
+		</PropertyGroup>
+	</Target>
+
+	<!-- PACKAGE RELEASE CODE -->
+	<Target Name="PackageRelease" AfterTargets="Build" Condition="'$(Configuration)' == 'Release' Or '$(Configuration)' == 'Patch' Or '$(Configuration)' == 'Major'">
+
+		<PropertyGroup>
+			<!-- 1. Define our tidy output paths inside the build/releases directory -->
+			<ReleaseFolder>$(SolutionDir)build\releases\</ReleaseFolder>
+			<StagingRoot>$(ReleaseFolder)Staging\</StagingRoot>
+			<StagingRommStar>$(StagingRoot)RommStar\</StagingRommStar>
+
+			<!-- 2. Dynamically name the zip using the Version number we generated earlier! -->
+			<FinalZipPath>$(ReleaseFolder)RommStar_v$(Version).zip</FinalZipPath>
+		</PropertyGroup>
+
+		<!-- 3. Wipe the staging folder and delete any identically named zip from a previous build -->
+		<RemoveDir Directories="$(StagingRoot)" />
+		<Delete Files="$(FinalZipPath)" />
+
+		<!-- 4. Grab everything in the build output and copy it into the tidy RommStar folder -->
+		<ItemGroup>
+			<FilesToZip Include="$(TargetDir)**\*.*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(FilesToZip)" DestinationFolder="$(StagingRommStar)%(RecursiveDir)" />
+
+		<!-- 5. Native MSBuild ZIP command! (Zips the Staging folder, so 'RommStar' is the root inside the zip) -->
+		<ZipDirectory SourceDirectory="$(StagingRoot)" DestinationFile="$(FinalZipPath)" />
+
+		<!-- 6. Delete the unzipped staging folder to keep the 'Releases' directory perfectly clean -->
+		<RemoveDir Directories="$(StagingRoot)" />
+
+	</Target>
+
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-	  <DebugType>full</DebugType>
+		<DebugType>full</DebugType>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-	  <DebugType>full</DebugType>
+		<DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Major|AnyCPU'">
+		<DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Patch|AnyCPU'">
+		<DebugType>full</DebugType>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -24,25 +81,25 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Mappers\LaunchboxEmulatorMapper.cs" />
-	  <Compile Remove="Mappers\LaunchboxPlatformMapper.cs" />
+		<Compile Remove="Mappers\LaunchboxEmulatorMapper.cs" />
+		<Compile Remove="Mappers\LaunchboxPlatformMapper.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="Monikers.imagemanifest" />
-	  <None Remove="Resources\LogoBox.ico" />
-	  <None Remove="Resources\LogoBox128px.png" />
-	  <None Remove="Resources\rommIcon64px.ico" />
-	  <None Remove="Resources\rommIcon64px.png" />
+		<None Remove="Monikers.imagemanifest" />
+		<None Remove="Resources\LogoBox.ico" />
+		<None Remove="Resources\LogoBox128px.png" />
+		<None Remove="Resources\rommIcon64px.ico" />
+		<None Remove="Resources\rommIcon64px.png" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <content Include="Monikers.imagemanifest">
-	    <IncludeInVSIX>true</IncludeInVSIX>
-	  </content>
-	  <Content Include="Game Installation Required">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </Content>
+		<content Include="Monikers.imagemanifest">
+			<IncludeInVSIX>true</IncludeInVSIX>
+		</content>
+		<Content Include="Game Installation Required">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -66,10 +123,10 @@
 			<HintPath>..\..\lib\launchbox\System.Private.Windows.Core.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-				<Reference Include="Microsoft.Data.Sqlite">
+		<Reference Include="Microsoft.Data.Sqlite">
 			<HintPath>..\..\lib\launchbox\Microsoft.Data.Sqlite.dll</HintPath>
 			<Private>false</Private>
-		</Reference>		
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -90,10 +147,10 @@
 	</Target>
 
 	<ItemGroup>
-	  <Resource Include="Resources\LogoBox.ico" />
-	  <Resource Include="Resources\LogoBox128px.png" />
-	  <Resource Include="Resources\rommIcon64px.ico" />
-	  <Resource Include="Resources\rommIcon64px.png" />
+		<Resource Include="Resources\LogoBox.ico" />
+		<Resource Include="Resources\LogoBox128px.png" />
+		<Resource Include="Resources\rommIcon64px.ico" />
+		<Resource Include="Resources\rommIcon64px.png" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -103,9 +160,9 @@
 			<DependentUpon>Resources.resx</DependentUpon>
 		</Compile>
 		<Compile Update="Properties\Settings.Designer.cs">
-		  <DesignTimeSharedInput>True</DesignTimeSharedInput>
-		  <AutoGen>True</AutoGen>
-		  <DependentUpon>Settings.settings</DependentUpon>
+			<DesignTimeSharedInput>True</DesignTimeSharedInput>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Settings.settings</DependentUpon>
 		</Compile>
 	</ItemGroup>
 
@@ -117,18 +174,18 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="Properties\Settings.settings">
-	    <Generator>SettingsSingleFileGenerator</Generator>
-	    <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-	  </None>
+		<None Update="Properties\Settings.settings">
+			<Generator>SettingsSingleFileGenerator</Generator>
+			<LastGenOutput>Settings.Designer.cs</LastGenOutput>
+		</None>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="UI\Behaviours\" />
-	  <Folder Include="UI\Primitives\" />
+		<Folder Include="UI\Behaviours\" />
+		<Folder Include="UI\Primitives\" />
 	</ItemGroup>
 
-	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Debug'">
 		<Exec Command="call &quot;$(SolutionDir)\build\scripts\moveDebugBuild.bat&quot; &quot;$(ConfigurationName)&quot; &quot;$(SolutionDir)&quot; &quot;C:\Users\stigz\LaunchboxDEV\LaunchBox\Plugins\RommStar&quot; &quot;src\RommStar.Core\bin\Debug\net9.0-windows&quot;" />
 	</Target>
 

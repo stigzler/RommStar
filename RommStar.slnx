@@ -1,8 +1,15 @@
 <Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Major" />
+    <BuildType Name="Patch" />
+    <BuildType Name="Release" />
+  </Configurations>
   <Folder Name="/Solution Items/">
     <File Path=".copilot-instructions.md" />
     <File Path=".editorconfig" />
   </Folder>
+  <Project Path="build/build.shproj" Id="32450c0b-9649-475f-9bc3-f41147684d22" />
   <Project Path="dev/dev.shproj" />
   <Project Path="src/RommStar.Core/RommStar.Core.csproj">
     <BuildDependency Project="src/RommStar.DummyEmulator/RommStar.DummyEmulator.csproj" />
