@@ -265,7 +265,8 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-
+                
+                <!-- Main Grid -->
                 <Grid Grid.Row="0">
                     <Grid.Style>
                         <Style TargetType="Grid">

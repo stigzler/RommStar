@@ -85,7 +85,7 @@
                                                      Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="10,0,10,10" />
 
                                                 <TextBlock Grid.Column ="0" Grid.Row="1" Text="Base URL:"  Margin="0,5,0,10" ToolTip="Base URL of the RomM Server. Eg. https://roms.dave.org" />
-                                                <TextBox Grid.Column ="1" Grid.Row="1" Text="{Binding Server.BaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                                                <TextBox Grid.Column ="1" Grid.Row="1" Text="{Binding Server.BaseUrl, UpdateSourceTrigger=LostFocus}"
                                                           VerticalAlignment="Center"
                                                         BorderThickness="1"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="10,0,10,10" />

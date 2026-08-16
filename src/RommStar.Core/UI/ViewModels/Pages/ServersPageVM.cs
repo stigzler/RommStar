@@ -6,6 +6,7 @@ using RommStar.Core.Models;
 using RommStar.Core.Services;
 using RommStar.Core.UI.Messages;
 using System.Collections.ObjectModel;
+using System.Windows.Input;
 
 namespace RommStar.Core.UI.ViewModels.Pages
 {
@@ -14,17 +15,20 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private readonly RommService _rommService;
         private readonly SettingsService _settingsService;
 
+        private readonly LoggingService _loggingService;
+
         // The UI binds strictly to this display wrapper collection
         public ObservableCollection<ServerDisplayItemVM> DisplayServers { get; } = new();
 
-        public ServersPageVM() : this(new RommService(), new SettingsService(new CryptoService()))
+        public ServersPageVM() : this(new RommService(), new SettingsService(new CryptoService()), new LoggingService())
         {
         }
 
-        public ServersPageVM(RommService rommService, SettingsService settingsService)
+        public ServersPageVM(RommService rommService, SettingsService settingsService, LoggingService loggingService)
         {
             _rommService = rommService;
             _settingsService = settingsService;
+            _loggingService = loggingService;
 
             // Map saved items to our interactive UI wrappers
             foreach (var server in _settingsService.Settings.RommServers)
@@ -78,6 +82,15 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 item.ConnectionStatusText = "Connection Failed";
                 item.HasError = true;
                 item.ErrorMessage = $"[{result.FailureReason}] {result.ExceptionMessage}";
+
+                if (result.FailureReason == Primitives.RommApiFailureReason.Forbidden)
+                    _loggingService.Log("Forbidden can mean an incorrect API key");
+                else if (result.HttpResponse?.StatusCode == System.Net.HttpStatusCode.BadGateway)
+                    _loggingService.Log("502: Bad Gateway can mean the server is unreachable. Test outside of RomMStar");
+                else if (result.FailureReason == Primitives.RommApiFailureReason.Timeout)
+                    _loggingService.Log("Timeout can mean the server is unreachable. Test outside of RomMStar");
+
+
             }
 
             item.IsWorking = false;
@@ -128,8 +141,10 @@ namespace RommStar.Core.UI.ViewModels.Pages
         {
             if (item != null)
             {
+                Mouse.OverrideCursor = Cursors.Wait;
                 // Set flag to true because the user directly clicked the button!
                 await CheckServerHealthAsync(item, isManualTest: true);
+                Mouse.OverrideCursor = null;
             }
         }
 

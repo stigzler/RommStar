@@ -10,6 +10,15 @@ namespace RommStar.Core.Models
 {
     public class RommApiResponse
     {
+        public string FailureToCSV()
+        {
+            StringBuilder sb = new StringBuilder($"Failure Reason: [{FailureReason}]. ");
+            if (ExceptionMessage != null) sb.Append($"Exception Message: [{ExceptionMessage}].");
+            if (HttpResponse != null) sb.Append(Environment.NewLine + $"Http Response: [{HttpResponse.ToString()}]. ");
+            return sb.ToString();
+        }
+
+
         public bool IsSuccess { get; init; }
         public RommApiFailureReason FailureReason { get; init; } = RommApiFailureReason.None;
         public HttpResponseMessage? HttpResponse { get; init; }
@@ -19,8 +28,8 @@ namespace RommStar.Core.Models
         public static RommApiResponse Success(HttpResponseMessage response) =>
             new() { IsSuccess = true, HttpResponse = response };
 
-        public static RommApiResponse Fail(RommApiFailureReason reason, string? exceptionMessage = null) =>
-            new() { IsSuccess = false, FailureReason = reason, ExceptionMessage = exceptionMessage };
+        public static RommApiResponse Fail(RommApiFailureReason reason, string? exceptionMessage = null, HttpResponseMessage? response = null) =>
+                    new() { IsSuccess = false, FailureReason = reason, ExceptionMessage = exceptionMessage, HttpResponse = response };
     }
 
     // Generic version for typed data responses

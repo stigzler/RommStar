@@ -1,4 +1,5 @@
 ﻿using RommStar.Core.Dtos.Romm;
+using RommStar.Core.Extensions;
 using RommStar.Core.Models;
 using RommStar.Core.Primitives;
 using System;
@@ -21,6 +22,9 @@ namespace RommStar.Core.Services
         private readonly HttpClient _client;
         private readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(5);
 
+        LoggingService _loggingService;
+        SettingsService _settingsService;
+
         // Cached once — System.Text.Json keys its internal type metadata cache by options
         // instance identity. Creating a new instance on every call busts that cache and
         // forces a full reflection scan + deserialiser JIT on each invocation.
@@ -31,7 +35,13 @@ namespace RommStar.Core.Services
 
         public RommService()
         {
+            
+        }
+        public RommService(LoggingService loggingService, SettingsService settingsService)
+        {
             _client = new HttpClient();
+            _loggingService = loggingService;
+            _settingsService = settingsService;
         }
 
         /// <summary>
@@ -53,7 +63,21 @@ namespace RommStar.Core.Services
         public async Task<RommApiResponse> TestConnectionAsync(RommServer server, CancellationToken externalToken = default)
         {
             string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/users/me";
-            return await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
+
+            _loggingService.Log($"Testing Romm API Connection via URL: [{endpointUrl.RedactSensitiveInfo(_settingsService.Settings.LoggingRedact)}]");
+            
+            var result = await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
+
+            if (!result.IsSuccess)
+            {
+                _loggingService.Log($"WARNING: Could not connect to API: {result.FailureToCSV()}");
+            }
+            else
+            {
+                _loggingService.Log($"Connection to Romm Server Successful via URL: [{endpointUrl.RedactSensitiveInfo(_settingsService.Settings.LoggingRedact)}]");
+            }
+
+            return result;
         }
 
         public async Task<RommApiResponse<List<PlatformDTO>>> GetRommPlatformsAsync(RommServer server, CancellationToken externalToken = default)
@@ -237,8 +261,8 @@ namespace RommStar.Core.Services
 
                     string rawStatusCodeMessage = $"Server returned HTTP status code {(int)response.StatusCode} ({response.StatusCode}).";
 
-                    response.Dispose();
-                    return RommApiResponse.Fail(reason, rawStatusCodeMessage);
+                    //response.Dispose();
+                    return RommApiResponse.Fail(reason, rawStatusCodeMessage, response);
                 }
 
                 return RommApiResponse.Success(response);

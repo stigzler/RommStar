@@ -32,22 +32,15 @@ namespace RommStar.Core.UI.ViewModels.Pages
     {
 
 
-        private readonly LaunchboxDataService
-            _launchboxDataService;
-
-        private readonly LoggingService
-            _loggingService;
-
-        private AddNewPlatformUcView _addNewPlatformUcView;
-
         private readonly AddNewPlatformUcVM _addNewPlatformVm;
+
+        private readonly LaunchboxDataService
+                    _launchboxDataService;
 
         private readonly LaunchboxLocalDatabaseMapper _launchboxLocalDatabaseMapper;
 
-        /// <summary>
-        /// Controls overlapping InfoBar calls
-        /// </summary>
-        private CancellationTokenSource? _infoBarCts;
+        private readonly LoggingService
+                    _loggingService;
 
         /// <summary>
         /// ===== PERFORMANCE-CRITICAL: Centralized Cache =====
@@ -69,6 +62,11 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private bool
             _addLaunchboxPlatformDialogOpen = false;
 
+        private AddNewPlatformUcView _addNewPlatformUcView;
+        /// <summary>
+        /// Controls overlapping InfoBar calls
+        /// </summary>
+        private CancellationTokenSource? _infoBarCts;
         [ObservableProperty]
         private ObservableCollection<LaunchboxPlatformItemVM>
             _launchboxPlatformItems = new ObservableCollection<LaunchboxPlatformItemVM>();
@@ -118,7 +116,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 }
 
                 // Lazy load if not cached
-                _ = LoadServerPlatformsAsync(SelectedRommServer);
+                _ = LoadServerPlatformsAsync(SelectedRommServer,true);
                 return new ObservableCollection<PlatformDTO>();
             }
         }
@@ -204,6 +202,11 @@ namespace RommStar.Core.UI.ViewModels.Pages
         {
             DeleteLaunchboxPlatformItem(message.Value);
             OnPropertyChanged(nameof(FilteredLaunchboxPlatforms));
+        }
+
+        void IRecipient<RomSeverListChangedMessage>.Receive(RomSeverListChangedMessage message)
+        {
+            LoadPersistedRommServers();
         }
 
         [RelayCommand]
@@ -477,15 +480,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
             }
         }
 
-        private async Task LoadRommServersPlatformDTOs()
-        {
-            foreach (var rommServer in RommServerItems)
-            {
-                await LoadServerPlatformsAsync(rommServer);
-            }
-        }
-
         /// <summary>
+        /// Called when RommServer is changed in the Servers dropdown
         /// This also populates RommServerPLatformsDTOs
         /// </summary>
         /// <param name="rommServerItem"></param>
@@ -493,12 +489,24 @@ namespace RommStar.Core.UI.ViewModels.Pages
         /// <param name="forceRefesh">forces update of RommPlatformDTOs. Otherwise follows cache system where initial load is canon of RommServer platforms</param>
         /// <returns></returns>
         private async Task LoadServerPlatformsAsync(RommServerItemVM rommServerItem, bool showMessage = false, bool forceRefesh = false)
-        {
+        {            
             if (rommServerItem == null) return;
 
             // Return early if cached and not forcing refresh
             if (!forceRefesh && _rommPlatformCache.ContainsKey(rommServerItem.RommServer.Id))
             {
+                return;
+            }
+
+            _loggingService.Log($"Starting switching Romm Server in UI: {rommServerItem.RommServer.ServerName}");
+
+            // first dheck server is contactable
+            var serverResponsive = await _rommService.TestConnectionAsync(rommServerItem.RommServer);
+            if (!serverResponsive.IsSuccess)
+            {
+                string cantConnect = $"WARNING: Couldn't connect to server. Failur Reason: {serverResponsive.FailureReason}. Exception: {serverResponsive.ExceptionMessage}";
+                _loggingService.Log(cantConnect + Environment.NewLine + serverResponsive.HttpResponse?.ToString());
+                rommServerItem.InfoBar = PopulatedInfoBar("Romm Server Error", cantConnect, isOpen: showMessage, InfoBarSeverity.Error);
                 return;
             }
 
@@ -618,16 +626,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             };
         }
 
-        /// <summary>
-        /// Pre-load all server platforms on page load
-        /// </summary>
-        private async Task PreloadAllServerPlatformsAsync()
-        {
-            var loadTasks = RommServerItems.Select(server => LoadServerPlatformsAsync(server));
-            await Task.WhenAll(loadTasks);
-        }
-
-        [RelayCommand]
+         [RelayCommand]
         private async Task RefreshRommServerPlatforms(RommServerItemVM rommServer)
         {
             await LoadServerPlatformsAsync(rommServer, showMessage: true, forceRefesh: true);
@@ -845,12 +844,6 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 OnPropertyChanged(nameof(LaunchboxPlatformItems));
                 SelectedPlatform.RefreshIcon();
             }
-        }
-          
-
-        void IRecipient<RomSeverListChangedMessage>.Receive(RomSeverListChangedMessage message)
-        {
-            LoadPersistedRommServers();
         }
     }
 }
