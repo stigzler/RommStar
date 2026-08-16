@@ -42,6 +42,7 @@ namespace RommStar.Core.Services
         }
 
         string _lastEmulatorApplicationPath;
+        string _lastEmulatorCmdLine;
         IEmulator _lastGameLaunchEmulator;
 
         internal void DoShutdownOperations()
@@ -366,8 +367,9 @@ namespace RommStar.Core.Services
         {
             if (_lastGameLaunchEmulator != null && _lastEmulatorApplicationPath != Constants.DummyEmulatorExe)
             {
-                _loggingService.Log($"Restoring Emulator from dummy to: [{_lastEmulatorApplicationPath}]");
+                _loggingService.Log($"Restoring Emulator from dummy to exe and mcd line: [{_lastEmulatorApplicationPath}], [{_lastEmulatorCmdLine}]");
                 _lastGameLaunchEmulator.ApplicationPath = _lastEmulatorApplicationPath;
+                _lastGameLaunchEmulator.CommandLine = _lastEmulatorCmdLine;
                 PluginHelper.DataManager.Save();
             }
         }
@@ -379,8 +381,23 @@ namespace RommStar.Core.Services
             //Debug.WriteLine($"{game.CommandLine}");
         }
 
+        /// <summary>
+        /// Given there's no way to cancel a game launch via the API (also couldn't find a way with reflection)
+        /// Have to swap in a dummy emulator and cmd line args. This was tricky as blank exe would provoke smart screen
+        /// on users' machines + also one reported a difficulty with .net. Therefore a native windows exe (C:\Windows\System32\mshta.exe)
+        /// with a self-preserving cmd line used. Invisible + closes itself with the javascript command. 
+        /// </summary>
+        /// <param name="game"></param>
+        /// <param name="emulator"></param>
+        /// <param name="additionalApplication"></param>
+        /// <returns></returns>
+        /// <exception cref="OperationCanceledException"></exception>
         internal async Task OnBeforeLaunch(IGame game, IEmulator emulator, IAdditionalApplication additionalApplication)
         {
+
+            //throw new OperationCanceledException("RommStar cancelled the launch as is installing the game.");
+            //return;
+
 
             // At this stage, game may or may not be installed
             if (game == null && additionalApplication == null) return;
@@ -400,7 +417,7 @@ namespace RommStar.Core.Services
                         // Show in Launchbox                       
 
                         _notificationService.SendErrorNotification($"It appears that this game's emulator has been set to an operational file used by RommStar. " +
-                            $"You will need to re-instate the correct Application Path for this emulator: {emulator.Title}", 2);
+                            $"You will need to re-instate the correct Application Path and Cmd Line for this emulator: {emulator.Title}", 2);
 
                         //TODO: ALSO LOG TO FILE OR ROMM LOG
 
@@ -412,6 +429,7 @@ namespace RommStar.Core.Services
                 else
                 {
                     _lastEmulatorApplicationPath = emulator.ApplicationPath; // order important here - beware emulator.ApplicationPath = Constants.DummyEmulatorExe;
+                    _lastEmulatorCmdLine = emulator.CommandLine;
                     _lastGameLaunchEmulator = emulator;
                 }
             }
@@ -438,7 +456,12 @@ namespace RommStar.Core.Services
 
                 // Now set the emulator to an essentially empty exe to fake game launch
                 // (No game launch cancel facility in LB sadly)
-                if (emulator != null || apps.Count() > 0) emulator.ApplicationPath = Constants.DummyEmulatorExe;
+                if (emulator != null || apps.Count() > 0)
+                {
+                    emulator.ApplicationPath = Constants.DummyEmulatorExe;
+                    emulator.CommandLine = Constants.DummyEmulatorCmd;
+                }
+
 
                 // Download ROM and install
                 _ = Task.Run(() => InstallGameOnDemandAsync(game));
@@ -449,7 +472,10 @@ namespace RommStar.Core.Services
             if (emulator != null && additionalApplication != null && additionalApplication.Installed != true)
             {
                 emulator.ApplicationPath = Constants.DummyEmulatorExe;
+                emulator.CommandLine = Constants.DummyEmulatorCmd;
             }
+
+            throw new OperationCanceledException("RommStar cancelled the launch as is installing the game.");
         }
     }
 }

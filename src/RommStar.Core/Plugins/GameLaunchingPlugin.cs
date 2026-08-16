@@ -19,7 +19,7 @@ namespace RommStar.Core.Plugins
 
         public void OnBeforeGameLaunching(IGame? game, IAdditionalApplication? app, IEmulator? emulator)
         {
-          _ =  PluginHost.Instance.OnGameLaunchingEvent(Launchbox.GameLaunchingEvent.BeforeLaunch, game,app,emulator);     
+          _ =  PluginHost.Instance.OnGameLaunchingEvent(Launchbox.GameLaunchingEvent.BeforeLaunch, game,app,emulator);                 
         }
 
         public void OnGameExited()
