@@ -49,6 +49,11 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private readonly Dictionary<string, ObservableCollection<PlatformDTO>>
             _rommPlatformCache = new();
 
+        /// <summary>
+        /// Tracks active API requests to prevent WPF getter spam 
+        /// </summary>
+        private readonly HashSet<string> _inFlightServerRequests = new();
+
         private readonly RommService
             _rommService;
 
@@ -115,8 +120,13 @@ namespace RommStar.Core.UI.ViewModels.Pages
                     return platforms;
                 }
 
-                // Lazy load if not cached
-                _ = LoadServerPlatformsAsync(SelectedRommServer,true);
+                // Prevent spam: Only fire if we aren't already fetching this server!
+                if (!_inFlightServerRequests.Contains(SelectedRommServer.RommServer.Id))
+                {
+                    _inFlightServerRequests.Add(SelectedRommServer.RommServer.Id);
+                    _ = LoadServerPlatformsAsync(SelectedRommServer, true);
+                }
+
                 return new ObservableCollection<PlatformDTO>();
             }
         }
@@ -214,7 +224,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
         {
             // AddNewPlatformUcView.View Model returns:
             // Selected[Platform/Emulator] - The default platform/emulator taken from the launchbox.metadata.db
-            
+
             var addPlatformDialog = new AddNewPlatformUcView(_addNewPlatformVm);
 
             ContentDialog dialog = new ContentDialog
@@ -310,13 +320,13 @@ namespace RommStar.Core.UI.ViewModels.Pages
             IPlatform newIPlatform = PluginHelper.DataManager.AddNewPlatform(dialogVM.SelectedDefaultPlatform.Name);
 
             // pretty sure this should not ever be null
-            LaunchboxDbPlatformDTO lbDbPlatformDTO = dialogVM.DefaultPlatforms.Where(p => 
+            LaunchboxDbPlatformDTO lbDbPlatformDTO = dialogVM.DefaultPlatforms.Where(p =>
                         p.Name.Equals(dialogVM.SelectedDefaultPlatform.Name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
 
             _launchboxLocalDatabaseMapper.PlatformDtoToIPlatform(lbDbPlatformDTO, newIPlatform);
 
             newIPlatform.ScrapeAs = newIPlatform.Name;
-            
+
             PluginHelper.DataManager.Save();
             PluginHelper.DataManager.ForceReload();
 
@@ -480,6 +490,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
             }
         }
 
+
+
         /// <summary>
         /// Called when RommServer is changed in the Servers dropdown
         /// This also populates RommServerPLatformsDTOs
@@ -489,61 +501,84 @@ namespace RommStar.Core.UI.ViewModels.Pages
         /// <param name="forceRefesh">forces update of RommPlatformDTOs. Otherwise follows cache system where initial load is canon of RommServer platforms</param>
         /// <returns></returns>
         private async Task LoadServerPlatformsAsync(RommServerItemVM rommServerItem, bool showMessage = false, bool forceRefesh = false)
-        {            
+        {
             if (rommServerItem == null) return;
 
-            // Return early if cached and not forcing refresh
-            if (!forceRefesh && _rommPlatformCache.ContainsKey(rommServerItem.RommServer.Id))
+            try
             {
-                return;
-            }
-
-            _loggingService.Log($"Starting switching Romm Server in UI: {rommServerItem.RommServer.ServerName}");
-
-            // first dheck server is contactable
-            var serverResponsive = await _rommService.TestConnectionAsync(rommServerItem.RommServer);
-            if (!serverResponsive.IsSuccess)
-            {
-                string cantConnect = $"WARNING: Couldn't connect to server. Failur Reason: {serverResponsive.FailureReason}. Exception: {serverResponsive.ExceptionMessage}";
-                _loggingService.Log(cantConnect + Environment.NewLine + serverResponsive.HttpResponse?.ToString());
-                rommServerItem.InfoBar = PopulatedInfoBar("Romm Server Error", cantConnect, isOpen: showMessage, InfoBarSeverity.Error);
-                return;
-            }
-
-            RommApiResponse<List<PlatformDTO>> rommPlatformsQuery = await _rommService.GetRommPlatformsAsync(rommServerItem.RommServer);
-
-            if (!rommPlatformsQuery.IsSuccess)
-            {
-                StringBuilder sb = new StringBuilder($"Romm Server: {rommServerItem.RommServer.ServerName}\r\n" +
-                    $"Issue: {rommPlatformsQuery.FailureReason}\r\n");
-                if (rommPlatformsQuery.HttpResponse != null) sb.AppendLine(rommPlatformsQuery.HttpResponse.ToString());
-                if (rommPlatformsQuery.ExceptionMessage != null) sb.Append(rommPlatformsQuery.ExceptionMessage);
-
-                rommServerItem.InfoBar = PopulatedInfoBar("Romm Server Error", sb.ToString(), isOpen: showMessage, InfoBarSeverity.Error);
-
-                // Need to clear cache to withdraw any server platforms
-                if (_rommPlatformCache.ContainsKey(rommServerItem.RommServer.Id))
+                // Return early if cached and not forcing refresh
+                if (!forceRefesh && _rommPlatformCache.ContainsKey(rommServerItem.RommServer.Id))
                 {
-                    _rommPlatformCache.Remove(rommServerItem.RommServer.Id);
+                    return;
+                }
+
+                _loggingService.Log($"Starting switching selected Romm Server to: [{rommServerItem.RommServer.ServerName}]");
+
+                // first check server is contactable
+                var serverResponsive = await _rommService.TestConnectionAsync(rommServerItem.RommServer);
+                if (!serverResponsive.IsSuccess)
+                {
+                    string cantConnect = $"WARNING: Couldn't connect to server. Failure Reason: {serverResponsive.FailureReason}. Exception: {serverResponsive.ExceptionMessage}";
+                    _loggingService.Log(cantConnect + Environment.NewLine + serverResponsive.HttpResponse?.ToString());
+                    rommServerItem.InfoBar = PopulatedInfoBar("Romm Server Error", cantConnect, isOpen: showMessage, InfoBarSeverity.Error);
+
+                    // CACHE THE FAILURE: Put an empty collection in the cache so the getter stops asking!
+                    _rommPlatformCache[rommServerItem.RommServer.Id] = new ObservableCollection<PlatformDTO>();
+
+                    if (SelectedRommServer?.RommServer.Id == rommServerItem.RommServer.Id)
+                    {
+                        OnPropertyChanged(nameof(CurrentServerPlatforms));
+                    }
+                    return;
+                }
+
+                // Server contactable, get server platforms
+                _loggingService.Log("Server alive. Getting Server Platforms list");
+                RommApiResponse<List<PlatformDTO>> rommPlatformsQuery = await _rommService.GetRommPlatformsAsync(rommServerItem.RommServer);
+
+                if (!rommPlatformsQuery.IsSuccess)
+                {
+                    StringBuilder sb = new StringBuilder($"Romm Server: {rommServerItem.RommServer.ServerName}\r\n" +
+                        $"Issue: {rommPlatformsQuery.FailureReason}\r\n");
+                    if (rommPlatformsQuery.HttpResponse != null) sb.AppendLine(rommPlatformsQuery.HttpResponse.ToString());
+                    if (rommPlatformsQuery.ExceptionMessage != null) sb.Append(rommPlatformsQuery.ExceptionMessage);
+
+                    _loggingService.Log($"WARNING: Server platform retrieval unsuccessful: {sb.ToString()}");
+
+                    rommServerItem.InfoBar = PopulatedInfoBar("Romm Server Error", sb.ToString(), isOpen: showMessage, InfoBarSeverity.Error);
+
+                    // CACHE THE FAILURE: Put an empty collection in the cache so the getter stops asking!
+                    _rommPlatformCache[rommServerItem.RommServer.Id] = new ObservableCollection<PlatformDTO>();
 
                     // ensure list is cleared in UI
                     if (SelectedRommServer?.RommServer.Id == rommServerItem.RommServer.Id)
                     {
                         OnPropertyChanged(nameof(CurrentServerPlatforms));
                     }
+                    return;
                 }
-                return;
+
+                // Store in cache
+                _rommPlatformCache[rommServerItem.RommServer.Id] = new ObservableCollection<PlatformDTO>((List<PlatformDTO>)rommPlatformsQuery.Data);
+
+                string successText = $"{_rommPlatformCache[rommServerItem.RommServer.Id].Count} Romm Platforms retrieved successfully";
+                rommServerItem.InfoBar = PopulatedInfoBar("Success", successText, isOpen: showMessage, InfoBarSeverity.Success);
+                _loggingService.Log(successText);
+
+                // Notify UI if this was the currently selected server
+                if (SelectedRommServer?.RommServer.Id == rommServerItem.RommServer.Id)
+                {
+                    OnPropertyChanged(nameof(CurrentServerPlatforms));
+                }
             }
-
-            // Store in cache
-            _rommPlatformCache[rommServerItem.RommServer.Id] = new ObservableCollection<PlatformDTO>((List<PlatformDTO>)rommPlatformsQuery.Data);
-
-            rommServerItem.InfoBar = PopulatedInfoBar("Success", $"{_rommPlatformCache[rommServerItem.RommServer.Id].Count} Romm Platforms retrieved successfully", isOpen: showMessage, InfoBarSeverity.Success);
-
-            // Notify UI if this was the currently selected server
-            if (SelectedRommServer?.RommServer.Id == rommServerItem.RommServer.Id)
+            catch (Exception ex)
             {
-                OnPropertyChanged(nameof(CurrentServerPlatforms));
+                _loggingService.Log($"ERORR: whilst loading Romm Server Platforms: {ex.Message}. Stack Trace:\r\n{ex.StackTrace.ToString()}");
+            }
+            finally
+            {
+                // ALWAYS clear the lock when the API call finishes (success or fail)
+                _inFlightServerRequests.Remove(rommServerItem.RommServer.Id);
             }
         }
 
@@ -626,9 +661,10 @@ namespace RommStar.Core.UI.ViewModels.Pages
             };
         }
 
-         [RelayCommand]
+        [RelayCommand]
         private async Task RefreshRommServerPlatforms(RommServerItemVM rommServer)
         {
+            _loggingService.Log($"Manually refreshing platforms for RomM Server: [{rommServer.RommServer.ServerName}]");
             await LoadServerPlatformsAsync(rommServer, showMessage: true, forceRefesh: true);
         }
 

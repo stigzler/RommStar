@@ -70,7 +70,7 @@ namespace RommStar.Core.Services
 
             if (!result.IsSuccess)
             {
-                _loggingService.Log($"WARNING: Could not connect to API: {result.FailureToCSV()}");
+                _loggingService.Log($"WARNING: Could not connect to [{endpointUrl}]: {result.FailureToCSV()}");
             }
             else
             {

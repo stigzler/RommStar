@@ -344,7 +344,7 @@
                                           DisplayMemberPath="RommServer.ServerName"
                                           ui:ControlHelper.PlaceholderText="Select target server context..." />
 
-                                <Button Grid.Column="3" Grid.Row="1"  Margin="8,0,0,0" ToolTip="Refresh RomM Server Platforms"
+                                <Button Grid.Column="3" Grid.Row="1"  Margin="8,0,0,0" ToolTip="Refresh RomM Server and Platforms"
                                         Command="{Binding RefreshRommServerPlatformsCommand}"
                                         CommandParameter="{Binding SelectedItem, ElementName=RommServerCombobox}">
                                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Refresh}" />
