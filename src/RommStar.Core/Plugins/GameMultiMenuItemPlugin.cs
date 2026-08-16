@@ -21,6 +21,8 @@ namespace RommStar.Core.Plugins
 
             IGameMenuItem uninstallGame = new UninstallGameMenuItem(selectedGames.LastOrDefault());
 
+            IGameMenuItem fixParentItem = new FixParentMenuItem(selectedGames.LastOrDefault());
+
             // hacky but no other way
             GameMenuItem separator = new GameMenuItem()
             {
@@ -40,9 +42,12 @@ namespace RommStar.Core.Plugins
             List<IGameMenuItem> gameMenuItems = new List<IGameMenuItem>();
 
             gameMenuItems.Add(syncPlatform);
-            gameMenuItems.Add(openAdmin);
+            gameMenuItems.Add(fixParentItem);
 
             if (selectedGames.LastOrDefault()?.Installed == true) gameMenuItems.Add(uninstallGame);
+
+            gameMenuItems.Add(openAdmin);
+
 
             rommMenuItem.Children = gameMenuItems;
 

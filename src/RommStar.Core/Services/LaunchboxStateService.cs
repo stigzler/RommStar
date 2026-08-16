@@ -151,7 +151,7 @@ namespace RommStar.Core.Services
             // TODO: Need to check somewhere above that there isn't already a sync ongoing for the platform. Prevent overlapping syncs.
 
             await _syncManager?.EnqueuePlatformSync(launchboxPlatformName, platformRomsFolder, mediaFolders, platformDefaultEmulatorID, rommPlatformIds,
-                resolvedExtSyncSettings, rommServer, (int)combinedRomCount, notifyLaunchboxOnMeatadataDone: true);
+                resolvedExtSyncSettings, rommServer, combinedRomCount, notifyLaunchboxOnMeatadataDone: true);
 
             _loggingService.Log($"Started RomM sync for [{launchboxPlatformName}]. Sync Profile being used: [{resolvedExtSyncSettings.SyncProfile}]");
 
@@ -175,7 +175,7 @@ namespace RommStar.Core.Services
 
             filesToDelete.Add(game.ApplicationPath);
 
-            foreach (var additionalApp in game?.GetAllAdditionalApplications())
+            foreach (var additionalApp in game?.GetAllAdditionalApplications().Where(app => app.Section() == "Version"))
             {
                 if (!filesToDelete.Contains(additionalApp.ApplicationPath))
                     filesToDelete.Add(additionalApp.ApplicationPath);
@@ -417,7 +417,7 @@ namespace RommStar.Core.Services
             }
 
             // Additional apps can contain other exe's/alt versions etc
-            var apps = game.GetAllAdditionalApplications();
+            var apps = game.GetAllAdditionalApplications().Where(app => app.Section() == "Version");
 
             // Check if Rom Installation required
             // This covers both main roms and sibling roms/additional applications
@@ -434,7 +434,7 @@ namespace RommStar.Core.Services
                 game.Status = "Installing";
 
                 // Change Launchbox "Play" button to "Installing" animation.
-                LaunchboxViewsHelper.UpdatePlayButtonUi(game); // no await b/c fire and forget
+              _ =  LaunchboxViewsHelper.UpdatePlayButtonUi(game); // no await b/c fire and forget
 
                 // Now set the emulator to an essentially empty exe to fake game launch
                 // (No game launch cancel facility in LB sadly)
@@ -445,7 +445,8 @@ namespace RommStar.Core.Services
             }
 
             // This covers user launching AdditionalApp directly form UI whilst game is installing.
-            if (additionalApplication != null && additionalApplication.Installed != true)
+            // Also covers the new AdditioanlApps system as of LB 14.0, which now also covers docs, links, versions and apps!
+            if (emulator != null && additionalApplication != null && additionalApplication.Installed != true)
             {
                 emulator.ApplicationPath = Constants.DummyEmulatorExe;
             }

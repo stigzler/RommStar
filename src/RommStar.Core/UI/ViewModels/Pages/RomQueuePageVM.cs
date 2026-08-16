@@ -141,7 +141,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 game.Status = "Not Installed";
                 game.ApplicationPath = Constants.RomPlaceholder;
 
-                var additionalApps = game.GetAllAdditionalApplications();
+                var additionalApps = game.GetAllAdditionalApplications().Where(app => app.Section() == "Version");
                 foreach (var additionalApp in additionalApps)
                 {
                     additionalApp.Installed = false;

@@ -20,8 +20,6 @@ namespace RommStar.Core.Services
 
         private static readonly object LockObject = new object();
 
-        private static LoggingLevel _logLevel;
-
         public LoggingService(SettingsService settingsService)
         {
             _settingsService = settingsService;

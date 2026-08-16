@@ -67,7 +67,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private bool
             _addLaunchboxPlatformDialogOpen = false;
 
-        private AddNewPlatformUcView _addNewPlatformUcView;
+
         /// <summary>
         /// Controls overlapping InfoBar calls
         /// </summary>
@@ -836,7 +836,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
             IPlatformFolder[] mediaFolders = platform.GetAllPlatformFolders();
 
             // figure total rom count across all romm platforms for the LB platform.
-            int combinedRomCount = (int)SelectedPlatform.MatchedRommPlatforms.Sum(x => x.RomCount);
+            int? combinedRomCount = SelectedPlatform.MatchedRommPlatforms.Sum(x => x.RomCount);
 
             // Queue PLatform
             _syncManager?.EnqueuePlatformSync(SelectedPlatform.LaunchboxPlatformName, SelectedPlatform.LaunchboxPlatformRomFolder,

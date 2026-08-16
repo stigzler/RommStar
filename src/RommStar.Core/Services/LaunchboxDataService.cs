@@ -16,23 +16,22 @@ using Unbroken.LaunchBox.Plugins;
 using Unbroken.LaunchBox.Plugins.Data;
 using Dapper;
 using Microsoft.Xaml.Behaviors.Core;
+using RommStar.Core.Extensions;
 
 namespace RommStar.Core.Services
 {
     public class LaunchboxDataService
     {
         internal string? EmulatorId = null;
+        private readonly string _dbConnectionString = "Data Source=" +
+                                                        Path.Combine(Constants.LaunchboxRootDir, "Metadata", "Launchbox.Metadata.db") +
+                                                        ";Mode=ReadOnly;";
+
         private bool _deleteOldServerRoms = true;
         private LoggingService _loggingService;
         private IPlatform _operationalPlatform;
         private string? _operativeServerId = null;
         private bool _overwriteMetadata = true;
-
-        private readonly string _dbConnectionString = "Data Source=" + 
-                                                        Path.Combine(Constants.LaunchboxRootDir, "Metadata", "Launchbox.Metadata.db") +
-                                                        ";Mode=ReadOnly;";
-
-
         /// <summary>
         /// Used in conjunction with _platformLbGameDatabaseIds. Lookup once presence of launchboxDatabaseID Game
         /// </summary>
@@ -66,48 +65,6 @@ namespace RommStar.Core.Services
             _loggingService = loggingService;
             PopulateLaunchboxSettings();
         }
-        public async Task<IEnumerable<LaunchboxDbPlatformDTO>> GetDefaultDbPlatforms()
-        {
-            // The 'using var' statement creates the connection. 
-            // As soon as this method finishes, C# automatically closes it and frees the file.
-            using var connection = new SqliteConnection(_dbConnectionString);
-
-            string sql = "SELECT * FROM Platforms ORDER BY Name ASC";
-
-            // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
-            var platforms = await connection.QueryAsync<LaunchboxDbPlatformDTO>(sql);
-
-            return platforms;
-        }
-
-        public async Task<IEnumerable<LaunchboxDbEmulatorDTO>> GetDefaultDbEmulators()
-        {
-            // The 'using var' statement creates the connection. 
-            // As soon as this method finishes, C# automatically closes it and frees the file.
-            using var connection = new SqliteConnection(_dbConnectionString);
-
-            string sql = "SELECT * FROM Emulators ORDER BY Name COLLATE NOCASE ASC";
-
-            // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
-            var emulators = await connection.QueryAsync<LaunchboxDbEmulatorDTO>(sql);
-
-            return emulators;
-        }
-
-        public async Task<IEnumerable<LaunchboxDbEmulatorPlatformDTO>> GetDefaultDbEmulatorPlatforms()
-        {
-            // The 'using var' statement creates the connection. 
-            // As soon as this method finishes, C# automatically closes it and frees the file.
-            using var connection = new SqliteConnection(_dbConnectionString);
-
-            string sql = "SELECT * FROM EmulatorPlatforms ORDER BY Emulator ASC";
-
-            // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
-            var emulatorPlatforms = await connection.QueryAsync<LaunchboxDbEmulatorPlatformDTO>(sql);
-
-            return emulatorPlatforms;
-        }
-
         public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory,
                     string customAppName = null, bool usePlaceholderPath = false)
         {
@@ -118,7 +75,7 @@ namespace RommStar.Core.Services
                 ? Constants.RomPlaceholder
                 : Path.Combine(targetDirectory, fileDto.FileName);
 
-            var existingApps = parentGame.GetAllAdditionalApplications();
+            var existingApps = parentGame.GetAllAdditionalApplications().Where(app => app.Section() == "Version");
             var app = existingApps.FirstOrDefault(a => a.Name == customAppName);
 
             var tags = TagHelper.ParseFilename(fileDto.FileName);
@@ -140,7 +97,7 @@ namespace RommStar.Core.Services
             app.Name = customAppName;
             app.EmulatorId = parentGame.EmulatorId;
             app.UseEmulator = (parentGame.EmulatorId != null) ? true : false;
-
+            app.SetSection("Version");
         }
 
         public void CreateNewPlatform(string platformName)
@@ -149,6 +106,47 @@ namespace RommStar.Core.Services
             PluginHelper.DataManager.Save();
         }
 
+        public async Task<IEnumerable<LaunchboxDbEmulatorPlatformDTO>> GetDefaultDbEmulatorPlatforms()
+        {
+            // The 'using var' statement creates the connection. 
+            // As soon as this method finishes, C# automatically closes it and frees the file.
+            using var connection = new SqliteConnection(_dbConnectionString);
+
+            string sql = "SELECT * FROM EmulatorPlatforms ORDER BY Emulator ASC";
+
+            // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
+            var emulatorPlatforms = await connection.QueryAsync<LaunchboxDbEmulatorPlatformDTO>(sql);
+
+            return emulatorPlatforms;
+        }
+
+        public async Task<IEnumerable<LaunchboxDbEmulatorDTO>> GetDefaultDbEmulators()
+        {
+            // The 'using var' statement creates the connection. 
+            // As soon as this method finishes, C# automatically closes it and frees the file.
+            using var connection = new SqliteConnection(_dbConnectionString);
+
+            string sql = "SELECT * FROM Emulators ORDER BY Name COLLATE NOCASE ASC";
+
+            // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
+            var emulators = await connection.QueryAsync<LaunchboxDbEmulatorDTO>(sql);
+
+            return emulators;
+        }
+
+        public async Task<IEnumerable<LaunchboxDbPlatformDTO>> GetDefaultDbPlatforms()
+        {
+            // The 'using var' statement creates the connection. 
+            // As soon as this method finishes, C# automatically closes it and frees the file.
+            using var connection = new SqliteConnection(_dbConnectionString);
+
+            string sql = "SELECT * FROM Platforms ORDER BY Name ASC";
+
+            // Dapper opens the connection, runs the query, maps the data, and lets the 'using' block close it down.
+            var platforms = await connection.QueryAsync<LaunchboxDbPlatformDTO>(sql);
+
+            return platforms;
+        }
         public string GetPlatformDefaultEmulatorID(string platformName)
         {
             string fallbackEmulatorId = null;
@@ -203,14 +201,252 @@ namespace RommStar.Core.Services
             .ToList();
         }
 
-        internal string GetLaunchboxRomsFolderPath(string launchboxPlatformName)
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="platformName">Name in launcbox DB. Not: ScrapeAs, SortTitle etc.</param>
+        /// <returns>Nothing if successful. Error message otherwise</returns>
+        public string SaveNewPlatformIcon(string source, string platformName, bool overwrite = false)
         {
-            string romFolder = PluginHelper.DataManager.GetPlatformByName(launchboxPlatformName)?.Folder;
-            if (string.IsNullOrEmpty(romFolder)) romFolder = $"Games\\{launchboxPlatformName}";
-            if (Directory.Exists(romFolder)) return romFolder;
-            return string.Empty;
+            string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
+                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
+
+            if (File.Exists(votiIconPath) && overwrite == false)
+            {
+                return "Platform icon already exists.";
+            }
+            try
+            {
+                File.Copy(source, votiIconPath, overwrite);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                return "Failed to save platform icon:" + ex.Message;
+            }
         }
 
+        public bool SetupGameUpserts(string platformName, string emulatorID, string serverId, ExtendedSyncSettings syncSettings)
+        {
+            _operationalPlatform = PluginHelper.DataManager.GetPlatformByName(platformName);
+            _operativeServerId = serverId;
+            _overwriteMetadata = syncSettings.OverwriteMetadata;
+            _deleteOldServerRoms = syncSettings.DeleteOldServerRoms;
+            EmulatorId = emulatorID;
+
+            _platformLbGameDatabaseIds.Clear();
+            _platformRommIds.Clear();
+            _platformHelperMap.Clear();
+
+            if (_operationalPlatform == null) return false;
+
+            IGame[] games = _operationalPlatform.GetAllGames(true, true);
+
+            foreach (IGame game in games)
+            {
+                Debug.WriteLine(game.Title);
+
+                // 1. Determine if LB iGame has an old romm server assigned. If so, delete it and do not include in the lookup lists
+                var gameCustomFields = game.GetAllCustomFields();
+                var rommServerField = game.GetAllCustomFields().FirstOrDefault(f => f.Name == "Romm_ServerId");
+                if (rommServerField != null && !string.IsNullOrWhiteSpace(rommServerField.Value) && rommServerField.Value != _operativeServerId)
+                {
+                    PluginHelper.DataManager.TryRemoveGame(game);
+                    PluginHelper.DataManager.Save();
+                    continue;
+                }
+
+                MetadataSyncHelperMap gameIdMap = new MetadataSyncHelperMap(game.Id, game.LaunchBoxDbId);
+                gameIdMap.GameName = game.Title;
+
+
+                if (gameCustomFields != null)
+                {
+                    var romIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
+                    var serverIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
+                    var protectMetadataCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
+
+                    gameIdMap.RommIds = (romIdCustomField != null) ? romIdCustomField.Value : null;
+                    gameIdMap.RommServerId = (serverIdCustomField != null) ? serverIdCustomField.Value : null;
+
+                    bool.TryParse(protectMetadataCustomField?.Value, out var boolResult);
+                    gameIdMap.ProtectMetadata = boolResult;
+                }
+
+
+                _platformHelperMap.Add(gameIdMap);
+            }
+
+            _platformLbGameDatabaseIds = _platformHelperMap.Select(phm => phm.LbDatabaseId).Where(id => id != null).ToHashSet();
+            _platformServerIds = _platformHelperMap.Select(phm => phm.RommServerId).Where(id => id != null).ToHashSet();
+
+            // Flatten the CSV strings into separate, easily searchable items inside the lookup set
+            _platformRommIds = _platformHelperMap
+                .Where(phm => !string.IsNullOrWhiteSpace(phm.RommIds))
+                .SelectMany(phm => phm.RommIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                .Select(id => id.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+
+            return _operationalPlatform != null;
+        }
+
+        public async Task<(IGame? Game, MetadataSyncAction Action)> SyncRommDto(RomDTO rommDTO, string customRomIdsCsv = null)
+        {
+            // =========================================================================
+            // TEMPORARY TESTING: 1 in 10 chance to simulate a metadata failure
+            // =========================================================================
+            //if (Random.Shared.Next(1, 11) == 1)
+            //{
+            //    // Return null to fake a catastrophic failure/timeout mapping database entries
+            //    return (null, MetadataSyncAction.Update);
+            //}
+
+            bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue &&
+                                            _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
+
+            bool hasMatchingRommId = rommDTO.Id.HasValue && _platformRommIds.Contains(rommDTO.Id.Value.ToString());
+
+            bool hasMatchingServerId = !string.IsNullOrEmpty(_operativeServerId) &&
+                                       (_platformServerIds.Contains(_operativeServerId) ||
+                                       _platformHelperMap.Any(m => m.RommServerId == _operativeServerId));
+
+            MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId,
+                rommDTO.HasMultipleFiles.GetValueOrDefault());
+
+            MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
+            IGame game = null;
+            bool metadataProtected = false;
+
+            // ---------------------------------------------------------
+            // UPDATE IGame
+            // ---------------------------------------------------------
+
+            if (syncAction == MetadataSyncAction.Update)
+            {
+                MetadataSyncHelperMap metadataSyncHelperMap;
+                string launchboxLocalId;
+
+                if (hasMatchingRommId == true && hasMatchingServerId == true && rommDTO.Id.HasValue)
+                {
+                    metadataSyncHelperMap = _platformHelperMap.Single(pg =>
+                                    pg.RommServerId == _operativeServerId && pg.ContainsId(rommDTO.Id.Value));
+                }
+                else
+                {
+                    metadataSyncHelperMap = _platformHelperMap.Single(pg => pg.LbDatabaseId == rommDTO.LaunchboxId);
+                }
+
+                launchboxLocalId = metadataSyncHelperMap.LocalId;
+                game = PluginHelper.DataManager.GetGameById(launchboxLocalId);
+
+                // Get RommStar IGame.CustomFields if exist
+                var existingFields = game.GetAllCustomFields();
+
+                // test if metadata flagged as protected. If so, set flag
+                var romProtectMetadataField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
+                if (romProtectMetadataField != null)
+                {
+                    bool.TryParse(existingFields?.FirstOrDefault(gcf =>
+                                                            gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString()).Value,
+                                                            out metadataProtected);
+                }
+
+                // now deal with any Romm metadata in event of launchboxDatabaseId match. Add or update.
+                if (metadataSyncHelperMap.LbDatabaseId != null)
+                {
+                    var rommIdField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
+
+                    if (rommIdField != null)
+                    {
+                        rommIdField.Value = rommDTO.Id.ToString();
+                        var rommServerField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
+                        rommServerField.Value = _operativeServerId;
+                    }
+                    else
+                    {
+                        AddNewRommMetadata(game, rommDTO.LaunchboxId?.ToString());
+                    }
+                }
+
+                // Update Romm ID Tracking Custom Field on existing platforms if a new context list is provided
+                if (game != null && !string.IsNullOrEmpty(customRomIdsCsv))
+                {
+                    var romIdsField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
+                    if (romIdsField != null)
+                    {
+                        romIdsField.Value = customRomIdsCsv;
+                    }
+                }
+
+                var localAltNames = game.GetAllAlternateNames();
+                foreach (var altName in rommDTO.AlternativeNames.Distinct())
+                {
+                    if (!localAltNames.Any(lan => lan.Name == altName && altName != rommDTO.Name))
+                    {
+                        var newAltName = game.AddNewAlternateName();
+                        newAltName.Name = altName;
+                    }
+                }
+
+
+            }
+
+            // ---------------------------------------------------------
+            // INSERT IGame
+            // ---------------------------------------------------------
+
+            else if (syncAction == MetadataSyncAction.Insert)
+            {
+                game = PluginHelper.DataManager.AddNewGame(rommDTO.Name);
+                game.Installed = false;
+                game.Status = "Not Installed";
+                game.ApplicationPath = Constants.RomPlaceholder;
+                //game.ApplicationPath = $"Plugins\\RommStar\\DummyPath\\{rommDTO.PlatformStub}\\{rommDTO.Name}" ;
+
+
+                // Use custom aggregated CSV string if provided (Scenario 2), otherwise default to standard singular ID string
+                string finalRomIdsValue = !string.IsNullOrEmpty(customRomIdsCsv) ? customRomIdsCsv : Convert.ToString(rommDTO.Id);
+
+                AddNewRommMetadata(game, finalRomIdsValue);
+
+                foreach (var altName in rommDTO.AlternativeNames.Distinct())
+                {
+                    if (altName != rommDTO.Name)
+                    {
+                        var newAltName = game.AddNewAlternateName();
+                        newAltName.Name = altName;
+                    }
+                }
+            }
+
+            else if (syncAction == MetadataSyncAction.DeleteAndInsert)
+            {
+                Debug.WriteLine("DeleteAndInsert");
+            }
+
+
+            if (game != null)
+            {
+                game.Platform = _operationalPlatform.Name;
+                game.EmulatorId = EmulatorId;
+
+                switch (syncAction)
+                {
+                    // This actually does the lb database IGame population.
+                    case MetadataSyncAction.Insert:
+                        _romMapper.RommRomDtoToIGame(rommDTO, game);
+                        break;
+                    case MetadataSyncAction.Update:
+                        if (!metadataProtected)
+                            _romMapper.RommRomDtoToIGame(rommDTO, game);
+                        break;
+                }
+            }
+
+            return (game, syncAction);
+        }
 
         /// <summary>
         /// This moves the unzipped game files from the temp locaiton to the right locaiton on disk
@@ -386,7 +622,7 @@ namespace RommStar.Core.Services
 
                         if (gameFiles.Any())
                         {
-                            var additionalApps = game.GetAllAdditionalApplications();
+                            var additionalApps = game.GetAllAdditionalApplications().Where(app => app.Section() == "Version");
                             string mainApplicationPath = string.Empty;
 
                             // will this work for multi-disc??
@@ -460,255 +696,6 @@ namespace RommStar.Core.Services
 
         }
 
-
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="platformName">Name in launcbox DB. Not: ScrapeAs, SortTitle etc.</param>
-        /// <returns>Nothing if successful. Error message otherwise</returns>
-        public string SaveNewPlatformIcon(string source, string platformName, bool overwrite = false)
-        {
-            string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
-                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
-
-            if (File.Exists(votiIconPath) && overwrite == false)
-            {
-                return "Platform icon already exists.";
-            }
-            try
-            {
-                File.Copy(source, votiIconPath, overwrite);
-                return null;
-            }
-            catch (Exception ex)
-            {
-                return "Failed to save platform icon:" + ex.Message;
-            }
-        }
-
-        public bool SetupGameUpserts(string platformName, string emulatorID, string serverId, ExtendedSyncSettings syncSettings)
-        {
-            _operationalPlatform = PluginHelper.DataManager.GetPlatformByName(platformName);
-            _operativeServerId = serverId;
-            _overwriteMetadata = syncSettings.OverwriteMetadata;
-            _deleteOldServerRoms = syncSettings.DeleteOldServerRoms;
-            EmulatorId = emulatorID;
-
-            _platformLbGameDatabaseIds.Clear();
-            _platformRommIds.Clear();
-            _platformHelperMap.Clear();
-
-            if (_operationalPlatform == null) return false;
-
-            IGame[] games = _operationalPlatform.GetAllGames(true, true);
-
-            foreach (IGame game in games)
-            {
-                Debug.WriteLine(game.Title);
-
-                // 1. Determine if LB iGame has an old romm server assigned. If so, delete it and do not include in the lookup lists
-                var gameCustomFields = game.GetAllCustomFields();
-                var rommServerField = game.GetAllCustomFields().FirstOrDefault(f => f.Name == "Romm_ServerId");
-                if (rommServerField != null && !string.IsNullOrWhiteSpace(rommServerField.Value) && rommServerField.Value != _operativeServerId)
-                {
-                    PluginHelper.DataManager.TryRemoveGame(game);
-                    PluginHelper.DataManager.Save();
-                    continue;
-                }
-
-                MetadataSyncHelperMap gameIdMap = new MetadataSyncHelperMap(game.Id, game.LaunchBoxDbId);
-                gameIdMap.GameName = game.Title;
-
-
-                if (gameCustomFields != null)
-                {
-                    var romIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
-                    var serverIdCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
-                    var protectMetadataCustomField = gameCustomFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
-
-                    gameIdMap.RommIds = (romIdCustomField != null) ? romIdCustomField.Value : null;
-                    gameIdMap.RommServerId = (serverIdCustomField != null) ? serverIdCustomField.Value : null;
-
-                    bool.TryParse(protectMetadataCustomField?.Value, out var boolResult);
-                    gameIdMap.ProtectMetadata = boolResult;
-                }
-
-
-                _platformHelperMap.Add(gameIdMap);
-            }
-
-            _platformLbGameDatabaseIds = _platformHelperMap.Select(phm => phm.LbDatabaseId).Where(id => id != null).ToHashSet();
-            _platformServerIds = _platformHelperMap.Select(phm => phm.RommServerId).Where(id => id != null).ToHashSet();
-
-            // Flatten the CSV strings into separate, easily searchable items inside the lookup set
-            _platformRommIds = _platformHelperMap
-                .Where(phm => !string.IsNullOrWhiteSpace(phm.RommIds))
-                .SelectMany(phm => phm.RommIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
-                .Select(id => id.Trim())
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-
-            return _operationalPlatform != null;
-        }
-
-        public async Task<(IGame Game, MetadataSyncAction Action)> SyncRommDto(RomDTO rommDTO, string customRomIdsCsv = null)
-        {
-            // =========================================================================
-            // TEMPORARY TESTING: 1 in 10 chance to simulate a metadata failure
-            // =========================================================================
-            //if (Random.Shared.Next(1, 11) == 1)
-            //{
-            //    // Return null to fake a catastrophic failure/timeout mapping database entries
-            //    return (null, MetadataSyncAction.Update);
-            //}
-
-            bool hasMatchingLaunchboxId = rommDTO.LaunchboxId.HasValue &&
-                                            _platformLbGameDatabaseIds.Contains(rommDTO.LaunchboxId.Value);
-
-            bool hasMatchingRommId = rommDTO.Id.HasValue && _platformRommIds.Contains(rommDTO.Id.Value.ToString());
-
-            bool hasMatchingServerId = !string.IsNullOrEmpty(_operativeServerId) &&
-                                       (_platformServerIds.Contains(_operativeServerId) ||
-                                       _platformHelperMap.Any(m => m.RommServerId == _operativeServerId));
-
-            MetadataSyncState metadataSyncState = new MetadataSyncState(hasMatchingLaunchboxId, hasMatchingRommId, hasMatchingServerId,
-                rommDTO.HasMultipleFiles.GetValueOrDefault());
-
-            MetadataSyncAction syncAction = MetadataSyncDecisionEngine.DetermineAction(metadataSyncState, _overwriteMetadata, _deleteOldServerRoms);
-            IGame game = null;
-            bool metadataProtected = false;
-
-            // ---------------------------------------------------------
-            // UPDATE IGame
-            // ---------------------------------------------------------
-
-            if (syncAction == MetadataSyncAction.Update)
-            {
-                MetadataSyncHelperMap metadataSyncHelperMap;
-                string launchboxLocalId;
-
-                if (hasMatchingRommId == true && hasMatchingServerId == true && rommDTO.Id.HasValue)
-                {
-                    metadataSyncHelperMap = _platformHelperMap.Single(pg =>
-                                    pg.RommServerId == _operativeServerId && pg.ContainsId(rommDTO.Id.Value));
-                }
-                else
-                {
-                    metadataSyncHelperMap = _platformHelperMap.Single(pg => pg.LbDatabaseId == rommDTO.LaunchboxId);
-                }
-
-                launchboxLocalId = metadataSyncHelperMap.LocalId;
-                game = PluginHelper.DataManager.GetGameById(launchboxLocalId);
-
-                // Get RommStar IGame.CustomFields if exist
-                var existingFields = game.GetAllCustomFields();
-
-                // test if metadata flagged as protected. If so, set flag
-                var romProtectMetadataField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString());
-                if (romProtectMetadataField != null)
-                {
-                    bool.TryParse(existingFields?.FirstOrDefault(gcf =>
-                                                            gcf.Name == CustomFieldTypes.Romm_ProtectMetadata.ToString()).Value,
-                                                            out metadataProtected);
-                }
-
-                // now deal with any Romm metadata in event of launchboxDatabaseId match. Add or update.
-                if (metadataSyncHelperMap.LbDatabaseId != null)
-                {
-                    var rommIdField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
-
-                    if (rommIdField != null)
-                    {
-                        rommIdField.Value = rommDTO.Id.ToString();
-                        var rommServerField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_ServerId.ToString());
-                        rommServerField.Value = _operativeServerId;
-                    }
-                    else
-                    {
-                        AddNewRommMetadata(game, rommDTO.LaunchboxId?.ToString());
-                    }
-                }
-
-                // Update Romm ID Tracking Custom Field on existing platforms if a new context list is provided
-                if (game != null && !string.IsNullOrEmpty(customRomIdsCsv))
-                {
-                    var romIdsField = existingFields?.FirstOrDefault(gcf => gcf.Name == CustomFieldTypes.Romm_RomIds.ToString());
-                    if (romIdsField != null)
-                    {
-                        romIdsField.Value = customRomIdsCsv;
-                    }
-                }
-
-                var localAltNames = game.GetAllAlternateNames();
-                foreach (var altName in rommDTO.AlternativeNames.Distinct())
-                {
-                    if (!localAltNames.Any(lan => lan.Name == altName && altName != rommDTO.Name))
-                    {
-                        var newAltName = game.AddNewAlternateName();
-                        newAltName.Name = altName;
-                    }
-                }
-
-
-            }
-
-            // ---------------------------------------------------------
-            // INSERT IGame
-            // ---------------------------------------------------------
-
-            else if (syncAction == MetadataSyncAction.Insert)
-            {
-                game = PluginHelper.DataManager.AddNewGame(rommDTO.Name);
-                game.Installed = false;
-                game.Status = "Not Installed";
-                game.ApplicationPath = Constants.RomPlaceholder;
-                //game.ApplicationPath = $"Plugins\\RommStar\\DummyPath\\{rommDTO.PlatformStub}\\{rommDTO.Name}" ;
-
-
-                // Use custom aggregated CSV string if provided (Scenario 2), otherwise default to standard singular ID string
-                string finalRomIdsValue = !string.IsNullOrEmpty(customRomIdsCsv) ? customRomIdsCsv : Convert.ToString(rommDTO.Id);
-
-                AddNewRommMetadata(game, finalRomIdsValue);
-
-                foreach (var altName in rommDTO.AlternativeNames.Distinct())
-                {
-                    if (altName != rommDTO.Name)
-                    {
-                        var newAltName = game.AddNewAlternateName();
-                        newAltName.Name = altName;
-                    }
-                }
-            }
-
-            else if (syncAction == MetadataSyncAction.DeleteAndInsert)
-            {
-                Debug.WriteLine("DeleteAndInsert");
-            }
-
-
-            if (game != null)
-            {
-                game.Platform = _operationalPlatform.Name;
-                game.EmulatorId = EmulatorId;
-
-                switch (syncAction)
-                {
-                    // This actually does the lb database IGame population.
-                    case MetadataSyncAction.Insert:
-                        _romMapper.RommRomDtoToIGame(rommDTO, game);
-                        break;
-                    case MetadataSyncAction.Update:
-                        if (!metadataProtected)
-                            _romMapper.RommRomDtoToIGame(rommDTO, game);
-                        break;
-                }
-            }
-
-            return (game, syncAction);
-        }
-
         internal async Task<bool> DeletePlatform(string launchboxPlatformName)
         {
             try
@@ -721,12 +708,19 @@ namespace RommStar.Core.Services
 
                 return success;
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
         }
 
+        internal string GetLaunchboxRomsFolderPath(string launchboxPlatformName)
+        {
+            string romFolder = PluginHelper.DataManager.GetPlatformByName(launchboxPlatformName)?.Folder;
+            if (string.IsNullOrEmpty(romFolder)) romFolder = $"Games\\{launchboxPlatformName}";
+            if (Directory.Exists(romFolder)) return romFolder;
+            return string.Empty;
+        }
         private void AddNewRommMetadata(IGame game, string finalRomIdsValue)
         {
             var romIdCustomField = game.AddNewCustomField();
@@ -740,7 +734,6 @@ namespace RommStar.Core.Services
             var protectMetadataCustomField = game.AddNewCustomField();
             protectMetadataCustomField.Name = CustomFieldTypes.Romm_ProtectMetadata.ToString();
             protectMetadataCustomField.Value = "false";
-
         }
 
         //private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipEntryFullName)

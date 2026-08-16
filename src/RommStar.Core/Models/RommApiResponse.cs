@@ -40,7 +40,7 @@ namespace RommStar.Core.Models
         public static RommApiResponse<T> SuccessWithData(HttpResponseMessage response, T data) =>
             new() { IsSuccess = true, HttpResponse = response, Data = data };
 
-        public static new RommApiResponse<T> Fail(RommApiFailureReason reason, string? exceptionMessage = null) =>
+        public static RommApiResponse<T> Fail(RommApiFailureReason reason, string? exceptionMessage = null) =>
             new() { IsSuccess = false, FailureReason = reason, ExceptionMessage = exceptionMessage };
     }
 }

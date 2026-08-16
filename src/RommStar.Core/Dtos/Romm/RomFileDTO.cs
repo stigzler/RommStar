@@ -36,6 +36,9 @@ namespace RommStar.Core.Dtos.Romm
         [JsonPropertyName("sha1_hash")]
         public string? Sha1Hash { get; set; }
 
+        [JsonPropertyName("is_top_level")]
+        public bool IsTopLevel { get; set; }
+
 
 
     }

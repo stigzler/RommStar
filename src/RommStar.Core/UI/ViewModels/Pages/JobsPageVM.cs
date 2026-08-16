@@ -68,7 +68,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
         [RelayCommand]
         private void RemoveJobCard(Guid id)
         {
-            _activeJobs.Remove(_activeJobs.Where(aj => aj.Id == id).FirstOrDefault());
+            ActiveJobs.Remove(ActiveJobs.Where(aj => aj.Id == id).FirstOrDefault());
         }
 
     }

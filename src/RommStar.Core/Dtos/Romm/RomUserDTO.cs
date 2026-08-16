@@ -11,7 +11,7 @@ namespace RommStar.Core.Dtos.Romm
     {
         [JsonPropertyName("is_main_sibling")]
         public bool?
-                            IsMainSibling { get; set; }
+                    IsMainSibling { get; set; }
 
         [JsonPropertyName("status")]
         public string?
@@ -19,15 +19,15 @@ namespace RommStar.Core.Dtos.Romm
 
         [JsonPropertyName("backlogged")]
         public bool?
-            Backlogged { get; set; }
+                    Backlogged { get; set; }
 
         [JsonPropertyName("now_playing")]
         public bool?
-            NowPlaying { get; set; }
+                    NowPlaying { get; set; }
 
         [JsonPropertyName("hidden")]
         public bool?
-            Hidden { get; set; }
+                    Hidden { get; set; }
 
     }
 }

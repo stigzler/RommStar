@@ -85,24 +85,39 @@ namespace RommStar.Core.Services
             string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/platforms";
 
             var response = await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
+
             if (!response.IsSuccess)
             {
+                _loggingService.Log($"ERROR: API query unsuccessful: {response.FailureReason}, {response.ExceptionMessage}");
                 return RommApiResponse<List<PlatformDTO>>.Fail(response.FailureReason, response.ExceptionMessage);
             }
+
+            // Declare the string OUTSIDE the try block so the catch block can access it
+            string rawContent = string.Empty;
+
             try
             {
-                using var contentStream = await response.HttpResponse.Content.ReadAsStreamAsync();
-                var platforms = await JsonSerializer.DeserializeAsync<List<PlatformDTO>>(contentStream, _jsonOptions);
+                _loggingService.Log($"API query successful. Parsing data.");
+
+                // Read the entire response into a string first
+                rawContent = await response.HttpResponse.Content.ReadAsStringAsync();
+
+                // Deserialize from the string instead of the stream
+                var platforms = JsonSerializer.Deserialize<List<PlatformDTO>>(rawContent, _jsonOptions);
 
                 response.HttpResponse?.Dispose();
+                _loggingService.Log($"Parsing successful.");
+                _loggingService.Log($"Content:\r\n{rawContent}", LoggingLevel.Verbose);
+
                 return RommApiResponse<List<PlatformDTO>>.SuccessWithData(response.HttpResponse!, platforms ?? new List<PlatformDTO>());
             }
             catch (Exception ex)
             {
+                _loggingService.Log($"Parsing unsuccessful. Content from server: {rawContent}");
+
                 response.HttpResponse?.Dispose();
                 return RommApiResponse<List<PlatformDTO>>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
             }
-
         }
 
         public async Task DownloadRomsAsync(RommServer server, List<int> romIds, string filename = "rommDownload.zip",
@@ -281,6 +296,7 @@ namespace RommStar.Core.Services
                 if (ex.InnerException is System.Net.Sockets.SocketException ||
                     ex.Message.Contains("Name or service not known", StringComparison.OrdinalIgnoreCase))
                 {
+                    _loggingService.Log($"ERROR: HttpRequestException: {ex.StatusCode}: {ex.Message}. {ex.HttpRequestError}\r\n{ex.StackTrace} ", LoggingLevel.Debug);
                     return RommApiResponse.Fail(RommApiFailureReason.ServerNotFound, ex.Message);
                 }
 
@@ -288,6 +304,7 @@ namespace RommStar.Core.Services
             }
             catch (Exception ex)
             {
+                _loggingService.Log($"ERROR: HttpRequestException: {ex.Message}\r\n{ex.StackTrace} ", LoggingLevel.Debug);
                 return RommApiResponse.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
             }
         }

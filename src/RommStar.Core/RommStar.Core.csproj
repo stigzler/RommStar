@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0-windows</TargetFramework>
+		<TargetFramework>net10.0-windows</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UseWPF>true</UseWPF>
 		<Nullable>enable</Nullable>
@@ -103,30 +103,24 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Reference Include="System.Drawing.Common" Version="9.0.0">
-			<HintPath>..\..\lib\launchbox\System.Drawing.Common.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Unbroken.LaunchBox.Plugins">
-			<HintPath>..\..\lib\launchbox\Unbroken.LaunchBox.Plugins.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="Microsoft.Extensions.DependencyInjection">
-			<HintPath>..\..\lib\launchbox\Microsoft.Extensions.DependencyInjection.dll</HintPath>
+
+		<Reference Include="Microsoft.Data.Sqlite">
+			<HintPath>..\..\lib\launchbox\Microsoft.Data.Sqlite.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
 		<Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
 			<HintPath>..\..\lib\launchbox\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-		<Reference Include="System.Private.Windows.Core">
-			<HintPath>..\..\lib\launchbox\System.Private.Windows.Core.dll</HintPath>
+		<Reference Include="Microsoft.Extensions.DependencyInjection">
+			<HintPath>..\..\lib\launchbox\Microsoft.Extensions.DependencyInjection.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-		<Reference Include="Microsoft.Data.Sqlite">
-			<HintPath>..\..\lib\launchbox\Microsoft.Data.Sqlite.dll</HintPath>
+		<Reference Include="Unbroken.Launchbox.Plugins">
+			<HintPath>..\..\lib\launchbox\Unbroken.Launchbox.Plugins.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
+
 	</ItemGroup>
 
 	<ItemGroup>
@@ -186,7 +180,8 @@
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Debug'">
-		<Exec Command="call &quot;$(SolutionDir)\build\scripts\moveDebugBuild.bat&quot; &quot;$(ConfigurationName)&quot; &quot;$(SolutionDir)&quot; &quot;C:\Users\stigz\LaunchboxDEV\LaunchBox\Plugins\RommStar&quot; &quot;src\RommStar.Core\bin\Debug\net9.0-windows&quot;" />
+		<!-- Replaced 'net9.0-windows' with '$(TargetFramework)' so it automatically adapts to upgrades -->
+		<Exec Command="call &quot;$(SolutionDir)\build\scripts\moveDebugBuild.bat&quot; &quot;$(ConfigurationName)&quot; &quot;$(SolutionDir)&quot; &quot;C:\Users\stigz\LaunchboxDEV\LaunchBox\Plugins\RommStar&quot; &quot;src\RommStar.Core\bin\Debug\$(TargetFramework)&quot;" />
 	</Target>
 
 </Project>

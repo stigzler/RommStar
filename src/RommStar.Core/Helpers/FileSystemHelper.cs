@@ -100,6 +100,29 @@ namespace RommStar.Core.Helpers
             return directoryPath;
         }
 
+        public static bool IsValidFilenameWithExtension(string filename)
+        {
+            // 1. Check for null or empty strings
+            if (string.IsNullOrWhiteSpace(filename))
+                return false;
+
+            // 2. Reject strings containing illegal characters (like slashes, colons, etc.)
+            if (filename.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                return false;
+
+            // 3. Ensure it has a valid base name (rejects hidden-style files like ".zip")
+            string baseName = Path.GetFileNameWithoutExtension(filename);
+            if (string.IsNullOrWhiteSpace(baseName))
+                return false;
+
+            // 4. Ensure it has a valid extension (rejects "wipeout" or "wipeout.")
+            string extension = Path.GetExtension(filename);
+            if (string.IsNullOrWhiteSpace(extension) || extension == ".")
+                return false;
+
+            return true;
+        }
+
         public static string SizeSuffix(Int64 value, int decimalPlaces = 1)
         {
             if (decimalPlaces < 0) { throw new ArgumentOutOfRangeException("decimalPlaces"); }

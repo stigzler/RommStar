@@ -5,6 +5,7 @@ using RommStar.Core.Services;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -183,6 +184,7 @@ namespace RommStar.Core.Mappers
         [MapProperty(nameof(romDto.Name), nameof(iGame.Title), Use = nameof(PassthroughMapping))]
         [MapProperty(nameof(romDto.Summary), nameof(iGame.Notes), Use = nameof(PassthroughMapping))]
         [MapProperty(nameof(romDto.LaunchboxId), nameof(iGame.LaunchBoxDbId))]
+        [MapProperty(nameof(romDto), nameof(iGame.ApplicationPath), Use = nameof(ResolvedFilename))]
         [MapProperty("LaunchboxMetadata.WikipediaUrl", nameof(iGame.WikipediaUrl))]
         [MapProperty("LaunchboxMetadata.ReleaseType", nameof(iGame.ReleaseType))]
         [MapProperty(nameof(romDto.RomUserData), nameof(iGame.Progress), Use = nameof(RommStatusToLaunchboxProgress))]
@@ -198,6 +200,30 @@ namespace RommStar.Core.Mappers
         [MapProperty(nameof(romDto.YoutubeVideoId), nameof(IGame.VideoUrl), Use = nameof(MapYouTubeUrl))]     
         
         public partial void RommRomDtoToIGame(RomDTO romDto, IGame iGame);
+
+        /// <summary>
+        /// This deals with romDTOs where the RommFilename refers to a folder on the server, rather than 
+        /// the actual file. Typically roms with multi-files (not neccessarily multi-disc as can be single
+        /// file rom with additional music files). Some assumptive logic: eg. that the RommFilename is essentially 
+        /// the main/master rom without the extension.
+        /// </summary>
+        /// <param name="romDTO"></param>
+        /// <returns></returns>
+        [UserMapping]
+        public string ResolvedFilename(RomDTO romDTO)
+        {
+            if (Helpers.FileSystemHelper.IsValidFilenameWithExtension(romDTO.RommFilename)) return romDTO.RommFilename;
+
+            if (romDTO.HasNestedSingleFile == true)
+            {
+                var primaryGameFile = romDTO.Files.Where(f => f.Category == "game"
+                                                    && romDTO.RommFilename == Path.GetFileNameWithoutExtension(f.FileName)).FirstOrDefault();
+                if (primaryGameFile != null) return primaryGameFile.FileName;
+                else return romDTO.Files.Where(f => f.Category == "game" && f.IsTopLevel == true).FirstOrDefault()?.FileName;
+            }
+
+            return romDTO.RommFilename;
+        }
 
 
         [UserMapping]
