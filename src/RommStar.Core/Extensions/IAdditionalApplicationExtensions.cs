@@ -6,7 +6,7 @@ using Unbroken.LaunchBox.Plugins.Data;
 
 namespace RommStar.Core.Extensions
 {
-    public static class AdditionalApplicationExtensions
+    public static class IAdditionalApplicationExtensions
     {
         /// <summary>
         /// Uses reflection to extract the internal 'Section' property from an IAdditionalApplication.

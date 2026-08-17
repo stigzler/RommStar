@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using RommStar.Core.Dtos;
 using RommStar.Core.Dtos.Romm;
+using RommStar.Core.Extensions;
 using RommStar.Core.Mappers;
 using RommStar.Core.Models;
 using RommStar.Core.Services;
@@ -254,7 +255,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 return;
             }
 
-            // This one is legacy and lost undertsaanding of it. Kept in in case detects edge cases
+            // This one is legacy and lost understanding of it. Kept in in case detects edge cases
             // need to do a check of the actual LB database in case Auto-import cause re-creation 
             // of the platform without rommstar/user knowing (bloody auto import!)
             if (PluginHelper.DataManager.GetPlatformByName(dialogVM.SelectedDefaultPlatform.Name) != null)
@@ -281,13 +282,13 @@ namespace RommStar.Core.UI.ViewModels.Pages
             dialogVM.UserEmulator.ApplicationPath = dialogVM.ExePath;
 
             // Now process either existing or new IEmulator record (I think LB populates Retroarch with all the EmulatorPlatform
-            // data for all platforms when you add retroarch. So you there may be a recorf for the emu/plat combination despite 
+            // data for all platforms when you add retroarch. So you there may be a xml record for the emu/plat combination despite 
             // not having set it up.
             IEmulatorPlatform iEmulatorPlatform = dialogVM.UserEmulator.GetAllEmulatorPlatforms()
                 .Where(ep => ep.Platform.Equals(dialogVM.SelectedDefaultPlatform.Name, StringComparison.OrdinalIgnoreCase) &&
                 ep.EmulatorId.Equals(dialogVM.UserEmulator.Id, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
 
-            // This is the lookup
+            // This is the lookup from the LB Database defaults
             LaunchboxDbEmulatorPlatformDTO launchboxDbEmulatorPlatformDTO = dialogVM.DefaultEmultorPlatforms
                  .Where(ep => ep.Emulator.Equals(dialogVM.UserEmulator.Title, StringComparison.OrdinalIgnoreCase) &&
                  ep.Platform.Equals(dialogVM.SelectedDefaultPlatform.Name, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
@@ -295,13 +296,24 @@ namespace RommStar.Core.UI.ViewModels.Pages
             // again, this shouldn't be null but do a check jic
             if (launchboxDbEmulatorPlatformDTO == null)
             {
-                Debug.WriteLine("Error getting Default values for EmulatorPlatform. Cannot continue");
+                _loggingService.Log("Could not get default EmulatorPlatform settings from the Launchbox db3 file.");
                 return;
             }
 
             if (iEmulatorPlatform == null)
             {
                 iEmulatorPlatform = dialogVM.UserEmulator.AddNewEmulatorPlatform(); // i think this also populates iEmuPLat.EmulatorId?
+            }
+
+            // set Default to false on any EmulatorPlatform records matched on Platform in lieu of being set later
+            List<IEmulator> platformEmulators = PluginHelper.DataManager.GetAllEmulatorsForPlatform(dialogVM.SelectedDefaultPlatform.Name, false);
+            foreach (IEmulator emulator in platformEmulators)
+            {
+                foreach (IEmulatorPlatform emulatorPlatform in emulator.GetAllEmulatorPlatforms()
+                    .Where(ep => ep.Platform == dialogVM.SelectedDefaultPlatform.Name))
+                {
+                    emulatorPlatform.IsDefault = false;
+                }
             }
 
             iEmulatorPlatform.CommandLine = launchboxDbEmulatorPlatformDTO.CommandLine;
