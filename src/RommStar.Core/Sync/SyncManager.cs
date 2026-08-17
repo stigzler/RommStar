@@ -342,71 +342,13 @@ namespace RommStar.Core.Sync
 
             // Otherwise combine with LaunchBox root directory and collapse relative elements (..\)
             string combined = Path.Combine(baseRootDir, rawPath);
+
+            _loggingService.Log($"Normalised Rom Path requested with: root: [{baseRootDir}], path: [{rawPath}]. Returning: [{Path.GetFullPath(combined)}]", Primitives.LoggingLevel.Debug);
+
             return Path.GetFullPath(combined);
         }
 
-        // =========================================================================
-        // PARALLEL ON-DEMAND BYPASS (Bypasses macro structural sync channel entirely)
-        // =========================================================================
-        // ToDO: IGAME
-        // NOTE: Legacy - not sure why this was in here - could be AI gen
-        //public async Task ExecuteOnDemandInstallAsync(string lbPlatform, RomDTO rom, RommServer targetServer, PlatformSyncTask syncTask)
-        //{
-        //    //var currentSnapshot = targetServer;
-        //    //var mediaTasks = new List<Task>();
-        //    //await Task.WhenAll(mediaTasks);
-        //    if (rom == null || targetServer == null) return;
 
-        //    IPlatform platform = PluginHelper.DataManager.GetPlatformByName(lbPlatform);
-
-        //    // 1. Normalize and resolve the target ROM path
-        //    string baseRomDir = NormalizeRomPath(Constants.LaunchboxRootDir, platform.Folder); // Ensure this setting property is exposed/passed
-        //    string targetRomDirectory = (rom.HasMultipleFiles == true || (rom.SiblingRoms != null && rom.SiblingRoms.Count > 0))
-        //        ? Path.Combine(baseRomDir, rom.Name)
-        //        : baseRomDir;
-
-        //    // Enqueue or execute the specific ROM masterSiblingRomDtoFile streaming tasks here...
-
-        //    // 2. Process On-Demand Media Downloads if requested
-        //    bool downloadMedia = syncTask.SyncSettings.SyncProfile == SyncProfileTypes.UpdateMetadata_DownloadMedia
-        //                         || syncTask.SyncSettings.SyncProfile == SyncProfileTypes.UpdateMetadata_DownloadRom_DownloadMedia;
-
-        //    if (downloadMedia)
-        //    {
-        //        // Pull the installation-specific media profile footprint
-        //        var chosenProfile = _settingsService.Settings.InstallMediaProfile;
-
-        //        // Extract native media folder paths straight from LaunchBox's global data memory
-        //        var lbMediaFolders = PluginHelper.DataManager.GetPlatformByName(lbPlatform).GetAllPlatformFolders();
-
-        //        string romFilename = !string.IsNullOrEmpty(rom.RommFilename)
-        //            ? Path.GetFileNameWithoutExtension(rom.RommFilename)
-        //            : rom.Name;
-
-        //        var mediaManager = new MediaDownloadManager();
-
-        //        var downloadItems = mediaManager.BuildDownloadItems(
-        //            rom: rom,
-        //            profile: chosenProfile,
-        //            baseUrl: targetServer.BaseUrl,
-        //            launchboxPlatformName: lbPlatform,
-        //            launchboxMediaFolders: lbMediaFolders,
-        //            romFilename: romFilename,
-        //            forceMediaPriority: syncTask.SyncSettings.ForceMediaPriority
-        //        );
-
-        //        var mediaTasks = new List<Task>();
-
-        //        foreach (var item in downloadItems)
-        //        {
-        //            // Apply the Upstream Overwrite setting check
-        //            if (!syncTask.SyncSettings.OverwriteExistingMedia && File.Exists(item.TargetLocalPath))
-        //            {
-        //                continue;
-        //            }
-
-        //            // Map standard API path string for the download engine call
-        //            string apiRelativeUrl = item.DownloadUrl.Replace(targetServer.BaseUrl, "").TrimStart('/');
         private void ScheduleMediaDownloads(RomDTO rom, PlatformSyncTask task, MediaSelectionProfile profile, RommServer server, IGame iGame)
         {
             // Extract extensionless ground-truth filename from your unified RommFilename property
@@ -421,7 +363,7 @@ namespace RommStar.Core.Sync
 
             if (iGame == null) return;
 
-            // Prospective urls - files not neccessarily there romm side
+            // Prospective urls - files not necessarily there romm side
             var downloadItems = mediaManager.BuildDownloadItems(
                 rom: rom,
                 profile: profile,
@@ -546,23 +488,8 @@ namespace RommStar.Core.Sync
                     if (job.UiCard != null) job.UiCard.ProcessedItems++;
                     _activeFileCounters.AddOrUpdate(job.JobId, 0, (key, current) => current - 1);
                 }
-
-
-                // HERE!
-
             }
         }
-
-        //private bool LocalFilePresent(ExtendedSyncSettings syncSettings, string path, string sha1)
-        //{
-        //    if (syncSettings.FileCheckMethod == Primitives.FileCheckMethod.FileOnly &&
-        //        !File.Exists(path)) return false;
-
-        //    if (syncSettings.FileCheckMethod == Primitives.FileCheckMethod.FileAndSHA1 &&
-        //        (string.IsNullOrEmpty(sha1) || !FileSystemHelper.LocalFilePresent(path, sha1))) return false;
-
-        //    return true;
-        //}
 
         /// <summary>
         /// Updates relevant install properties for IGame
@@ -605,12 +532,14 @@ namespace RommStar.Core.Sync
                 {
                     if (platformTask.UiCard.Status == SyncStatus.Cancelled)
                     {
+                        _loggingService.Log($"Sync CANCEL REQUEST caught. Attempting to remove job for Sync: {platformTask.PlatformName} ");
                         _activeTokens.TryRemove(platformTask.Id, out _);
                         continue;
                     }
 
                     var jobStopwatch = System.Diagnostics.Stopwatch.StartNew();
                     platformTask.UiCard.AddLog($"Sync job started for {platformTask.PlatformName}...", PlatformSyncCardVM.LogType.Process);
+                    _loggingService.Log($"Sync job started for {platformTask.PlatformName}...");
 
                     try
                     {
@@ -635,18 +564,11 @@ namespace RommStar.Core.Sync
                             || platformTask.SyncSettings.SyncProfile == SyncProfileTypes.UpdateMetadata_DownloadRom_DownloadMedia
                             || platformTask.SyncSettings.SyncProfile == SyncProfileTypes.DownloadRom;
 
-
-                        //var installMedia = platformTask.SyncSettings.SyncProfile == SyncProfileTypes.UpdateMetadata_DownloadMedia
-                        //    || platformTask.SyncSettings.SyncProfile == SyncProfileTypes.UpdateMetadata_DownloadRom_DownloadMedia;
-
                         // Setup flag for use later in process
                         bool useSha1InFileChecks = platformTask.SyncSettings.FileCheckMethod == Primitives.FileCheckMethod.FileAndSHA1;
 
                         // Kept in JIC want to reinstate original plan - Originally had a choice of media to install on metadata sync
                         // and what to install on rom files install. Now just left it as InstallMediaProfile
-                        //var chosenProfile = installRoms
-                        //    ? _settingsService.Settings.InstallMediaProfile
-                        //    : _settingsService.Settings.SyncMediaProfile;
                         var chosenProfile = _settingsService.Settings.SyncMediaProfile;
 
                         // IGame creation complicated - essentially a two-pass process due to masterRomDtoSiblingDto roms system in romm
@@ -688,11 +610,15 @@ namespace RommStar.Core.Sync
 
                             collectionHasProcessedAnyItems = true;
 
+                            _loggingService.Log($"Rom Collection determined. Starting iterating through them...");
+
+
                             // ********************************************************************
                             // ROM ITERATION: Iterate through paged list of roms (romDTO) from RomM server
                             // ********************************************************************
                             foreach (var romDto in romCollection.Items)
                             {
+                                _loggingService.Log($"Processing romm API rom info: {romDto.ToString()}", Primitives.LoggingLevel.Verbose);
                                 if (platformTask.Cts.Token.IsCancellationRequested) break;
 
                                 // determines if romDto is a single romDto, one of a masterRomDtoSiblingDto group or part of a multi-disc/media set
@@ -728,12 +654,16 @@ namespace RommStar.Core.Sync
                                 // =========================================================================
                                 if (detailedRomDto.HasMultipleFiles == true && hasFiles)
                                 {
+                                    _loggingService.Log($"Rom Identified as multi-disk game. Files:\r\n{String.Join("\r\n", detailedRomDto.Files)}", Primitives.LoggingLevel.Verbose);
+
                                     // Find Disc/Side/Tape/Cart (etc) 1 or fall back to the first available masterSiblingRomDtoFile entry
                                     var primaryFile = detailedRomDto.Files.FirstOrDefault(f => !string.IsNullOrEmpty(f.FileName)
                                                         && (Helpers.TagHelper.ParseFilename(f.FileName).DiscNumber == 1 ||
                                                             Helpers.TagHelper.ParseFilename(f.FileName).IsSideA)
                                                             )
                                                       ?? detailedRomDto.Files.First();
+
+                                    _loggingService.Log($"Primary file identified as: {primaryFile.ToString()}", Primitives.LoggingLevel.Verbose);
 
                                     // Metadata insert/Update set in SyncProfile
                                     if (platformTask.UpdateMetadata)
@@ -746,6 +676,7 @@ namespace RommStar.Core.Sync
                                         // If so, set iGame.Applicaiton path to this. If other files are missing
                                         // this is picked up in the batchRomDownload.
                                         // Todo: really need to refactor this to a method to cover this and Single/masterRomDtoSiblingDto romm entries below
+                                        _loggingService.Log($"Determining whether all files (game + soundtrack) already present on local installation.", Primitives.LoggingLevel.Verbose);
                                         if (targetedIGame != null)
                                         {
                                             bool allRomFilesOnLocalDisk = false;
@@ -756,6 +687,9 @@ namespace RommStar.Core.Sync
 
                                                 allRomFilesOnLocalDisk = FileSystemHelper.LocalFilePresent(useSha1InFileChecks,
                                                     fullpath, primaryFile.Sha1Hash);
+
+                                                _loggingService.Log($"Primary file present {allRomFilesOnLocalDisk}", Primitives.LoggingLevel.Verbose);
+
                                                 {
                                                     // Master masterSiblingRomDtoFile present. Now check sub files.
                                                     foreach (var file in detailedRomDto.Files)
@@ -774,11 +708,15 @@ namespace RommStar.Core.Sync
                                                         if (!FileSystemHelper.LocalFilePresent(false,
                                                             subFilePath, null))
                                                         {
+                                                            _loggingService.Log($"Sub File NOT present [{subFilePath}]. Set Installed status to False in iGame", Primitives.LoggingLevel.Verbose);
+
                                                             allRomFilesOnLocalDisk = false;
                                                             break;
                                                         }
                                                     }
                                                 }
+
+                                                if (allRomFilesOnLocalDisk) _loggingService.Log($"All files present. Set Installed status to True in iGame", Primitives.LoggingLevel.Verbose);
 
                                                 UpdateIGameInstallStatus(targetedIGame, allRomFilesOnLocalDisk, fullpath);
                                             }
@@ -821,6 +759,7 @@ namespace RommStar.Core.Sync
                                     {
                                         long totalSize = detailedRomDto.CombinedFilesSizeBytes ?? 0;
                                         string masterFile = detailedRomDto.RommFilename ?? string.Empty;
+                                        _loggingService.Log($"Download Roms set to true in Sync Settings. Enqueing Rom download for {detailedRomDto.Name}", Primitives.LoggingLevel.Verbose);
 
                                         EnqueueBatchRomDownloadJob(platformTask, targetedIGame, detailedRomDto, new List<int> { detailedRomDto.Id ?? 0 },
                                             masterFile, totalSize, platformTask.TargetServer.Id.ToString(), stagedBatchDownloadItems, platformTask.NotifyLauncboxWhenMetadataComplete);
@@ -841,6 +780,7 @@ namespace RommStar.Core.Sync
                                 } // END Multi-File Processor
 
 
+                                // Todo: pick up logging from here
 
                                 // =========================================================================
                                 // CASE 2: SIBLING ROM REGION / VERSION GROUPS (Pass 1 Capture)

@@ -229,6 +229,9 @@ namespace RommStar.Core.Services
 
         public bool SetupGameUpserts(string platformName, string emulatorID, string serverId, ExtendedSyncSettings syncSettings)
         {
+            _loggingService.Log($"Mapping existing Ids in local Lb database. Params: Platform: [{platformName}], EmulatorId: [{emulatorID}], " +
+                $"ServerId: [{serverId}], Sync Settings: [{syncSettings.ToCsv()}]");
+
             _operationalPlatform = PluginHelper.DataManager.GetPlatformByName(platformName);
             _operativeServerId = serverId;
             _overwriteMetadata = syncSettings.OverwriteMetadata;
@@ -245,8 +248,6 @@ namespace RommStar.Core.Services
 
             foreach (IGame game in games)
             {
-                Debug.WriteLine(game.Title);
-
                 // 1. Determine if LB iGame has an old romm server assigned. If so, delete it and do not include in the lookup lists
                 var gameCustomFields = game.GetAllCustomFields();
                 var rommServerField = game.GetAllCustomFields().FirstOrDefault(f => f.Name == "Romm_ServerId");
@@ -288,6 +289,16 @@ namespace RommStar.Core.Services
                 .Select(id => id.Trim())
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+
+            _loggingService.Log("Setup completed. Resulting existing local IDs lists:");
+            _loggingService.Log($"Launchbox database ids: {String.Join(",", _platformLbGameDatabaseIds)}");
+            _loggingService.Log($"Romm ids: {String.Join(",", _platformRommIds)}");
+
+            if (_settingsService.Settings.LoggingLevel > Primitives.LoggingLevel.Normal)
+            {
+                _loggingService.Log("Full Ids map:");
+                foreach (var map in _platformHelperMap) _loggingService.Log(map.ToString());
+            }
 
             return _operationalPlatform != null;
         }

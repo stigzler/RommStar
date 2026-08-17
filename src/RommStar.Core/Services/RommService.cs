@@ -65,19 +65,36 @@ namespace RommStar.Core.Services
             string endpointUrl = $"{server.BaseUrl.TrimEnd('/')}/api/users/me";
 
             _loggingService.Log($"Testing Romm API Connection via URL: [{endpointUrl.RedactSensitiveInfo(_settingsService.Settings.LoggingRedact)}]");
-            
-            var result = await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
 
-            if (!result.IsSuccess)
+            var response = await SendRequestAsync(HttpMethod.Get, endpointUrl, server, externalToken);
+
+            if (!response.IsSuccess)
             {
-                _loggingService.Log($"WARNING: Could not connect to [{endpointUrl}]: {result.FailureToCSV()}");
+                _loggingService.Log($"WARNING: Could not connect to [{endpointUrl}]: {response.FailureToCSV()}");
+                return response;
             }
-            else
+
+            string rawContent = string.Empty;
+            try
             {
+                _loggingService.Log($"Connection check successful. Validating response body.");
+                rawContent = await response.HttpResponse.Content.ReadAsStringAsync(externalToken);
+
+                // We don't necessarily need the user DTO here, but we ensure it's valid JSON
+                using var jsonDoc = JsonDocument.Parse(rawContent);
+
+                response.HttpResponse?.Dispose();
                 _loggingService.Log($"Connection to Romm Server Successful via URL: [{endpointUrl.RedactSensitiveInfo(_settingsService.Settings.LoggingRedact)}]");
-            }
+                _loggingService.Log($"Content:\r\n{rawContent}", LoggingLevel.Verbose);
 
-            return result;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _loggingService.Log($"Connection test failed during response validation. Content from server: {rawContent}");
+                response.HttpResponse?.Dispose();
+                return RommApiResponse.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
+            }
         }
 
         public async Task<RommApiResponse<List<PlatformDTO>>> GetRommPlatformsAsync(RommServer server, CancellationToken externalToken = default)
@@ -132,7 +149,7 @@ namespace RommStar.Core.Services
         }
 
         public async Task<RommApiResponse<RomCollectionDTO>> GetRomCollectionAsync(RommServer server, List<int> platformIds, int offset,
-                                CancellationToken externalToken = default)
+                         CancellationToken externalToken = default)
         {
             StringBuilder urlSB = new($"{server.BaseUrl.TrimEnd('/')}/api/roms?");
             foreach (var platformId in platformIds)
@@ -150,15 +167,24 @@ namespace RommStar.Core.Services
                 return RommApiResponse<RomCollectionDTO>.Fail(response.FailureReason, response.ExceptionMessage);
             }
 
+            string rawContent = string.Empty;
+
             try
             {
-                using var contentStream = await response.HttpResponse.Content.ReadAsStreamAsync();
-                var roms = await JsonSerializer.DeserializeAsync<RomCollectionDTO>(contentStream, _jsonOptions);
+                _loggingService.Log($"API query successful. Parsing collection data.");
+                rawContent = await response.HttpResponse.Content.ReadAsStringAsync(externalToken);
+
+                var roms = JsonSerializer.Deserialize<RomCollectionDTO>(rawContent, _jsonOptions);
+
                 response.HttpResponse?.Dispose();
+                _loggingService.Log($"Parsing successful.");
+                _loggingService.Log($"Content:\r\n{rawContent}", LoggingLevel.Verbose);
+
                 return RommApiResponse<RomCollectionDTO>.SuccessWithData(response.HttpResponse!, roms ?? new RomCollectionDTO());
             }
             catch (Exception ex)
             {
+                _loggingService.Log($"Parsing unsuccessful. Content from server: {rawContent}");
                 response.HttpResponse?.Dispose();
                 return RommApiResponse<RomCollectionDTO>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
             }
@@ -174,15 +200,24 @@ namespace RommStar.Core.Services
                 return RommApiResponse<RomDTO>.Fail(response.FailureReason, response.ExceptionMessage);
             }
 
+            string rawContent = string.Empty;
+
             try
             {
-                using var contentStream = await response.HttpResponse.Content.ReadAsStreamAsync();
-                var romDetail = await JsonSerializer.DeserializeAsync<RomDTO>(contentStream, _jsonOptions);
+                _loggingService.Log($"API query successful. Parsing ROM details.");
+                rawContent = await response.HttpResponse.Content.ReadAsStringAsync(externalToken);
+
+                var romDetail = JsonSerializer.Deserialize<RomDTO>(rawContent, _jsonOptions);
+
                 response.HttpResponse?.Dispose();
+                _loggingService.Log($"Parsing successful.");
+                _loggingService.Log($"Content:\r\n{rawContent}", LoggingLevel.Verbose);
+
                 return RommApiResponse<RomDTO>.SuccessWithData(response.HttpResponse!, romDetail ?? new RomDTO());
             }
             catch (Exception ex)
             {
+                _loggingService.Log($"Parsing unsuccessful. Content from server: {rawContent}");
                 response.HttpResponse?.Dispose();
                 return RommApiResponse<RomDTO>.Fail(RommApiFailureReason.UnexpectedError, ex.Message);
             }

@@ -41,6 +41,12 @@ namespace RommStar.Core.Sync
         /// </summary>
         public bool ProtectMetadata { get; set; } = false;
 
+
+        public override string ToString()
+        {
+            return $"[{GameName}]: LbLocalId: [{LocalId}], LbDatabaseId: [{LbDatabaseId}], RommIds: [{RommIds}], ServerId: [{RommServerId}]";
+        }
+
         public MetadataSyncHelperMap(string localId)
         {
             LocalId = localId;

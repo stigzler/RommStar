@@ -9,6 +9,14 @@ namespace RommStar.Core.Dtos.Romm
     /// </summary>
     public class RomDTO
     {
+        public override string ToString()
+        {
+            return $"[{Name}]: RommId: [{Id}], LaunchboxId [{LaunchboxId}], MultipleFiles: [{HasMultipleFiles}], NestedSingleFile: [{HasNestedSingleFile}], SimpleSingleFile: [{HasSimpleSingleFile}], " +
+                $"IsIdentified: [{IsIdentified}], MissingFromFilesystem: [{MissingFromFileSystem}], RommFilename: [{RommFilename}], " +
+                $"SiblingRomCount: [{SiblingRoms.Count}]";
+        }
+
+
         [JsonPropertyName("alternative_names")]
         public List<string>?
                             AlternativeNames { get; set; }

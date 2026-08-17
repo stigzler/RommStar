@@ -39,7 +39,10 @@ namespace RommStar.Core.Dtos.Romm
         [JsonPropertyName("is_top_level")]
         public bool IsTopLevel { get; set; }
 
-
+        public override string ToString()
+        {
+            return $"[{FileName} ({Category})] Filepath: [{FilePath}], IsTopLevel: [{IsTopLevel}], SizeBytes: [{FileSizeBytes}], Sha1: [{Sha1Hash}]";
+        }
 
     }
 }
