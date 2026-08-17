@@ -129,9 +129,6 @@ namespace RommStar.Core.Services
             endpointUrl.Append($"filename={filename}");
 
             var response = await SendRequestAsync(HttpMethod.Get, endpointUrl.ToString(), server, externalToken);
-
-
-
         }
 
         public async Task<RommApiResponse<RomCollectionDTO>> GetRomCollectionAsync(RommServer server, List<int> platformIds, int offset,
