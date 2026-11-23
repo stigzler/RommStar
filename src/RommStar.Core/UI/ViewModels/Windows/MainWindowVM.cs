@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using iNKORE.UI.WPF.Modern;
 using RommStar.Core.Services;
+using System.Runtime.CompilerServices;
 
 namespace RommStar.Core.UI.ViewModels.Windows
 {
@@ -20,7 +21,15 @@ namespace RommStar.Core.UI.ViewModels.Windows
 
         public MainWindowVM()
         {
-            
+
+        }
+
+        [RelayCommand]
+        private void OpenUpdateURL()
+        {
+            if (!UpdateInfo.IsUpdateAvailable) return;
+
+            UpdateChecker.OpenUrl(UpdateInfo.ReleasePageUrl ?? UpdateInfo.ZipDownloadUrl);
         }
 
         public MainWindowVM(SettingsService settingsService)
@@ -28,6 +37,7 @@ namespace RommStar.Core.UI.ViewModels.Windows
             _settingsService = settingsService;
 
             IsDarkMode = _settingsService.Settings.DarkModeEnabled;
+
             _ = CheckForUpdatesAsync();
         }
 

@@ -40,7 +40,8 @@ namespace RommStar.Core.UI.Views.Windows
             AboutPageView = new AboutPageView();
         }
 
-        private void NavigationView_SelectionChanged(iNKORE.UI.WPF.Modern.Controls.NavigationView sender, iNKORE.UI.WPF.Modern.Controls.NavigationViewSelectionChangedEventArgs args)
+        private void NavigationView_SelectionChanged(iNKORE.UI.WPF.Modern.Controls.NavigationView sender, 
+            iNKORE.UI.WPF.Modern.Controls.NavigationViewSelectionChangedEventArgs args)
         {
             // --- ANY PAGE TRANSITION TASKS ---
             if (Frame_Main.Content is ServersPageView oldServersPage)
@@ -85,6 +86,11 @@ namespace RommStar.Core.UI.Views.Windows
                 page = AboutPageView;
             }
 
+            else if (item == NavigationViewItem_Update)
+            {
+                ViewModel.OpenUpdateURLCommand.Execute(null);
+            }
+
             if (page != null)
             {
                 NavigationView_Root.Header = page.Title;
@@ -126,6 +132,11 @@ namespace RommStar.Core.UI.Views.Windows
 
         private void FontIcon_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+        }
+
+        private void NavigationViewItem_Update_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            ViewModel.OpenUpdateURLCommand.Execute(null);
         }
 
         private void DarkModeToggle_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)

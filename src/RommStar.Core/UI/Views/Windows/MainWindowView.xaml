@@ -102,9 +102,13 @@
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
-            <ui:NavigationViewItem Content="Update" x:Name="NavigationViewItem_Update" Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVisibilityConverter}}">
+            <ui:NavigationViewItem Content="Update Available" x:Name="NavigationViewItem_Update"
+                                   Visibility="{Binding UpdateInfo.IsUpdateAvailable, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ui:NavigationViewItem.ToolTip>
+                    <TextBlock Text="{Binding UpdateInfo.LatestVersion}"/>
+                </ui:NavigationViewItem.ToolTip>
                 <ui:NavigationViewItem.Icon>
-                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudArrowDown_24_Filled}" />
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudArrowDown_20_Filled}" Foreground="Orange"/>
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 
