@@ -1,0 +1,73 @@
+name: Build and Release
+run-name: Build and Release ${{ inputs.version || github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.9.3.0)'
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*'
+      - 'V*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve release version
+        id: version
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          $raw = $env:RELEASE_VERSION
+          if ([string]::IsNullOrWhiteSpace($raw)) {
+            if ($env:GITHUB_REF_TYPE -eq 'tag') {
+              $raw = $env:GITHUB_REF_NAME
+            } else {
+              $raw = Get-Content 'src/RommStar.Core/rommstar.version.txt' -Raw
+            }
+          }
+
+          $raw = $raw.Trim().TrimStart('v', 'V')
+          if ($raw -notmatch '^\d+\.\d+\.\d+(?:\.\d+)?$') {
+            throw "Invalid release version: '$raw'. Expected X.Y.Z or X.Y.Z.B."
+          }
+
+          $parts = $raw.Split('.')
+          $releaseVersion = "$($parts[0]).$($parts[1]).$($parts[2])"
+          $buildVersion = "$releaseVersion.0"
+          $tag = "v$releaseVersion"
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "build_version=$buildVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore ./src/RommStar.Core/RommStar.Core.csproj
+
+      - name: Build and package Release
+        shell: pwsh
+        run: dotnet build ./src/RommStar.Core/RommStar.Core.csproj -c Release -p:SkipVersionIncrement=true "-p:Version=${{ steps.version.outputs.build_version }}"
+
+      - name: Create GitHub Release and upload package
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          files: build/releases/RommStar_v${{ steps.version.outputs.build_version }}.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true

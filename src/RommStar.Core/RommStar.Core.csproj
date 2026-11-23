@@ -12,7 +12,7 @@
 	</PropertyGroup>
 
 	<!-- INCREMENT VERSION CODE -->
-	<Target Name="IncrementVersion" BeforeTargets="GetAssemblyVersion" Condition="'$(DesignTimeBuild)' != 'true' And '$(BuildingProject)' == 'true' And '$(VersionIncremented)' == ''">
+	<Target Name="IncrementVersion" BeforeTargets="GetAssemblyVersion" Condition="'$(DesignTimeBuild)' != 'true' And '$(BuildingProject)' == 'true' And '$(VersionIncremented)' == '' And '$(SkipVersionIncrement)' != 'true'">
 		<!-- Executes the PowerShell script, passing the current Configuration (Debug, Release, etc.) -->
 		<Exec Command="powershell.exe -ExecutionPolicy Bypass -File &quot;$(SolutionDir)build\scripts\versionIncrement.ps1&quot; -Config &quot;$(Configuration)&quot; -VersionFile &quot;$(MSBuildProjectDirectory)\rommstar.version.txt&quot;" ConsoleToMSBuild="true">
 			<!-- Captures the script's output and applies it to the .dll version properties -->
@@ -32,7 +32,7 @@
 
 		<PropertyGroup>
 			<!-- 1. Define our tidy output paths inside the build/releases directory -->
-			<ReleaseFolder>$(SolutionDir)build\releases\</ReleaseFolder>
+			<ReleaseFolder>$(MSBuildProjectDirectory)\..\..\build\releases\</ReleaseFolder>
 			<StagingRoot>$(ReleaseFolder)Staging\</StagingRoot>
 			<StagingRommStar>$(StagingRoot)RommStar\</StagingRommStar>
 
@@ -56,6 +56,11 @@
 		<!-- 6. Delete the unzipped staging folder to keep the 'Releases' directory perfectly clean -->
 		<RemoveDir Directories="$(StagingRoot)" />
 
+	</Target>
+
+	<Target Name="TriggerGitHubRelease" AfterTargets="PackageRelease" Condition="('$(Configuration)' == 'Release' Or '$(Configuration)' == 'Patch' Or '$(Configuration)' == 'Major') And '$(GITHUB_ACTIONS)' != 'true'">
+		<Message Text="Triggering GitHub Actions release build for v$(Version)..." Importance="high" />
+		<Exec Command="gh workflow run release.yml --ref master -f version=$(Version)" />
 	</Target>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
