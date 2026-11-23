@@ -7,9 +7,12 @@
         xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
         xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
         xmlns:properties="clr-namespace:RommStar.Core.Properties"
+        xmlns:convs="clr-namespace:RommStar.Core.UI.Converters"
+        xmlns:vm="clr-namespace:RommStar.Core.UI.ViewModels.Windows"           
         ui:WindowHelper.UseModernWindowStyle="True"
         ui:WindowHelper.SystemBackdropType="Mica"
-        mc:Ignorable="d" d:Background="#202020" d:Foreground="Gainsboro" d:Width="600" d:Height="400"
+        mc:Ignorable="d" d:Background="#202020" d:Foreground="Gainsboro" d:Width="400" d:Height="300"  
+        d:DataContext="{d:DesignInstance Type=vm:MainWindowVM, IsDesignTimeCreatable=True}"
         Icon="/RommStar.Core;component/Resources/rommIcon64px.ico"
         Height="{Binding Source={x:Static properties:Settings.Default},Path=WindowSize.Height}"
         Width="{Binding Source={x:Static properties:Settings.Default},Path=WindowSize.Width}"
@@ -27,10 +30,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemeResources  AccentColor="#553e98" />
                 <ui:XamlControlsResources />
-                <!--<ui:ColorPaletteResources />
-                <ui:ResourceDictionaryEx />-->
             </ResourceDictionary.MergedDictionaries>
-            <!--other resources here (if exists)-->
+            <convs:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -60,7 +61,7 @@
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.DoubleSwipeDown_20_Regular}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
-            
+
             <ui:NavigationViewItem Content="Servers" x:Name="NavigationViewItem_Servers">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.ServerSurfaceMultiple_16_Regular}" />
@@ -72,9 +73,9 @@
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Home}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>-->
-            
-            
-            
+
+
+
         </ui:NavigationView.MenuItems>
 
         <ui:NavigationView.FooterMenuItems>
@@ -95,9 +96,15 @@
                 <ui:NavigationViewItem.Content>
                     <ui:ToggleSwitch x:Name="DarkModeToggle" IsOn="{Binding IsDarkMode, Mode=TwoWay}" OnContent="" OffContent="" />
                 </ui:NavigationViewItem.Content>
-                
+
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.WeatherMoon_20_Regular}" MouseLeftButtonUp="FontIcon_MouseLeftButtonUp" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Update" x:Name="NavigationViewItem_Update" Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ui:NavigationViewItem.Icon>
+                    <ui:FontIcon Icon="{x:Static ui:FluentSystemIcons.CloudArrowDown_24_Filled}" />
                 </ui:NavigationViewItem.Icon>
             </ui:NavigationViewItem>
 

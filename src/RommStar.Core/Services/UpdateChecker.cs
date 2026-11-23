@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -35,31 +36,58 @@ public static class UpdateChecker
         var current = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0);
         current = NormalizeVersion(current);
 
-        using var response = await Http.GetAsync(
-            $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest",
-            cancellationToken);
-        response.EnsureSuccessStatusCode();
+        try
+        {
+            using var response = await Http.GetAsync(
+                $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest",
+                cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                Debug.WriteLine($"GitHub update check returned HTTP {(int)response.StatusCode} ({response.ReasonPhrase}).");
+                return null;
+            }
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        var release = await JsonSerializer.DeserializeAsync<GitHubRelease>(stream, cancellationToken: cancellationToken);
-        if (release is null || string.IsNullOrWhiteSpace(release.TagName))
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var release = await JsonSerializer.DeserializeAsync<GitHubRelease>(stream, cancellationToken: cancellationToken);
+            if (release is null || string.IsNullOrWhiteSpace(release.TagName))
+                return null;
+
+            var cleanTag = release.TagName.TrimStart('v', 'V');
+            if (!Version.TryParse(cleanTag, out var latest))
+                return null;
+
+            latest = NormalizeVersion(latest);
+            var zipAsset = release.Assets?.FirstOrDefault(asset =>
+                asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+
+            return new UpdateInfo(
+                IsUpdateAvailable: latest > current,
+                CurrentVersion: current,
+                LatestVersion: latest,
+                ReleasePageUrl: release.HtmlUrl,
+                ZipDownloadUrl: zipAsset?.BrowserDownloadUrl,
+                ReleaseNotes: release.Body);
+        }
+        catch (HttpRequestException ex)
+        {
+            Debug.WriteLine($"GitHub update check failed: {ex}");
             return null;
-
-        var cleanTag = release.TagName.TrimStart('v', 'V');
-        if (!Version.TryParse(cleanTag, out var latest))
+        }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            Debug.WriteLine($"GitHub update check timed out: {ex}");
             return null;
-
-        latest = NormalizeVersion(latest);
-        var zipAsset = release.Assets?.FirstOrDefault(asset =>
-            asset.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
-
-        return new UpdateInfo(
-            IsUpdateAvailable: latest > current,
-            CurrentVersion: current,
-            LatestVersion: latest,
-            ReleasePageUrl: release.HtmlUrl,
-            ZipDownloadUrl: zipAsset?.BrowserDownloadUrl,
-            ReleaseNotes: release.Body);
+        }
+        catch (JsonException ex)
+        {
+            Debug.WriteLine($"GitHub update response could not be parsed: {ex}");
+            return null;
+        }
+        catch (IOException ex)
+        {
+            Debug.WriteLine($"GitHub update response could not be read: {ex}");
+            return null;
+        }
     }
 
     public static void OpenUrl(string url)
