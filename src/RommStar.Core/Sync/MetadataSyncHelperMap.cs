@@ -66,7 +66,7 @@ namespace RommStar.Core.Sync
         /// <summary>
         /// Checks if a specific RomM ID exists inside the comma-separated RommIds string.
         /// </summary>
-        public bool ContainsId(int id)
+        public bool ContainsRommId(int id)
         {
             if (string.IsNullOrEmpty(RommIds)) return false;
 

@@ -14,7 +14,7 @@
         xmlns:prims="clr-namespace:RommStar.Core.Primitives"
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance Type=vm:SettingsPageVM, IsDesignTimeCreatable=True}"
-      d:DesignHeight="450" d:DesignWidth="800" d:Background="#202020" d:Foreground="Gainsboro"
+      d:DesignHeight="800" d:DesignWidth="800" d:Background="#202020" d:Foreground="Gainsboro"
       TextOptions.TextFormattingMode="Display"
       TextOptions.TextRenderingMode="ClearType"
       UseLayoutRounding="True"
@@ -154,10 +154,24 @@
                     </ui:SettingsExpander.Items>
                 </ui:SettingsExpander>
 
+                <ui:SettingsExpander Header="BigBox Settings" 
+                                     Description="Various settings for BigBox"
+                                     Margin="0,10,0,0"
+                                     IsExpanded="False">
+                    <ui:SettingsExpander.Items>
+                        <ui:SettingsCard Header="Show update Popups" Description="Will show a popup when various operations have finished (eg. installing a game or syncing a Platform)"  >
+                            <ui:ToggleSwitch IsOn="{Binding PluginSettings.BigBoxShowInstalledPopup, Mode=TwoWay}"/>
+                        </ui:SettingsCard>
+                        <ui:SettingsCard Header="Install Badges" Description="Will attempt to install RomM related badges into the chosen BigBox Theme. Note: may not work for all themes."  >
+                            <ui:ToggleSwitch IsOn="{Binding PluginSettings.BigBoxInstallBadges, Mode=TwoWay}"/>
+                        </ui:SettingsCard>
+                    </ui:SettingsExpander.Items>
+              
+                </ui:SettingsExpander>
 
                 <TextBlock Text="Global Sync Settings" Style="{StaticResource {x:Static ui:ThemeKeys.SubtitleTextBlockStyleKey}}" Margin="0,10,0,10"/>
 
-                <Border Background="#20000000" Padding="10" CornerRadius="10"> 
+                <Border Background="#20000000" Padding="10" CornerRadius="10">
                     <ucs:ExtendedSyncSettingsView ExtendedSyncSettings="{Binding PluginSettings.GlobalExtendedSyncSettings, Mode=TwoWay}"/>
                 </Border>
 

@@ -13,7 +13,7 @@ namespace RommStar.Core.Services
 
         LoggingService _loggingService;
 
-        Assembly _launchBoxAssembly = AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "LaunchBox");
+        Assembly _launchBoxAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "LaunchBox");
 
         private static MethodInfo _sendInfoNotificationMethod;
         private static MethodInfo _sendErrorNotificationMethod;
@@ -41,6 +41,7 @@ namespace RommStar.Core.Services
         {
             _sendInfoNotificationMethod?.Invoke(null, new object[] { message, duration });
             if (alsoLog) _loggingService.Log(message);
+
         }
 
         public void SendErrorNotification(string message, int duration = 2, bool alsoLog = false)

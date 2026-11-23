@@ -21,6 +21,13 @@ namespace RommStar.Core.Properties
         };
 
         /// <summary>
+        /// Shows popup message over BigBox for any Romm operations.
+        /// </summary>
+        public bool BigBoxShowInstalledPopup { get; set; } = true;
+
+        public bool BigBoxInstallBadges { get; set; } = false;
+
+        /// <summary>
         /// Default for Sync Jobs: hides success log entries if true.
         /// </summary>
         public bool HideSuccessEntries { get; set; } = true;

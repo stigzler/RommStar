@@ -17,7 +17,7 @@ namespace RommStar.Core.Plugins.GameMenuItems
         FixToNotInstalledMenuItem fixToNotInstalled;
         FixAutomaticallyMenuItem fixAutomatically;
 
-        public IEnumerable<IGameMenuItem> Children => new IGameMenuItem[] { fixToInstalled, fixToNotInstalled, fixAutomatically };
+        public IEnumerable<IGameMenuItem> Children => new IGameMenuItem[] {fixAutomatically, fixToInstalled, fixToNotInstalled };
 
         public bool Enabled => true;
 

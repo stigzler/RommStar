@@ -15,13 +15,20 @@ namespace RommStar.Core.Plugins
     {
         public IEnumerable<IGameMenuItem> GetMenuItems(params IGame[] selectedGames)
         {
-            IGameMenuItem syncPlatform = new SyncPlatformGameMenuItem(selectedGames.LastOrDefault());
+            if (PluginHelper.StateManager.IsBigBox) return null;
+
+            // Test if game entry has a mapped RomM server rom
+            // Done by testing for the presence of the Romm_RomIds custom field against the IGame entry
+            // If doesn't have it - likely a local launchbox IGame
+            if (!selectedGames[0].GetAllCustomFields().Any(cf => cf.Name == "Romm_RomIds")) return null;
+
+            IGameMenuItem syncPlatform = new SyncPlatformLbGameMenuItem(selectedGames.LastOrDefault());
 
             IGameMenuItem openAdmin = new OpenAdminWindowMenuItem();
 
             IGameMenuItem uninstallGame = new UninstallGameMenuItem(selectedGames.LastOrDefault());
 
-            IGameMenuItem fixParentItem = new FixParentMenuItem(selectedGames.LastOrDefault());
+            IGameMenuItem fixParentItem = new FixParentMenuItem(selectedGames.LastOrDefault());            
 
             // hacky but no other way
             GameMenuItem separator = new GameMenuItem()
@@ -35,7 +42,7 @@ namespace RommStar.Core.Plugins
             {
                 Icon = Properties.Resources.rommIcon64px,
                 Caption = "RomM",
-                Enabled = true,
+                Enabled = true,                    
                 //Children = new List<IGameMenuItem>() { syncPlatform,openAdmin    } // NB uninstallGame must be last else crashes subsequent menu items
             };
 
@@ -47,7 +54,6 @@ namespace RommStar.Core.Plugins
             if (selectedGames.LastOrDefault()?.Installed == true) gameMenuItems.Add(uninstallGame);
 
             gameMenuItems.Add(openAdmin);
-
 
             rommMenuItem.Children = gameMenuItems;
 

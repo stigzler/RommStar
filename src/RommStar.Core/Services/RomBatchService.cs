@@ -312,7 +312,12 @@ namespace RommStar.Core.Services
                                 // 3. If the queue is clear, raise the custom skipped message
                                 if (!platformHasMoreItems)
                                 {
-                                    _notificationService.SendInfoNotification($"Romm Files Sync complete for [{targetPlatform}]. All required files were already present on disk.", 1);
+                                    string result = $"RomM Files Sync complete for [{targetPlatform}]. All required files were already present on disk.";
+                                    _notificationService.SendInfoNotification(result, 1);
+                                    if (PluginHost.Instance.BigBoxSetToShowPopup())
+                                    {
+                                        BigBoxGlobalOverlayHelper.ShowMessage($"RomM Rom Files Sync complete for:\r\n\r\n{targetPlatform}", 4);
+                                    }
                                 }
                             }
 
@@ -439,7 +444,7 @@ namespace RommStar.Core.Services
                         // 8. Cleanup & remove from queue on success
                         foreach (var completedItem in currentBatch)
                         {
-                            _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.LaunchboxId == completedItem.LaunchboxId 
+                            _settingsService.Settings.RomDownloadQueue.RemoveAll(q => q.LaunchboxId == completedItem.LaunchboxId
                             && q.IsQuarantined == false);
                         }
                         _settingsService.Save();
@@ -454,7 +459,12 @@ namespace RommStar.Core.Services
                             // If nothing is left for this platform, the whole system is done!
                             if (!platformHasMoreItems)
                             {
-                                _notificationService.SendInfoNotification($"Romm Files Sync complete for [{targetPlatform}].", 1);
+                                string result = $"Romm Files Sync complete for [{targetPlatform}].";
+                                _notificationService.SendInfoNotification(result, 1);
+                                if (PluginHost.Instance.BigBoxSetToShowPopup())
+                                {
+                                    BigBoxGlobalOverlayHelper.ShowMessage($"RomM Rom Files Sync complete for:\r\n\r\n{targetPlatform}", 4);
+                                }
                             }
                         }
 

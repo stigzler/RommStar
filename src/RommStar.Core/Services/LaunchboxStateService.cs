@@ -60,43 +60,48 @@ namespace RommStar.Core.Services
         /// </summary>
         /// <param name="launchboxPlatformName"></param>
         /// <returns></returns>
-        internal async Task SyncPlatform(string launchboxPlatformName)
+        internal async Task<string> SyncPlatform(string launchboxPlatformName)
         {
             _loggingService.Log($"Setting up Platform Sync initiated from Launchbox UI for: {launchboxPlatformName}");
 
             // parameter computation and checks ----------------------------------------------------------
 
             string errorPrefix = $"ERROR: Could not start RomM Sync for [{launchboxPlatformName}]";
+            string resultText = String.Empty;
 
             // platform
             IPlatform platform = PluginHelper.DataManager.GetPlatformByName(launchboxPlatformName);
             if (platform == null)
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. Could not retrieve the Launchbox Platform", alsoLog: true);
-                return;
+                resultText = $"{errorPrefix}. Could not retrieve the Launchbox Platform";
+                _notificationService.SendErrorNotification(resultText, alsoLog: true);
+                return resultText;
             }
 
             if (_syncManager.PlatformQueuedAndIncomplete(platform.Name))
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. A Sync Job for this Platform is already in the queue.", alsoLog: true);
-                return;
+                resultText = $"{errorPrefix}. A Sync Job for this Platform is already in the queue.";
+                _notificationService.SendErrorNotification(resultText, alsoLog: true);
+                return resultText;
             }
 
             // platform roms folder
             string platformRomsFolder = _launchboxDataService.GetLaunchboxRomsFolderPath(launchboxPlatformName);
             if (string.IsNullOrEmpty(platformRomsFolder))
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. Could not determine Platform Rom folder or it does not exist", duration: 2, alsoLog: true);
-                return;
+                resultText = $"{errorPrefix}. Could not determine Platform Rom folder or it does not exist";
+                _notificationService.SendErrorNotification(resultText, duration: 2, alsoLog: true);
+                return resultText;
             }
 
             // sync settings
             var platformSyncSettings = _settingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss => pss.LaunchboxPlatformName == launchboxPlatformName);
             if (platformSyncSettings == null)
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. Could not find Sync settings for this platform. " +
-                    $"Have you set them up in [Tools > RommStar]?", duration: 2, alsoLog: true);
-                return;
+                resultText = $"{errorPrefix}. Could not find Sync settings for this platform. " +
+                    $"Have you set them up in [Tools > RommStar]?";
+                _notificationService.SendErrorNotification(resultText, duration: 2, alsoLog: true);
+                return resultText;
             }
 
             // RomM server
@@ -104,24 +109,26 @@ namespace RommStar.Core.Services
             RommServer rommServer = (RommServer)_settingsService.Settings.RommServers.Where(rs => rs.Id == romServerId).FirstOrDefault();
             if (rommServer == null)
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. This platform's RomM server not in the RommStar Server list. " +
-                    $"Platform may be linked with an old/deleted server.", duration: 2, alsoLog: true);
-                return;
+                resultText = $"{errorPrefix}. This platform's RomM server not in the RommStar Server list. " +
+                    $"Platform may be linked with an old/deleted server.";
+                _notificationService.SendErrorNotification(resultText, duration: 2, alsoLog: true);
+                return resultText;
             }
 
             List<int> rommPlatformIds = platformSyncSettings.RommServerPlatforms.Select(p => p.RommId).ToList();
             if (rommPlatformIds.Count == 0)
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. No RomM platforms set against this Launchbox Platform in Sync Settings. " +
-                    $"Amend via [Tools > RomM > Platforms].", duration: 2, alsoLog: true);
-                return;
+                resultText = $"{errorPrefix}. No RomM platforms set against this Launchbox Platform in Sync Settings. " +
+                    $"Amend via [Tools > RomM > Platforms].";
+                _notificationService.SendErrorNotification(resultText, duration: 2, alsoLog: true);
+                return resultText;
             }
 
             ExtendedSyncSettings resolvedExtSyncSettings = platformSyncSettings.ExtendedSyncSettings.ApplySettings ?
                                                             platformSyncSettings.ExtendedSyncSettings : _settingsService.Settings.GlobalExtendedSyncSettings;
 
-            if (platformSyncSettings.ExtendedSyncSettings.ApplySettings) _loggingService.Log("Global Sync settings being used given platform override disabled");
-            else _loggingService.Log("Platform Sync settings being used given platform override enabled");
+            if (platformSyncSettings.ExtendedSyncSettings.ApplySettings) _loggingService.Log("Platform Sync settings being used given platform override enabled");
+            else _loggingService.Log("Global Sync settings being used given platform override disabled");
 
             IPlatformFolder[] mediaFolders = platform.GetAllPlatformFolders();
 
@@ -129,18 +136,19 @@ namespace RommStar.Core.Services
 
             if (string.IsNullOrEmpty(platformDefaultEmulatorID))
             {
-                _notificationService.SendErrorNotification($"WARNING: Whilst starting RomM Sync for {launchboxPlatformName} no default emulator was" +
-                    $" found for this Platform. This will mean all imported games will have no emulator set. Consider setting this and re-syncing.",
+                resultText = $"WARNING: Whilst starting RomM Sync for {launchboxPlatformName} no default emulator was" +
+                    $" found for this Platform. This will mean all imported games will have no emulator set. Consider setting this and re-syncing.";
+                _notificationService.SendErrorNotification(resultText,
                     duration: 2, alsoLog: true);
             }
 
             var apiQuery = await _rommService.GetRommPlatformsAsync(rommServer);
             if (!apiQuery.IsSuccess)
             {
-                _notificationService.SendErrorNotification($"{errorPrefix}. Error communicating with rom server [{rommServer.ServerName}]. " +
-                    $"Reason: [{apiQuery.FailureReason}]. Any Exception: [{apiQuery.ExceptionMessage}].  Http response: [{apiQuery.HttpResponse}] ",
-                    duration: 2, alsoLog: true);
-                return;
+                resultText = $"{errorPrefix}. Error communicating with rom server [{rommServer.ServerName}]. " +
+                    $"Reason: [{apiQuery.FailureReason}]. Any Exception: [{apiQuery.ExceptionMessage}].  Http response: [{apiQuery.HttpResponse}] ";
+                _notificationService.SendErrorNotification(resultText, duration: 2, alsoLog: true);
+                return resultText;
             }
 
             var lbPlatformRommPlatforms = ((List<PlatformDTO>)apiQuery.Data).Where(rp => rommPlatformIds.Contains(rp.RommId)).ToList();
@@ -165,6 +173,8 @@ namespace RommStar.Core.Services
                 sb.Append($"\r\n\r\nRom files will download in the background, persisting across Launchbox sessions.");
             }
             _notificationService.SendInfoNotification(sb.ToString(), duration: 2, alsoLog: false);
+           
+            return $"RomM Sync Started Successfully";
         }
 
 
@@ -185,7 +195,7 @@ namespace RommStar.Core.Services
             bool iGameUpdated = false;
             foreach (var file in filesToDelete)
             {
-                if (File.Exists(file))
+                if (File.Exists(file) && Path.GetFileNameWithoutExtension( file) != "Game Installation Required")
                 {
                     try
                     {
@@ -197,7 +207,7 @@ namespace RommStar.Core.Services
                             game.Status = "Not Installed";
                             game.ApplicationPath = Constants.RomPlaceholder;
                             iGameUpdated = true;
-                        }                    
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -209,16 +219,35 @@ namespace RommStar.Core.Services
 
             PluginHelper.DataManager.Save();
             await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
-            await LaunchboxViewsHelper.SoftRefreshUi();
-            _notificationService.SendInfoNotification($"Game successfully Uninstalled: {game.Title}");
+
+            if (PluginHelper.StateManager.IsBigBox)
+            {
+                // Do Bigbox Notification
+                if (_settingsService.Settings.BigBoxShowInstalledPopup)
+                {
+                    BigBoxGlobalOverlayHelper.ShowMessage($"{game.Title} ({game.Platform}) Uninstalled successfully.");
+                }
+            }
+            else
+            {
+                // Do Launchbox notification
+                await LaunchboxViewsHelper.SoftRefreshUi();
+                _notificationService.SendInfoNotification($"Game successfully Uninstalled: {game.Title}");
+            }
+
+
 
         }
+
+     
 
 
         public async Task InstallGameOnDemandAsync(IGame game)
         {
-            ILaunchBoxMainViewModel lbvm = PluginHelper.LaunchBoxMainViewModel;
-            lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Indeterminate);
+            //ILaunchBoxMainViewModel lbvm = PluginHelper.LaunchBoxMainViewModel;
+            //IBigBoxMainViewModel bbvm = PluginHelper.BigBoxMainViewModel;
+
+            //lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Indeterminate);
 
             // Declare this outside the try block so the catch block can see it for cleanup
             string targetZipPath = string.Empty;
@@ -316,14 +345,14 @@ namespace RommStar.Core.Services
                 }
                 else
                 {
-                    lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Error);
+                    //lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Error);
                     _notificationService.SendErrorNotification($"Unknown Error installing {game.Title} ({game.Platform})");
                     game.Status = "Not Installed";
                 }
 
                 PluginHelper.DataManager.Save();
                 _notificationService.SendInfoNotification($"{game.Title} ({game.Platform}) Installed", 1);
-                lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.None);
+                //lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.None);
             }
             catch (OperationCanceledException)
             {
@@ -341,7 +370,7 @@ namespace RommStar.Core.Services
             }
             catch (Exception ex)
             {
-                lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Error);
+                //lbvm.SetProperty("TaskbarState", System.Windows.Shell.TaskbarItemProgressState.Error);
                 game.Status = "Not Installed";
                 _notificationService.SendErrorNotification($"Error installing {game.Title} ({game.Platform}): {ex.Message}", 2);
             }
@@ -355,8 +384,11 @@ namespace RommStar.Core.Services
         internal async Task OnGameSelectionChanged()
         {
             var selectedGames = PluginHelper.StateManager.GetAllSelectedGames();
+
+            //if (PluginHelper.BigBoxMainViewModel.)
+
             if (selectedGames != null && selectedGames.Count() > 0)
-            {
+            {                          
                 await LaunchboxViewsHelper.UpdatePlayButtonUi(selectedGames[0]);
             }
         }
@@ -394,12 +426,8 @@ namespace RommStar.Core.Services
         /// <exception cref="OperationCanceledException"></exception>
         internal async Task OnBeforeLaunch(IGame game, IEmulator emulator, IAdditionalApplication additionalApplication)
         {
-
-            //throw new OperationCanceledException("RommStar cancelled the launch as is installing the game.");
-            //return;
-
-
             // At this stage, game may or may not be installed
+
             if (game == null && additionalApplication == null) return;
 
             _loggingService.Log($"Game Launching: Before Launch operations for: Game: {game?.Title}, Emulator: {emulator?.Title}, " +
@@ -452,7 +480,7 @@ namespace RommStar.Core.Services
                 game.Status = "Installing";
 
                 // Change Launchbox "Play" button to "Installing" animation.
-              _ =  LaunchboxViewsHelper.UpdatePlayButtonUi(game); // no await b/c fire and forget
+                _ = LaunchboxViewsHelper.UpdatePlayButtonUi(game); // no await b/c fire and forget
 
                 // Now set the emulator to an essentially empty exe to fake game launch
                 // (No game launch cancel facility in LB sadly)
@@ -464,7 +492,26 @@ namespace RommStar.Core.Services
 
 
                 // Download ROM and install
-                _ = Task.Run(() => InstallGameOnDemandAsync(game));
+
+                if (PluginHelper.StateManager.IsBigBox)
+                {
+                    game.Status = "Installing";
+
+                    _ = LaunchboxViewsHelper.UpdatePlayButtonUi(game); // updates button to "Installing..."
+
+                    await InstallGameOnDemandAsync(game);
+
+                    _ = LaunchboxViewsHelper.UpdatePlayButtonUi(game); // updates button to "Play" on successfull Install
+
+                    if (_settingsService.Settings.BigBoxShowInstalledPopup)
+                    {
+                        BigBoxGlobalOverlayHelper.ShowMessage($"{game.Title} ({game.Platform}) Installed.");
+                    }
+                }
+                else
+                {
+                    _ = Task.Run(() => InstallGameOnDemandAsync(game));
+                }
             }
 
             // This covers user launching AdditionalApp directly form UI whilst game is installing.
@@ -475,7 +522,7 @@ namespace RommStar.Core.Services
                 emulator.CommandLine = Constants.DummyEmulatorCmd;
             }
 
-            throw new OperationCanceledException("RommStar cancelled the launch as is installing the game.");
+            //throw new OperationCanceledException("RommStar cancelled the launch as is installing the game.");
         }
     }
 }

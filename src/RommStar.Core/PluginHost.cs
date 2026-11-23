@@ -31,8 +31,8 @@ namespace RommStar.Core
     {
         private static readonly object _padlock = new object();
         private static PluginHost? _instance;
-
         private readonly LaunchboxStateService _launchboxStateService;
+        private readonly LaunchboxDataService _launchboxDataService;
         private readonly LoggingService _loggingService;
         private readonly RomBatchService _romBatchService;
         private readonly IServiceProvider _serviceProvider;
@@ -77,7 +77,15 @@ namespace RommStar.Core
             };
         }
 
+        internal bool LbPlatformHasRomMPlatformMapped(string lbPlatform)
+        {
+            return _settingsService.Settings.PlatformSyncSettings.Any(pss => pss.LaunchboxPlatformName == lbPlatform);
+        }
 
+        internal bool BigBoxSetToShowPopup()
+        {
+            return _settingsService.Settings.BigBoxShowInstalledPopup;
+        }
 
         private PluginHost()
         {
@@ -93,6 +101,7 @@ namespace RommStar.Core
             _loggingService = _serviceProvider.GetRequiredService<LoggingService>();
             _settingsService = _serviceProvider.GetRequiredService<SettingsService>();
             _launchboxStateService = _serviceProvider.GetRequiredService<LaunchboxStateService>();
+            _launchboxDataService = _serviceProvider.GetService<LaunchboxDataService>();
             _romBatchService = _serviceProvider.GetRequiredService<RomBatchService>();
             _notificationsService = _serviceProvider.GetRequiredService<NotificationService>();
 
@@ -172,16 +181,21 @@ namespace RommStar.Core
 
         internal async void LaunchboxEventReceived(string eventType)
         {
-            _loggingService.Log($"Launchbox event received: {eventType}", LoggingLevel.Verbose);
+            if (eventType != SystemEventTypes.SelectionChanged) _loggingService.Log($"Launchbox event received: {eventType}", LoggingLevel.Verbose);
+
             switch (eventType)
             {
                 case SystemEventTypes.PluginInitialized:
-
                     break;
                 case SystemEventTypes.LaunchBoxStartupCompleted:
                     _romBatchService.StartService();
                     break;
                 case SystemEventTypes.GameStarting:
+                    break;
+                case SystemEventTypes.BigBoxStartupCompleted:
+                    BigBoxGlobalOverlayHelper.InitializeGlobalOverlay();
+                    if (_settingsService.Settings.BigBoxInstallBadges) BigBoxRommStarIconsInjector.PatchThemeXaml(_launchboxDataService.BigBoxSettings.Theme);       
+                    _romBatchService.StartService();
                     break;
                 case SystemEventTypes.BigBoxShutdownBeginning:
                     _romBatchService.StopService();
@@ -194,11 +208,9 @@ namespace RommStar.Core
                 case SystemEventTypes.SelectionChanged:
                     await _launchboxStateService.OnGameSelectionChanged();
                     break;
+
             }
         }
-
-
-
 
         internal async void LaunchboxMenuItemSelected(LaunchboxMenuItem menuItem)
         {
@@ -222,8 +234,15 @@ namespace RommStar.Core
             {
                 case GameLaunchingEvent.BeforeLaunch:
 
-                    await _launchboxStateService.OnBeforeLaunch(game, emulator, app);
-
+                    if (game?.Status != "Installing" && game?.Status != "Uninstalling")
+                    {
+                        await _launchboxStateService.OnBeforeLaunch(game, emulator, app);
+                    }
+                    else if (game?.Status == "Installing")
+                    {
+                        //BigBoxPopupHelper.ShowPopupMessage("Please wait for the game to finish installing...");
+                        BigBoxGlobalOverlayHelper.ShowMessage("Please wait for the game to finish installing...");
+                    }
                     break;
 
                 case GameLaunchingEvent.AfterLaunch:
@@ -240,9 +259,9 @@ namespace RommStar.Core
 
         }
 
-        internal async void SyncPlatform(string platformName)
+        internal async Task<string> SyncPlatform(string platformName)
         {
-            await _launchboxStateService.SyncPlatform(platformName);
+            return await _launchboxStateService.SyncPlatform(platformName);
         }
 
 
@@ -337,28 +356,6 @@ namespace RommStar.Core
             return null;
         }
 
-        // Left in given possible ongoign difficulties with inkore givne this is plugin not an app. 
-        //private void EnsureInkoreResourcesLoaded()
-        //{
-        //    var app = Application.Current;
-        //    if (app == null) return;
-
-        //    // Avoid duplicates
-        //    bool alreadyLoaded = app.Resources.MergedDictionaries
-        //        .OfType<iNKORE.UI.WPF.Modern.ThemeResources>()
-        //        .Any();
-
-        //    if (alreadyLoaded) return;
-
-        //    // Add inkore dictionaries to the application resources so templates can always find them.
-        //    app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.ThemeResources());
-        //    app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.Controls.XamlControlsResources());
-        //    //app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.ColorPaletteResources());
-        //    //app.Resources.MergedDictionaries.Add(new iNKORE.UI.WPF.Modern.ResourceDictionaryEx());
-        //}
-
-
-
         internal async Task LaunchAdminWindow()
         {
             var adminWindow = _serviceProvider.GetRequiredService<MainWindowView>();
@@ -383,7 +380,7 @@ namespace RommStar.Core
         {
             if (install)
             {
-            foreach (IGame game in games)
+                foreach (IGame game in games)
                 {
                     // Check if game is already installing. If so - do not do install again
                     if (game.Status == "Installing" || game.Installed == true) continue;
@@ -400,7 +397,7 @@ namespace RommStar.Core
                 {
                     // Check if game is already installing. If so - do not do install again
                     if (game.Status == "Installing" || game.Installed == false) continue;
-                     _ = _launchboxStateService.UninstallGame(game);
+                    _ = _launchboxStateService.UninstallGame(game);
                 }
             }
         }

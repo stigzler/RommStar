@@ -40,6 +40,9 @@ namespace RommStar.Core.UI.Converters
                 case SyncStatus.Completed:
                     return "Sync Complete - No Warnings or Errors";
                     break;
+                case SyncStatus.Cancelled:
+                    return "Sync Cancelled";
+                    break;
             }
 
             return "Sync state indeterminate";

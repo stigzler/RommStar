@@ -88,7 +88,8 @@ namespace RommStar.Core.Sync
         {
             _loggingService.Log($"Cancel Platform Sync request received for Job Id: [{jobId}]");
             var card = ActiveSyncJobs.FirstOrDefault(j => j.Id == jobId);
-            if (card != null && (card.Status == SyncStatus.Queued || card.Status == SyncStatus.SyncingFiles || card.Status == SyncStatus.ProcessingMetadata))
+            if (card != null && (card.Status == SyncStatus.Queued || card.Status == SyncStatus.SyncingFiles
+                || card.Status == SyncStatus.ProcessingMetadata))
             {
                 _loggingService.Log("Job found", Primitives.LoggingLevel.Verbose);
 
@@ -105,7 +106,7 @@ namespace RommStar.Core.Sync
                     }
                     catch (ObjectDisposedException ex)
                     {
-                        _loggingService.Log($"Error whislt trying to set the cancellaiton token: {ex.Message}");
+                        _loggingService.Log($"Error whilst trying to set the cancellation token: {ex.Message}");
                     }
                 }
             }
@@ -145,7 +146,7 @@ namespace RommStar.Core.Sync
                 LaunchBoxPlatformName = lbPlatformName,
                 ServerName = targetServer.ServerName,
                 Status = SyncStatus.Queued,
-                RomCount = romCount != null? (int)romCount: 0,
+                RomCount = romCount != null ? (int)romCount : 0,
                 SupressSuccessLogItems = _settingsService.Settings.HideSuccessEntries,
             };
 
@@ -192,7 +193,7 @@ namespace RommStar.Core.Sync
                     long totalSizeBytes, string serverId, List<RomQueueItem> stagedQueue, bool notifyLaunchbox = false,
                     List<RomFileDTO>? aggregatedFiles = null)
         {
-            _loggingService.Log($"Request made to enqueue rom for batch download: {romDto.Name}",Primitives.LoggingLevel.Verbose);
+            _loggingService.Log($"Request made to enqueue rom for batch download: {romDto.Name}", Primitives.LoggingLevel.Verbose);
             var existingQueue = _settingsService.Settings.RomDownloadQueue;
 
             // 1. Check if the game is already in the persisted settings queue
@@ -841,9 +842,10 @@ namespace RommStar.Core.Sync
                                     if (hasFiles)
                                     {
                                         var singleFile = detailedRomDto.Files.First();
+
                                         if (!string.IsNullOrEmpty(singleFile.FileName))
                                         {
-                                            if (platformTask.UpdateMetadata && targetedIGame != null)
+                                            if (targetedIGame != null && platformTask.UpdateMetadata)
                                             {
                                                 // CRITICAL FIX: Always keep it as a placeholder to light up the Install button 
                                                 // unless we are explicitly running a profile that downloads the masterSiblingRomDtoFile right now.
@@ -856,7 +858,12 @@ namespace RommStar.Core.Sync
                                     }
                                     else if (!string.IsNullOrEmpty(detailedRomDto.RommFilename))
                                     {
-                                        if (platformTask.UpdateMetadata && targetedIGame != null)
+                                        // the targetedIGame.ApplicationPath checks catch edge case where game is installed in local launchbox db
+                                        // and then updated to a romm rom file. In this instance, you don't want apppath updating to Constants.RomPlaceholder
+                                        // as launchbox has already populated this with the locally added file. This may need to be done for other
+                                        // game sync cases (multi-rom + sibling sets).
+                                        if (platformTask.UpdateMetadata && targetedIGame != null 
+                                            && !(targetedIGame.ApplicationPath != Constants.RomPlaceholder && File.Exists(targetedIGame.ApplicationPath)))
                                         {
                                             // CRITICAL FIX: Same logic for the filename fallback path
                                             targetedIGame.ApplicationPath = installRoms
@@ -880,7 +887,7 @@ namespace RommStar.Core.Sync
                                         }
 
                                         EnqueueBatchRomDownloadJob(platformTask, targetedIGame, detailedRomDto, new List<int> { detailedRomDto.Id ?? 0 },
-                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString(), stagedBatchDownloadItems, platformTask.NotifyLauncboxWhenMetadataComplete);
+                                            masterFile, totalSize, platformTask.TargetServer.Id.ToString(), stagedQueue: stagedBatchDownloadItems, platformTask.NotifyLauncboxWhenMetadataComplete);
                                     }
 
                                     if (targetedIGame != null && detailedRomDto.Id.HasValue && !processedGamesLookup.ContainsKey(detailedRomDto.Id.Value))
@@ -1030,10 +1037,10 @@ namespace RommStar.Core.Sync
 
                                         UpdateIGameInstallStatus(masterIGameInstance, allRomFilesOnLocalDisk, masterRomFileDtoPath);
 
-                                    }           
+                                    }
 
                                     platformTask.UiCard.AddLog($"{actionPerformed.ToString()}d metadata for [{masterRomDto.Name}] <Sibling Set Game>. Already Installed: [{allRomFilesOnLocalDisk}]. Siblings: [{masterRomDto.SiblingRoms?.Count()}]", PlatformSyncCardVM.LogType.Success);
-                                
+
                                 }
                                 else
                                 {
@@ -1245,16 +1252,29 @@ namespace RommStar.Core.Sync
                     {
                         // Capture partial runtime up to the point of structural failure:
                         jobStopwatch.Stop();
+
                         string partialDuration = FormatElapsedTime(jobStopwatch.Elapsed);
 
                         platformTask.UiCard.ErrorCount++;
 
                         // Injected time elapsed before crash:
-                        platformTask.UiCard.AddLog($"[SyncManager] Fatal error executing platform run after {partialDuration}: {ex.Message}", PlatformSyncCardVM.LogType.Error);
+                        string error = $"[SyncManager] SYNC DID NOT FINISH. Fatal error executing platform run after {partialDuration}: {ex.Message}. Cancelling job.";
+                        _loggingService.Log($"ERROR: {error}");
+                        platformTask.UiCard.AddLog(error, PlatformSyncCardVM.LogType.Error);
+
+                        Thread.Sleep(500);
+
+                        CancelPlatformSync(platformTask.Id);
+
+                        //platformTask.UiCard.Status = SyncStatus.StoppedWithErrors;
+
+                        Thread.Sleep(500);
                     }
                     finally
                     {
-                        if (platformTask.UiCard.WarningCount > 0 && platformTask.UiCard.ErrorCount > 0)
+                        if (platformTask.UiCard.Status == SyncStatus.Cancelled)
+                            { }
+                        else if (platformTask.UiCard.WarningCount > 0 && platformTask.UiCard.ErrorCount > 0)
                             platformTask.UiCard.Status = SyncStatus.CompletedWithWarningsAndErrors;
                         else if (platformTask.UiCard.WarningCount > 0)
                             platformTask.UiCard.Status = SyncStatus.CompletedWithWarnings;
@@ -1272,10 +1292,44 @@ namespace RommStar.Core.Sync
 
                     if (platformTask.NotifyLauncboxWhenMetadataComplete)
                     {
-                        StringBuilder sb = new StringBuilder($"Romm Metadata/Media Sync complete for [{platformTask.PlatformName}].");
-                        if (platformTask.DownloadRomFiles) sb.Append($" Downloading rom files started in the background. You can quit Launchbox at any time. " +
-                            $"Downloads will be resumed on restart.");
+                        StringBuilder sb = new StringBuilder();
+
+                        switch (platformTask.UiCard.Status)
+                        {
+                            // Below deosn't need error count check to determine 'CompletedWithErrors' b/c if in LB FE, you cannot cancel, therefore must be stopped.
+                            case SyncStatus.Cancelled:
+                                sb.Append($"Sync did not complete for [{platformTask.PlatformName}]. Open admin window for details.");
+                                break;
+                            default:
+                                sb.Append($"Romm Metadata/Media Sync {platformTask.UiCard.Status} for [{platformTask.PlatformName}].");
+                                break;
+
+                        }
+
+                        if (platformTask.DownloadRomFiles) sb.Append($" Downloading rom files started in the background. You can quit at any time. " +
+                                $"Downloads will be resumed on restart.");
+
                         _notificationService.SendInfoNotification(sb.ToString(), 2);
+
+                        if (PluginHost.Instance.BigBoxSetToShowPopup())
+                        {
+                            sb = new StringBuilder();
+                            switch (platformTask.UiCard.Status)
+                            {
+                                //case SyncStatus.Completed:
+                                //    sb.Append($"Romm Metadata/Media Sync completed successfully for [{platformTask.PlatformName}].");                  
+                                //    break;
+                                case SyncStatus.Cancelled:
+                                    sb.Append($"Sync did not complete for [{platformTask.PlatformName}]. See log for details.");
+                                    break;
+                                default:
+                                    sb.Append($"RomM Metadata/Media Sync complete for:\r\n\r\n{platformTask.PlatformName}");
+                                    break;
+
+                            }
+                            BigBoxGlobalOverlayHelper.ShowMessage(sb.ToString(), 4);
+                        }
+
                     }
                 }
             }

@@ -68,6 +68,8 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private bool
             _addLaunchboxPlatformDialogOpen = false;
 
+        private bool _serverResponsive = false;
+
 
         /// <summary>
         /// Controls overlapping InfoBar calls
@@ -512,16 +514,17 @@ namespace RommStar.Core.UI.ViewModels.Pages
         /// <param name="showMessage">false suppresses info bar (for silent running calls - pip color suffices)</param>
         /// <param name="forceRefesh">forces update of RommPlatformDTOs. Otherwise follows cache system where initial load is canon of RommServer platforms</param>
         /// <returns></returns>
-        private async Task LoadServerPlatformsAsync(RommServerItemVM rommServerItem, bool showMessage = false, bool forceRefesh = false)
+        private async Task<string> LoadServerPlatformsAsync(RommServerItemVM rommServerItem, bool showMessage = false, bool forceRefesh = false)
         {
-            if (rommServerItem == null) return;
+            if (rommServerItem == null) return null;
+            string successText = String.Empty;
 
             try
             {
                 // Return early if cached and not forcing refresh
                 if (!forceRefesh && _rommPlatformCache.ContainsKey(rommServerItem.RommServer.Id))
                 {
-                    return;
+                    return null;
                 }
 
                 _loggingService.Log($"Starting switching selected Romm Server to: [{rommServerItem.RommServer.ServerName}]");
@@ -541,7 +544,13 @@ namespace RommStar.Core.UI.ViewModels.Pages
                     {
                         OnPropertyChanged(nameof(CurrentServerPlatforms));
                     }
-                    return;
+
+                    _serverResponsive = false;
+                    return null;
+                }
+                else
+                {
+                    _serverResponsive = true;
                 }
 
                 // Server contactable, get server platforms
@@ -567,15 +576,16 @@ namespace RommStar.Core.UI.ViewModels.Pages
                     {
                         OnPropertyChanged(nameof(CurrentServerPlatforms));
                     }
-                    return;
+                    return null;
                 }
 
                 // Store in cache
                 _rommPlatformCache[rommServerItem.RommServer.Id] = new ObservableCollection<PlatformDTO>((List<PlatformDTO>)rommPlatformsQuery.Data);
 
-                string successText = $"{_rommPlatformCache[rommServerItem.RommServer.Id].Count} Romm Platforms retrieved successfully";
-                rommServerItem.InfoBar = PopulatedInfoBar("Success", successText, isOpen: showMessage, InfoBarSeverity.Success);
+                successText = $"{_rommPlatformCache[rommServerItem.RommServer.Id].Count} Romm Platforms retrieved successfully";
                 _loggingService.Log(successText);
+
+                //rommServerItem.InfoBar = PopulatedInfoBar("Success", successText, isOpen: showMessage, InfoBarSeverity.Success);
 
                 // Notify UI if this was the currently selected server
                 if (SelectedRommServer?.RommServer.Id == rommServerItem.RommServer.Id)
@@ -592,6 +602,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
                 // ALWAYS clear the lock when the API call finishes (success or fail)
                 _inFlightServerRequests.Remove(rommServerItem.RommServer.Id);
             }
+            return successText;
         }
 
         partial void OnPlatformSearchTextChanged(string value)
@@ -677,7 +688,12 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private async Task RefreshRommServerPlatforms(RommServerItemVM rommServer)
         {
             _loggingService.Log($"Manually refreshing platforms for RomM Server: [{rommServer.RommServer.ServerName}]");
-            await LoadServerPlatformsAsync(rommServer, showMessage: true, forceRefesh: true);
+            string result = await LoadServerPlatformsAsync(rommServer, showMessage: true, forceRefesh: true);
+
+            if (result != null)
+            {
+                rommServer.InfoBar = PopulatedInfoBar("Success", result, isOpen: true, InfoBarSeverity.Success);
+            }
         }
 
         [RelayCommand]
@@ -768,6 +784,17 @@ namespace RommStar.Core.UI.ViewModels.Pages
         private async Task SyncSelectedPlatform()
         {
             if (SelectedPlatform == null) return;
+
+            var serverTest = await _rommService.TestConnectionAsync(SelectedPlatform.AssignedServerItem.RommServer);
+
+
+            if (!serverTest.IsSuccess)
+            {
+                SetInfoBar(LaunchboxRommPlatformsInfoBar, true,
+                                InfoBarSeverity.Error, "Sync Platform Error", "Server is not responsive - check settings. Cannot start Sync.");
+                _loggingService.Log($"Server is not responsive: {serverTest.FailureReason}, Http: {serverTest.HttpResponse}, Exception:  {serverTest.ExceptionMessage}");
+                return;
+            }
 
             if (SelectedPlatform.AssignedServerItem == null)
             {

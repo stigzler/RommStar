@@ -22,6 +22,8 @@ namespace RommStar.Core.Plugins.GameMenuItems
 
         public bool Enabled => true;
 
+        public bool ShowInBigBox => false;
+
         public Image Icon => Resources.wand_hat;
 
         public void OnSelect(params IGame[] games)
@@ -78,6 +80,7 @@ namespace RommStar.Core.Plugins.GameMenuItems
             IGame game = _selectedGame;
             game.Installed = false;
             game.Status = "Not Installed";
+            game.ApplicationPath = "Plugins\\RommStar\\Game Installation Required";
             foreach (var app in game.GetAllAdditionalApplications().Where(app => app.Section() == "Version"))
             {
                 app.Installed = false;

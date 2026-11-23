@@ -56,14 +56,16 @@ namespace RommStar.Core.Services
         private HashSet<string?> _platformServerIds = new HashSet<string?>();
 
         private RomMapper _romMapper;
-        public LaunchboxSettings _launchboxSettings { get; set; } = new LaunchboxSettings();
-        public SettingsService _settingsService { get; set; }
+        public LaunchboxSettings LaunchboxSettings { get; set; } = new LaunchboxSettings();
+        public BigBoxSettings BigBoxSettings { get; set; } = new BigBoxSettings();
+        public SettingsService SettingsService { get; set; }
         public LaunchboxDataService(RomMapper romMapper, SettingsService settingsService, LoggingService loggingService)
         {
             _romMapper = romMapper;
-            _settingsService = settingsService;
+            SettingsService = settingsService;
             _loggingService = loggingService;
             PopulateLaunchboxSettings();
+            PopulateBigBoxSettings();
         }
         public void AddOrUpdateAdditionalApplication(IGame parentGame, RomFileDTO fileDto, string targetDirectory,
                     string customAppName = null, bool usePlaceholderPath = false)
@@ -180,7 +182,7 @@ namespace RommStar.Core.Services
         public string GetPlatformIconPath(string platformName)
         {
             string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
-                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
+                LaunchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
             return votiIconPath;
         }
 
@@ -210,7 +212,7 @@ namespace RommStar.Core.Services
         public string SaveNewPlatformIcon(string source, string platformName, bool overwrite = false)
         {
             string votiIconPath = Path.Combine(Constants.LaunchboxRootDir, Constants.MediaPacksPlatformIconsRelPath,
-                _launchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
+                LaunchboxSettings.PlatformIconPack, "Platforms", $"{platformName}.png");
 
             if (File.Exists(votiIconPath) && overwrite == false)
             {
@@ -294,7 +296,7 @@ namespace RommStar.Core.Services
             _loggingService.Log($"Launchbox database ids: {String.Join(",", _platformLbGameDatabaseIds)}");
             _loggingService.Log($"Romm ids: {String.Join(",", _platformRommIds)}");
 
-            if (_settingsService.Settings.LoggingLevel > Primitives.LoggingLevel.Normal)
+            if (SettingsService.Settings.LoggingLevel > Primitives.LoggingLevel.Normal)
             {
                 _loggingService.Log("Full Ids map:");
                 foreach (var map in _platformHelperMap) _loggingService.Log(map.ToString());
@@ -341,12 +343,12 @@ namespace RommStar.Core.Services
 
                 if (hasMatchingRommId == true && hasMatchingServerId == true && rommDTO.Id.HasValue)
                 {
-                    metadataSyncHelperMap = _platformHelperMap.Single(pg =>
-                                    pg.RommServerId == _operativeServerId && pg.ContainsId(rommDTO.Id.Value));
+                    metadataSyncHelperMap = _platformHelperMap.FirstOrDefault(pg =>
+                                    pg.RommServerId == _operativeServerId && pg.ContainsRommId(rommDTO.Id.Value));
                 }
                 else
                 {
-                    metadataSyncHelperMap = _platformHelperMap.Single(pg => pg.LbDatabaseId == rommDTO.LaunchboxId);
+                    metadataSyncHelperMap = _platformHelperMap.FirstOrDefault(pg => pg.LbDatabaseId == rommDTO.LaunchboxId);
                 }
 
                 launchboxLocalId = metadataSyncHelperMap.LocalId;
@@ -377,7 +379,7 @@ namespace RommStar.Core.Services
                     }
                     else
                     {
-                        AddNewRommMetadata(game, rommDTO.LaunchboxId?.ToString());
+                        AddNewRommMetadata(game, rommDTO.Id?.ToString());
                     }
                 }
 
@@ -400,8 +402,6 @@ namespace RommStar.Core.Services
                         newAltName.Name = altName;
                     }
                 }
-
-
             }
 
             // ---------------------------------------------------------
@@ -471,12 +471,12 @@ namespace RommStar.Core.Services
             if (romQueueItems == null || romQueueItems.Count == 0) return;
 
             // 1. Resolve Settings and Platform Roots
-            var platformSettings = _settingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss =>
+            var platformSettings = SettingsService.Settings.PlatformSyncSettings.FirstOrDefault(pss =>
                             pss.LaunchboxPlatformName == romQueueItems[0].PlatformName);
 
             bool individualGameFolders = (platformSettings?.ExtendedSyncSettings?.ApplySettings == true) ?
                 platformSettings.ExtendedSyncSettings.UseIndividualGameFolders :
-                 _settingsService.Settings.GlobalExtendedSyncSettings.UseIndividualGameFolders;
+                 SettingsService.Settings.GlobalExtendedSyncSettings.UseIndividualGameFolders;
 
             IPlatform platform = PluginHelper.DataManager.GetPlatformByName(romQueueItems[0].PlatformName);
             if (platform == null)
@@ -685,20 +685,28 @@ namespace RommStar.Core.Services
                 // Force save the LaunchBox database changes for the batch
                 PluginHelper.DataManager.Save();
 
-                // Only trigger the background UI hacks if this is the background daemon!
-                // The manual VIP install handles its own UI updates via UpdatePlayButtonUi.
-                await Application.Current.Dispatcher.BeginInvoke(new Action(async () =>
+                // Game file/s downloaded/moved + iGame object updated. Update Play button
+
+                if (PluginHelper.StateManager.IsBigBox)
+                { //if (game != null) await LaunchboxViewsHelper.UpdatePlayButtonUi(game); }
+                }
+                else
                 {
-                    // If user browsing the same platform as the download, refresh to update Install badges. Otherwise don't to reduce UI noise.
-                    // Note: AT LB startup, it defaults to display your last platform, but GetSelectedPlatform() returns null
-                    // therefor refresh on null or same platform. 
-                    IPlatform selectedPlatform = PluginHelper.StateManager.GetSelectedPlatform();
-                    if (selectedPlatform == null || selectedPlatform.Name == platform.Name)
+                    // Only trigger the background UI hacks if this is the background daemon!
+                    // The manual VIP install handles its own UI updates via UpdatePlayButtonUi.
+                    await Application.Current.Dispatcher.BeginInvoke(new Action(async () =>
                     {
-                        if (game != null) await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
-                        _ = LaunchboxViewsHelper.SoftRefreshUi();
-                    }
-                }));
+                        // If user browsing the same platform as the download, refresh to update Install badges. Otherwise don't to reduce UI noise.
+                        // Note: AT LB startup, it defaults to display your last platform, but GetSelectedPlatform() returns null
+                        // therefor refresh on null or same platform. 
+                        IPlatform selectedPlatform = PluginHelper.StateManager.GetSelectedPlatform();
+                        if (selectedPlatform == null || selectedPlatform.Name == platform.Name)
+                        {
+                            if (game != null) await LaunchboxViewsHelper.UpdatePlayButtonUi(game);
+                            _ = LaunchboxViewsHelper.SoftRefreshUi();
+                        }
+                    }));
+                }
 
                 batchItem.UpdateQueueItemStatus(RomQueueItemStatus.Complete);
 
@@ -746,17 +754,6 @@ namespace RommStar.Core.Services
             protectMetadataCustomField.Name = CustomFieldTypes.Romm_ProtectMetadata.ToString();
             protectMetadataCustomField.Value = "false";
         }
-
-        //private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipEntryFullName)
-        //{
-        //    return batchItems.FirstOrDefault(item =>
-        //        // 1. Single File / Sibling Match: The path ends exactly with the MasterFilename
-        //        zipEntryFullName.EndsWith(item.MasterFilename, StringComparison.OrdinalIgnoreCase) ||
-
-        //        // 2. Multi-Disc Match: The path contains the MasterFilename as a folder directory
-        //        zipEntryFullName.Contains($"/{item.MasterFilename}/", StringComparison.OrdinalIgnoreCase)
-        //    );
-        //}
 
         private RomQueueItem FindMatchingBatchItemForFile(List<RomQueueItem> batchItems, string zipEntryFullName)
         {
@@ -810,7 +807,17 @@ namespace RommStar.Core.Services
             var settings = doc.Root?.Element("Settings");
             if (settings?.Element("PlatformIconPack")?.Value is string iconPack && !string.IsNullOrWhiteSpace(iconPack))
             {
-                _launchboxSettings.PlatformIconPack = iconPack;
+                LaunchboxSettings.PlatformIconPack = iconPack;
+            }
+        }
+
+        private void PopulateBigBoxSettings()
+        {
+            XDocument doc = XDocument.Load(Path.Combine(Constants.LaunchboxRootDir, "Data\\BigBoxSettings.xml"));
+            var settings = doc.Root?.Element("BigBoxSettings");
+            if (settings?.Element("Theme")?.Value is string theme && !string.IsNullOrWhiteSpace(theme))
+            {
+                BigBoxSettings.Theme = theme;
             }
         }
     }

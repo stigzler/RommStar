@@ -92,8 +92,6 @@
                                                        FontSize="12" />
                                             </WrapPanel>
 
-
-
                                             <ui:ProgressBar Value="{Binding ProgressPercentage, Mode=OneWay}"
                                                         Minimum="0"
                                                         Maximum="100"
@@ -238,7 +236,7 @@
                                         <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Status}" Value="Cancelled">
-                                        <Setter TargetName="JobCard" Value="#40ff00ff" Property="Background" />
+                                        <Setter TargetName="JobCard" Value="#40ff0000" Property="Background" />
                                         <Setter TargetName="JobCard" Value="#808080" Property="BorderBrush" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Status}" Value="CompletedWithWarnings">

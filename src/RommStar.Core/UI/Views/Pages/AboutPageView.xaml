@@ -37,7 +37,7 @@
                 <ui:HyperlinkButton x:Name="Forum"
                     Content="Forum"
                     IsEnabled="True"
-                    NavigateUri="http://www.inkore.net" Margin="10"/>
+                    NavigateUri="https://forums.launchbox-app.com/topic/94635-rommstar-sync-your-launchbox-installations-to-romm-servers/" Margin="10"/>
             </StackPanel>
         </StackPanel>
     </Grid>

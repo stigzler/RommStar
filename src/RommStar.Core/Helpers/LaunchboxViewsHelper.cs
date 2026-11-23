@@ -16,6 +16,297 @@ namespace RommStar.Core.Helpers
 {
     internal static class LaunchboxViewsHelper
     {
+        public static string installingText = "Installing...";
+        public static string installText = "Install";
+        public static string playText = "Play";
+        public static string uninstallingText = "Uninstalling...";
+        private static readonly Dictionary<object, object> _originalCommands = new Dictionary<object, object>();
+
+        /// <summary>
+        /// Locates the Big Box Play menu item element from the MainWindow visual tree.
+        /// </summary>
+        public static FrameworkElement FindBigBoxPlayMenuItem()
+        {
+            var mainWindow = Application.Current.MainWindow;
+            if (mainWindow == null) return null;
+
+            return FindElementRecursive(mainWindow, child =>
+            {
+                // Check if it's a ListBoxItem backed by a MenuItemViewModel
+                if (child is ListBoxItem lbi && lbi.DataContext != null)
+                {
+                    var type = lbi.DataContext.GetType();
+                    var textProp = type.GetProperty("Text");
+                    if (textProp != null)
+                    {
+                        var textVal = textProp.GetValue(lbi.DataContext) as string;
+                        if (string.Equals(textVal, playText, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(textVal, installText, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(textVal, installingText, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(textVal, uninstallingText, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(textVal, "ThisNeedsChangingForMultiLanguageSupport", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                // Alternatively check if it's the TextBlock directly named "MenuText" with text "Play"
+                if (child is TextBlock tb && (string.Equals(tb.Text, playText, StringComparison.OrdinalIgnoreCase) ||
+                                                string.Equals(tb.Text, installText, StringComparison.OrdinalIgnoreCase) ||
+                                                string.Equals(tb.Text, installingText, StringComparison.OrdinalIgnoreCase) ||
+                                                string.Equals(tb.Text, uninstallingText, StringComparison.OrdinalIgnoreCase) ||
+                                              string.Equals(tb.Text, "ThisNeedsChangingForMultiLanguageSupport", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+
+                return false;
+            });
+        }
+
+        public static T FindButtonByCommand<T>(DependencyObject parent, string commandName) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+
+                // Check if this child is a Button
+                if (child is Button btn)
+                {
+                    // Check if the command binding path matches
+                    var binding = BindingOperations.GetBinding(btn, Button.CommandProperty);
+                    if (binding != null && binding.Path.Path == commandName)
+                    {
+                        return (T)child;
+                    }
+                }
+
+                // Recursive search
+                T foundChild = FindButtonByCommand<T>(child, commandName);
+                if (foundChild != null) return foundChild;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Recursively searches the visual tree for a FrameworkElement of type T 
+        /// that has a specific Binding path on the given DependencyProperty.
+        /// </summary>
+        public static T FindElementByBinding<T>(DependencyObject parent, DependencyProperty dependencyProperty, string bindingPath) where T : FrameworkElement
+        {
+            if (parent == null) return null;
+
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+
+                // Check if the child is the correct type
+                if (child is T element)
+                {
+                    // Check if the binding matches what we are looking for
+                    var binding = BindingOperations.GetBinding(element, dependencyProperty);
+                    if (binding != null && binding.Path.Path == bindingPath)
+                    {
+                        return element;
+                    }
+                }
+
+                // Recursive search deeper into the tree
+                T foundChild = FindElementByBinding<T>(child, dependencyProperty, bindingPath);
+                if (foundChild != null) return foundChild;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Recursively searches the visual tree for any FrameworkElement matching a predicate condition.
+        /// </summary>
+        public static FrameworkElement FindElementRecursive(DependencyObject parent, Func<DependencyObject, bool> predicate)
+        {
+            if (parent == null) return null;
+
+            if (predicate(parent) && parent is FrameworkElement fe)
+            {
+                return fe;
+            }
+
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                var result = FindElementRecursive(child, predicate);
+                if (result != null) return result;
+            }
+
+            return null;
+        }
+
+        public static T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
+
+                // If this child is the type we are looking for, return it
+                if (child != null && child is T)
+                    return (T)child;
+
+                // Otherwise, keep searching recursively
+                T childOfChild = FindVisualChild<T>(child);
+                if (childOfChild != null)
+                    return childOfChild;
+            }
+            return null;
+        }
+
+        private static readonly Dictionary<object, object> _originalActions = new Dictionary<object, object>();
+
+        /// <summary>
+        /// Modifies the Big Box Play menu item text, styling, action, and enabled state.
+        /// </summary>
+        internal static void ModifyBigBoxPlayItem(string customText, bool removeCommand, bool isEnabled)
+        {
+            var mainWindow = Application.Current.MainWindow;
+            if (mainWindow == null) return;
+
+            // 1. Locate the ListBoxItem container representing the Play menu item
+            var listBoxItem = FindElementRecursive(mainWindow, child =>
+            {
+                if (child is ListBoxItem lbi && lbi.DataContext != null)
+                {
+                    var type = lbi.DataContext.GetType();
+                    var textProp = type.GetProperty("Text");
+                    if (textProp != null)
+                    {
+                        var textVal = textProp.GetValue(lbi.DataContext) as string;
+                        if (string.Equals(textVal, playText, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(textVal, installText, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(textVal, installingText, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(textVal, uninstallingText, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }) as ListBoxItem;
+
+            if (listBoxItem == null) return;
+
+            // 2. Unsubscribe previous handlers to avoid duplicate event hooks
+            listBoxItem.PreviewKeyDown -= BlockItemInput;
+            listBoxItem.PreviewMouseLeftButtonDown -= BlockItemInput;
+
+            if (removeCommand)
+            {
+                // Intercept and swallow input events BEFORE Big Box's ListBox sees them
+                listBoxItem.PreviewKeyDown += BlockItemInput;
+                listBoxItem.PreviewMouseLeftButtonDown += BlockItemInput;
+            }
+
+            // 3. Find the internal TextBlock ("MenuText") to enforce large font/padding styling
+            var textBlock = FindVisualChild<TextBlock>(listBoxItem);
+            if (textBlock != null)
+            {
+                textBlock.ClearValue(TextBlock.TextProperty);
+                textBlock.Text = customText;
+
+                try
+                {
+                    var scaleConverter = textBlock.FindResource("ScaleConverter") as IValueConverter;
+                    if (scaleConverter != null)
+                    {
+                        var culture = System.Globalization.CultureInfo.CurrentCulture;
+                        if (scaleConverter.Convert("45", typeof(double), null, culture) is double scaledFontSize)
+                        {
+                            textBlock.FontSize = scaledFontSize;
+                        }
+                        if (scaleConverter.Convert("0,10", typeof(Thickness), null, culture) is Thickness scaledPadding)
+                        {
+                            textBlock.Padding = scaledPadding;
+                        }
+                    }
+                }
+                catch
+                {
+                    textBlock.FontSize = 45;
+                    textBlock.Padding = new Thickness(0, 10, 0, 10);
+                }
+            }
+
+            // 4. Clear/Restore Action on DataContext
+            var dataContext = listBoxItem.DataContext;
+            if (dataContext != null)
+            {
+                var type = dataContext.GetType();
+
+                var textProp = type.GetProperty("Text");
+                if (textProp != null && textProp.CanWrite)
+                {
+                    textProp.SetValue(dataContext, customText);
+                }
+
+                var actionProp = type.GetProperty("Action");
+                if (actionProp != null)
+                {
+                    if (!_originalActions.ContainsKey(dataContext))
+                    {
+                        var currentAction = actionProp.GetValue(dataContext);
+                        if (currentAction != null)
+                        {
+                            _originalActions[dataContext] = currentAction;
+                        }
+                    }
+
+                    if (actionProp.CanWrite)
+                    {
+                        if (removeCommand)
+                        {
+                            actionProp.SetValue(dataContext, null);
+                        }
+                        else if (_originalActions.TryGetValue(dataContext, out var origAction))
+                        {
+                            actionProp.SetValue(dataContext, origAction);
+                        }
+                    }
+                }
+            }
+
+            listBoxItem.InvalidateVisual();
+        }
+
+        /// <summary>
+        /// Swallows activation inputs (Enter, Space, Mouse Click) before Big Box can process them.
+        /// </summary>
+        private static void BlockItemInput(object sender, RoutedEventArgs e)
+        {
+            if (e is System.Windows.Input.KeyEventArgs keyArgs)
+            {
+                // Only block activation keys (Enter, Space, Controller A/South mapping)
+                if (keyArgs.Key == System.Windows.Input.Key.Enter || keyArgs.Key == System.Windows.Input.Key.Space)
+                {
+                    e.Handled = true; // Marks event as handled, killing sound and action
+                }
+            }
+            else
+            {
+                // Block mouse clicks
+                e.Handled = true;
+            }
+        }
+
+        internal static async Task RefreshPlayButtonUi()
+        {
+            var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
+            if (view == null) return;
+
+            var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
+            if (playButton == null) return;
+
+            playButton.InvalidateVisual();
+        }
+
         /// <summary>
         /// Total hack, but works!
         /// Basically simulates clicking out of lb and then back in again by spawning invisible wpf window then closing it
@@ -57,34 +348,142 @@ namespace RommStar.Core.Helpers
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
-        /// <summary>
-        /// Recursively searches the visual tree for a FrameworkElement of type T 
-        /// that has a specific Binding path on the given DependencyProperty.
-        /// </summary>
-        public static T FindElementByBinding<T>(DependencyObject parent, DependencyProperty dependencyProperty, string bindingPath) where T : FrameworkElement
+
+        internal static async Task UpdatePlayButtonUi(IGame game, [CallerMemberName] string callerName = "")
         {
-            if (parent == null) return null;
+            bool isInstalling = (game.Status == "Installing");
+            bool isUninstalling = (game.Status == "Uninstalling");
+            bool notInstalled = (game.Status == "Not Installed");
 
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            // Retry parameters to handle the SelectionChanged timing lag
+            const int maxRetries = 10;
+            const int delayMs = 30;
+
+            for (int attempt = 0; attempt < maxRetries; attempt++)
             {
-                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+                bool success = false;
 
-                // Check if the child is the correct type
-                if (child is T element)
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    // Check if the binding matches what we are looking for
-                    var binding = BindingOperations.GetBinding(element, dependencyProperty);
-                    if (binding != null && binding.Path.Path == bindingPath)
+                    if (PluginHelper.StateManager.IsBigBox)
                     {
-                        return element;
-                    }
-                }
+                        var bigBoxPlayItem = FindBigBoxPlayMenuItem();
+                        if (bigBoxPlayItem != null)
+                        {
 
-                // Recursive search deeper into the tree
-                T foundChild = FindElementByBinding<T>(child, dependencyProperty, bindingPath);
-                if (foundChild != null) return foundChild;
+                            success = true;
+                            // Apply your Big Box modification logic here
+                            if (notInstalled)
+                            {
+                                ModifyBigBoxPlayItem(installText, removeCommand: false, isEnabled: true);
+                            }
+                            else if (isInstalling)
+                            {
+                                ModifyBigBoxPlayItem(installingText, removeCommand: true, isEnabled: false);
+                            }
+                            else if (isUninstalling)
+                            {
+                                ModifyBigBoxPlayItem(uninstallingText, removeCommand: true, isEnabled: false);
+                            }
+                            else
+                            {
+                                ModifyBigBoxPlayItem(playText, removeCommand: false, isEnabled: true);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
+                        if (view != null)
+                        {
+                            var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
+                            if (playButton != null)
+                            {
+                                success = true;
+                                // --- Your existing Desktop overlay logic goes here ---
+                                var parent = VisualTreeHelper.GetParent(playButton) as Panel;
+                                if (parent == null) return;
+
+                                var overlayContainer = parent.Children.OfType<Border>().FirstOrDefault(x => (string)x.Tag == "InstallingOverlay");
+
+                                if (!isInstalling && overlayContainer == null) return;
+
+                                if (overlayContainer == null && (isInstalling || isUninstalling))
+                                {
+                                    overlayContainer = new Border
+                                    {
+                                        Tag = "InstallingOverlay",
+                                        Height = playButton.ActualHeight,
+                                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                                        VerticalAlignment = VerticalAlignment.Stretch,
+                                        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#a0553e98")),
+                                        BorderThickness = new Thickness(1),
+                                        BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e0371f69")),
+                                        Focusable = false,
+                                        Opacity = 0,
+                                        IsHitTestVisible = false
+                                    };
+
+                                    if (parent is Grid) Grid.SetColumnSpan(overlayContainer, 3);
+
+                                    var stackPanel = new StackPanel
+                                    {
+                                        Orientation = Orientation.Horizontal,
+                                        HorizontalAlignment = HorizontalAlignment.Center,
+                                        VerticalAlignment = VerticalAlignment.Center
+                                    };
+
+                                    stackPanel.Children.Add(CreateSpinner());
+                                    stackPanel.Children.Add(new TextBlock
+                                    {
+                                        Text = "INSTALLING",
+                                        Foreground = Brushes.White,
+                                        FontWeight = FontWeights.Bold,
+                                        FontSize = 25,
+                                        VerticalAlignment = VerticalAlignment.Center,
+                                        Margin = new Thickness(5, 0, 0, 0)
+                                    });
+
+                                    overlayContainer.Child = stackPanel;
+                                    parent.Children.Add(overlayContainer);
+                                }
+
+                                if (overlayContainer != null)
+                                {
+                                    double targetOverlayOpacity = isInstalling ? 1 : 0;
+                                    double targetButtonOpacity = isInstalling ? 0 : 1;
+
+                                    if (overlayContainer.Opacity != targetOverlayOpacity)
+                                    {
+                                        overlayContainer.Opacity = targetOverlayOpacity;
+                                        overlayContainer.IsHitTestVisible = isInstalling;
+
+                                        playButton.Opacity = targetButtonOpacity;
+                                        playButton.IsHitTestVisible = !isInstalling;
+
+                                        var currentContext = playButton.DataContext;
+                                        playButton.DataContext = null;
+                                        playButton.DataContext = currentContext;
+
+                                        var dropdownButton = parent.Children.OfType<Button>().FirstOrDefault(b => b != playButton);
+                                        if (dropdownButton != null)
+                                        {
+                                            dropdownButton.Opacity = targetButtonOpacity;
+                                            dropdownButton.IsHitTestVisible = !isInstalling;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }, System.Windows.Threading.DispatcherPriority.Loaded);
+
+                // If found and processed successfully, break out of the retry loop
+                if (success) break;
+
+                // Wait briefly for WPF to finish rendering the new template before next attempt
+                await Task.Delay(delayMs);
             }
-            return null;
         }
 
         /// <summary>
@@ -111,150 +510,6 @@ namespace RommStar.Core.Helpers
 
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
-
-        public static T FindButtonByCommand<T>(DependencyObject parent, string commandName) where T : DependencyObject
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
-
-                // Check if this child is a Button
-                if (child is Button btn)
-                {
-                    // Check if the command binding path matches
-                    var binding = BindingOperations.GetBinding(btn, Button.CommandProperty);
-                    if (binding != null && binding.Path.Path == commandName)
-                    {
-                        return (T)child;
-                    }
-                }
-
-                // Recursive search
-                T foundChild = FindButtonByCommand<T>(child, commandName);
-                if (foundChild != null) return foundChild;
-            }
-            return null;
-        }
-        internal static async Task RefreshPlayButtonUi()
-        {
-            var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
-            if (view == null) return;
-
-            var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
-            if (playButton == null) return;
-
-            playButton.InvalidateVisual();
-        }
-
-        internal static async Task UpdatePlayButtonUi(IGame game, [CallerMemberName] string callerName = "")
-        {
-            // 1. This will print to your Visual Studio Output window instantly!
-            System.Diagnostics.Debug.WriteLine($"[DIAGNOSTIC] UpdatePlayButtonUi was called by: {callerName} for game: {game?.Title}");
-
-            // Pre-calculate state to minimize UI thread work
-            bool isInstalling = (game.Status == "Installing");
-            bool isUninstalling = (game.Status == "Uninstalling");
-
-            // Ensure the passed game object reflects its updated status safely
-            //if (game.Installed == true && isInstalling)
-            //{
-            //    game.Status = "Installed";
-            //    isInstalling = false;
-            //}
-
-            await Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                var view = PluginHelper.LaunchBoxMainViewModel.GameDetailsView as FrameworkElement;
-                if (view == null) return;
-
-                var playButton = FindButtonByCommand<Button>(view, "PlayCommand");
-                if (playButton == null) return;
-
-                var parent = VisualTreeHelper.GetParent(playButton) as Panel;
-                if (parent == null) return;
-
-                var overlayContainer = parent.Children.OfType<Border>().FirstOrDefault(x => (string)x.Tag == "InstallingOverlay");
-
-                // --- OPTIMIZATION 1: Exit Early ---
-                // If the game isn't installing, and there is no overlay to hide, do absolutely nothing. 
-                // This eliminates all lag/blinking when the user is just browsing normal games.
-                if (!isInstalling && overlayContainer == null) return;
-
-                // --- OPTIMIZATION 2: Lazy Overlay Creation ---
-                if (overlayContainer == null && (isInstalling || isUninstalling))
-                {
-                    overlayContainer = new Border
-                    {
-                        Tag = "InstallingOverlay",
-                        Height = playButton.ActualHeight,
-                        HorizontalAlignment = HorizontalAlignment.Stretch,
-                        VerticalAlignment = VerticalAlignment.Stretch,
-                        Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#a0553e98")),
-                        BorderThickness = new Thickness(1),
-                        BorderBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#e0371f69")),
-                        Focusable = false,
-                        Opacity = 0,
-                        IsHitTestVisible = false
-                    };
-
-                    if (parent is Grid) Grid.SetColumnSpan(overlayContainer, 3);
-
-                    var stackPanel = new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    };
-
-                    stackPanel.Children.Add(CreateSpinner());
-                    stackPanel.Children.Add(new TextBlock
-                    {
-                        Text = "INSTALLING",
-                        Foreground = Brushes.White,
-                        FontWeight = FontWeights.Bold,
-                        FontSize = 25,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(5, 0, 0, 0)
-                    });
-
-                    overlayContainer.Child = stackPanel;
-                    parent.Children.Add(overlayContainer);
-                }
-
-                // --- OPTIMIZATION 3: State-Aware UI Updates ---
-                // Only update the opacities if they are not already in the correct state.
-                if (overlayContainer != null)
-                {
-                    double targetOverlayOpacity = isInstalling ? 1 : 0;
-                    double targetButtonOpacity = isInstalling ? 0 : 1;
-
-                    if (overlayContainer.Opacity != targetOverlayOpacity)
-                    {
-                        overlayContainer.Opacity = targetOverlayOpacity;
-                        overlayContainer.IsHitTestVisible = isInstalling;
-
-                        playButton.Opacity = targetButtonOpacity;
-                        playButton.IsHitTestVisible = !isInstalling;
-
-                        // Force the button's data bindings to re-evaluate.
-                        // Because this is inside the state-change block, it only bounces
-                        // exactly when a download starts or finishes, never during normal browsing.
-                        var currentContext = playButton.DataContext;
-                        playButton.DataContext = null;
-                        playButton.DataContext = currentContext;
-
-                        var dropdownButton = parent.Children.OfType<Button>().FirstOrDefault(b => b != playButton);
-                        if (dropdownButton != null)
-                        {
-                            dropdownButton.Opacity = targetButtonOpacity;
-                            dropdownButton.IsHitTestVisible = !isInstalling;
-                        }
-                    }
-                }
-
-            }), System.Windows.Threading.DispatcherPriority.Background);
-        }
-
         private static FrameworkElement CreateSpinner()
         {
             // A simple arc path
@@ -287,27 +542,6 @@ namespace RommStar.Core.Helpers
 
             return spinner;
         }
-
-
-
-        public static T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
-            {
-                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
-
-                // If this child is the type we are looking for, return it
-                if (child != null && child is T)
-                    return (T)child;
-
-                // Otherwise, keep searching recursively
-                T childOfChild = FindVisualChild<T>(child);
-                if (childOfChild != null)
-                    return childOfChild;
-            }
-            return null;
-        }
-
         //public static void ResetPlayButton(Button playButton)
         //{
         //    var textBlock = FindVisualChild<TextBlock>(playButton);

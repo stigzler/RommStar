@@ -80,7 +80,7 @@ namespace RommStar.Core.UI.ViewModels.Pages
         //{
         //    if (item == null) return;
         //    // The UI's TwoWay binding already flipped the boolean, we just need to save.
-        //    _settingsService.Save();
+        //    SettingsService.Save();
         //}
 
         [RelayCommand]
